@@ -1,0 +1,35 @@
+{
+    "name": "huncwotdigital/uho-framework",
+    "description": "PHP model-view-controller framework",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lukasz Knasiecki",
+            "email": "lukasz@huncwot.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "auth0/auth0-php": "^8.0",
+        "twig/twig": "^3.3",
+        "google/apiclient": "^2.12.1",
+        "aws/aws-sdk-php-resources": "^0.3.0",
+        "phpmailer/phpmailer": "^6.7.1",
+        "league/oauth2-google": "^4.0.1",
+        "google/analytics-data": "^0.10.1",
+        "james-heinrich/phpthumb": "^1.7.23",
+        "facebook/graph-sdk": "^5.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Huncwot\\UhoFramework\\": "src/",
+            "SimplePHPCache\\": "library/Simple-PHP-Cache/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
