@@ -2,6 +2,11 @@
 
 namespace Huncwot\UhoFramework;
 
+/**
+ * This is the class to connect with
+ * LOGIV.GOV.PL (also known as EPuap)
+ */
+
 class _uho_client_epuap
 {
     public $issuer;

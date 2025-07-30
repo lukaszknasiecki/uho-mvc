@@ -258,7 +258,8 @@ class _uho_client
 
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hashPass($this->salt. '5eh');
+    
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hashPass($this->salt['value']. '5eh');
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {

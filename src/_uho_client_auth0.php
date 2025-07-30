@@ -4,6 +4,7 @@ namespace Huncwot\UhoFramework;
 
 /**
  * This class provides AUTH0 integration
+ * for _uho_client class
  */
 
 class _uho_client_auth0

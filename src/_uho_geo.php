@@ -3,7 +3,8 @@
 namespace Huncwot\UhoFramework;
 
 /**
- * This class provides a set of static utility functions for geographical issues
+ * This class provides a set of static utility
+ * functions for geographical issues
  */
 
 class _uho_geo
@@ -25,7 +26,8 @@ class _uho_geo
     /**
      * Returns centroid from geojson
      *
-     * @psalm-return list{mixed, mixed}|null
+     * @param array $path ENV file path
+     * @return array
      */
     public static function geojson2centroid($geojson): array|null
     {
@@ -40,7 +42,10 @@ class _uho_geo
     }
 
     /**
-     * Returns bbox from geojson
+     * Returns bbox from array of points
+     * @param array $items
+     * @return array
+     * 
      */
     private static function deArrayPoints(array $items): array
     {
@@ -64,6 +69,13 @@ class _uho_geo
 
         return $result;
     }
+
+    /**
+     * Returns bbox from geojson
+     * @param array $geojson
+     * @return array
+     * 
+     */
 
     public static function geojson2bbox($geojson)
     {
@@ -99,9 +111,10 @@ class _uho_geo
 
 
     /**
-     * @return (array[][]|string)[]
-     *
-     * @psalm-return array{type: 'Polygon', coordinates: list{list{list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}}}}
+     * Converts bbox to geojson
+     * @param array $items
+     * @return array
+     * 
      */
     public static function bbox2geojson($bbox): array
     {
@@ -120,6 +133,13 @@ class _uho_geo
         ];
         return $g;
     }
+
+    /**
+     * Calculates distance between the points
+     * @param array $items
+     * @return integer
+     * 
+     */
 
     public static function points_distance($lat1, $lon1, $lat2, $lon2, $unit): float
     {
@@ -141,9 +161,10 @@ class _uho_geo
     }
 
     /**
-     * @return (mixed|null)[]
-     *
-     * @psalm-return list{mixed|null, mixed|null, mixed|null, mixed|null}
+     * Converts list of points to BBOX
+     * @param array $items
+     * @return array
+     * 
      */
     public static function points2bbox(array|bool $points): array
     {
@@ -160,9 +181,13 @@ class _uho_geo
         return $bbox;
     }
 
-    /*
-        returns sq distance between points
-    */
+    /**
+     * returns sq distance between points
+     * @param array $p1
+     * @param array $p2
+     * @return integer
+     * 
+     */
 
     public static function getSquareDistance($p1, $p2)
     {
@@ -171,9 +196,13 @@ class _uho_geo
         return $dx * $dx + $dy * $dy;
     }
 
-    /*
-        returns segments distance between point
-    */
+    /**
+     * returns segments distance between point
+     * @param array $p
+     * @param array $p1
+     * @param array $p2
+     * @return integer
+     */
 
     public static function getSquareSegmentDistance($p, $p1, $p2)
     {
@@ -202,13 +231,13 @@ class _uho_geo
         return $dx * $dx + $dy * $dy;
     }
 
-    /*
-     distance-based simplification
+    /**
+     * distance-based simplification
+     * @param array $points
+     * @param integer $sqTolerance
+     * @return array
      */
 
-    /**
-     * @psalm-return list{0: mixed, 1?: mixed,...}
-     */
     public static function simplifyRadialDistance($points, $sqTolerance): array
     {
 
@@ -234,13 +263,13 @@ class _uho_geo
         return $newPoints;
     }
 
-    /*
-     Simplification using optimized Douglas-Peucker algorithm with recursion elimination
-    */
-
     /**
-     * @psalm-return list{0?: mixed,...}
+     * Simplification using optimized Douglas-Peucker algorithm with recursion elimination
+     * @param array $points
+     * @param integer $sqTolerance
+     * @return array
      */
+
     public static function simplifyDouglasPeucker($points, $sqTolerance): array
     {
 
@@ -293,17 +322,15 @@ class _uho_geo
         return $newPoints;
     }
 
-    /*
-        Simplify Points
-    */
-
     /**
-     * @param array[] $points
-     * @param float|int $tolerance
-     *
-     * @psalm-param list{0?: array{x: mixed, y: mixed},...} $points
-     * @psalm-param 1|float $tolerance
+     * Simplify Points
+     * @param array $points
+     * @param int|float $tolerance
+     * @param boolean $highestQuality
+     * @return array
      */
+
+
     public static function simplifyPoints(array $points, int|float $tolerance = 1, bool $highestQuality = false)
     {
         if (count($points) < 2)
@@ -318,8 +345,10 @@ class _uho_geo
     }
 
 
-    /*
-        Simplify Geojson
+    /**
+    *  Simplify Geojson
+     * @param array $json
+     * @return array
     */
 
     public static function simplifyGeojson($json)
