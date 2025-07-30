@@ -135,22 +135,20 @@ class _uho_model
 
     /**
      * Sets debug for the ORM instance
+     *
      * @param int $q
-     * @return null
      */
-
-    public function setDebug($q)
+    public function setDebug($q): void
     {
         $this->orm->setDebug($q);
     }
 
     /**
      * Adds unique keys for encryption
+     *
      * @param array $keys
-     * @return null
      */
-
-    public function setKeys($keys)
+    public function setKeys($keys): void
     {
         $this->keys = $keys;
     }
@@ -167,17 +165,13 @@ class _uho_model
 
     /**
      * Initialize function, for children of this instance to overwrite
-     * @return null
      */
-
-    public function init() {}
+    public function init(): void {}
 
     /**
      * Get model data, for children of this instance to overwrite
-     * @return null
      */
-
-    public function getData() {}
+    public function getData(): void {}
 
     /**
      * Returns default model for 404 page
@@ -190,19 +184,18 @@ class _uho_model
         return ($data);
     }
 
-    public function setFileTimeCache($q)
+    public function setFileTimeCache($q): void
     {
         $this->orm->setFilesDecache($q);
     }
 
     /**
      * CSRF TOKEN comparsion, these tokens are being used to keep <form> elements safe
+     *
      * @param string $known_string
      * @param string $user_string
-     * @return boolean
      */
-
-    public function hash_equals($known_string = null, $user_string = null)
+    public function hash_equals($known_string = null, $user_string = null): bool|null
     {
         $argc = func_num_args();
         // Check the number of arguments
@@ -221,7 +214,10 @@ class _uho_model
             return false;
         }
         // Ensures raw binary string length returned
-        $strlen = function ($string) {
+        $strlen = /**
+         * @psalm-return int<0, max>
+         */
+        function ($string): int {
             //if (USE_MB_STRING) {
             //  return mb_strlen($string, '8bit');
             //}
@@ -450,11 +446,10 @@ class _uho_model
 
     /**
      * Sets uplaod server path, if other than local one
+     *
      * @param string $s
-     * @return boolean
      */
-
-    public function setUploadServer($s)
+    public function setUploadServer($s): void
     {
         $this->uploadServer = $s;
     }
@@ -480,10 +475,11 @@ class _uho_model
 
     /**
      * File_exists function using CURL for remote files
+     *
      * @param string $f
-     * @return boolean
+     *
+     * @return bool|null
      */
-
     public function file_exists($f)
     {
         $f = str_replace('//', '/', $f);
@@ -505,11 +501,14 @@ class _uho_model
 
     /**
      * getimagesize function using decache and remote servers
+     *
      * @param string $f
-     * @return int
+     *
+     * @return (int|string)[]|false|null
+     *
+     * @psalm-return array{0: int, 1: int, 2: int, 3: string, mime: string, channels?: 3|4, bits?: int}|false|null
      */
-
-    public function getimagesize($f)
+    public function getimagesize($f): array|false|null
     {
         $f = $this->image_decache($f);
 
@@ -522,11 +521,10 @@ class _uho_model
 
     /**
      * Sets S3 instance for the ORM
+     *
      * @param array $s3
-     * @return null
      */
-
-    public function setS3($s3)
+    public function setS3($s3): void
     {
         if (isset($s3['host'])) {
             $host = $s3['host'] . '/';
@@ -541,7 +539,7 @@ class _uho_model
             $this->generateS3Cache($s3);
     }
 
-    private function generateS3Cache($params)
+    private function generateS3Cache(array $params): void
     {
         require_once('_uho_s3.php');
         $s3 = new _uho_s3($params, false, ['orm' => $this->orm]);

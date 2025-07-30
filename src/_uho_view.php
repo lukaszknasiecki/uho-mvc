@@ -62,7 +62,10 @@ class _uho_view
         $this->root_path = $root_path;
     }
 
-    public function renderHtml($base = '', $data = [])
+    /**
+     * @psalm-param '' $base
+     */
+    public function renderHtml(string $base = '', array $data = [])
     {
         // render current content
         if (isset($data['content']['head']) && $data['content']['head']) {
@@ -84,7 +87,12 @@ class _uho_view
     /*
         Updates [[sprite::slug]] syntax
     */
-    public function renderSprite($html)
+    /**
+     * @return null|string|string[]
+     *
+     * @psalm-return array<string>|null|string
+     */
+    public function renderSprite($html): array|string|null
     {
         $pattern = "/\[\[sprite\::([a-z0-9-_]+)\]\]/";
         $replacement = '<svg class="sprite-$1"><use xlink:href="#sprite-$1"/></svg>';
@@ -96,15 +104,15 @@ class _uho_view
     */
     public function renderSVG($html)
     {
-        $nr = 0;
         $svgs = [];
-        while ($i = strpos($html, '[[svg::')) {
+        $max=100;
+        while ($max && $i = strpos($html, '[[svg::')) {
 
+            $max--;
             $j = strpos($html, ']]', $i);
             $svg = substr($html, $i + 7, $j - $i - 7);
             if (isset($svgs[$svg])) $data = $svgs[$svg];
             else {
-                $o = $svg;
                 if (strpos($svg, '.svg'))
                     $filename = $_SERVER['DOCUMENT_ROOT'] . $svg;
                 else
@@ -114,8 +122,6 @@ class _uho_view
                 if (!$data && $this->renderHtmlRoot) echo ('<!-- SVG NOT FOUND::' . $filename . ' ... ' . substr($html, $i, 100) . ' -->');
                 $svgs[$svg] = $data;
             }
-
-            $nr++;
 
             $data = str_replace('<svg', '<svg class="svg-' . $svg . '" ', $data);
             $html = substr($html, 0, $i) . $data . substr($html, $j + 2);
@@ -229,7 +235,7 @@ class _uho_view
             }, ['needs_context' => true]);
 
             // --- filesize
-            $twig_filter_filesize = new \Twig\TwigFilter('filesize', function ($context, $string, $params = null) {
+            $twig_filter_filesize = new \Twig\TwigFilter('filesize', function ($context, $string) {
                 $string = intval($string / 1000);
                 if ($string < 1000)
                     $result = number_format($string, 0) . 'KB';
@@ -255,13 +261,13 @@ class _uho_view
 
                 // spojniki dlugie
                 $i = ['II', 'The', 'the', 'dr.', 'Dr.', 'ul.', 'Le', 'La', 'El'];
-                foreach ($i as $k => $v) {
+                foreach ($i as $v) {
                     $value = str_replace(' ' . $v . ' ', ' ' . $v . '&nbsp;', $value);
                 }
 
                 // spojniki dlugie
                 $i = ['II', 'dr.', 'Dr.', 'ul.'];
-                foreach ($i as $k => $v) {
+                foreach ($i as $$v) {
                     if (substr($value, 0, strlen($v)) == $v) {
                         $value = $v . '&nbsp;' . substr($value, strlen($v) + 1);
                     }
@@ -270,7 +276,7 @@ class _uho_view
                 // wieszaki
                 $i = ['r.', 'w.', 'm', 'km', 'tys.', 'mln', 'mld', 'godz.', 'cm', 'kg', 'g', 'min.', 'E)'];
 
-                foreach ($i as $k => $v) {
+                foreach ($i as $v) {
                     if ($v[strlen($v) - 1] == '.') {
                         $value = str_replace(' ' . $v, '&nbsp;' . $v, $value);
                     }
@@ -361,10 +367,8 @@ class _uho_view
      * /application/Twig/Global
      *
      * @param $twig
-     * @return bool
      */
-
-    public function extendTwig($twig)
+    public function extendTwig(\Twig\Environment $twig): void
     {
         $rootScript = $_SERVER['SCRIPT_FILENAME'];
         $parts = explode(DIRECTORY_SEPARATOR, $rootScript);
@@ -389,7 +393,7 @@ class _uho_view
                 require_once($filterDir . DIRECTORY_SEPARATOR . $file);
                 $filter = new $className;
 
-                $simpleFilter = new Twig_SimpleFilter($filter->getName(), function ($value) use ($filter) {
+                $simpleFilter = new \Twig\TwigFilter($filter->getName(), function ($value) use ($filter) {
                     return $filter->filter($value);
                 });
                 $twig->addFilter($simpleFilter);
@@ -407,7 +411,7 @@ class _uho_view
                 require_once($functionDir . DIRECTORY_SEPARATOR . $file);
                 $function = new $className;
 
-                $simpleFunction = new Twig_SimpleFunction(
+                $simpleFunction = new \Twig\TwigFunction(
                     $function->getName(),
                     function ($value) use ($function) {
                         return $function->execute($value);
@@ -433,20 +437,20 @@ class _uho_view
         }
     }
 
-    public function setLang($lang)
+    public function setLang($lang): void
     {
         $this->lang = $lang;
     }
-    public function setTemplatePrefix($pre)
+    public function setTemplatePrefix($pre): void
     {
         $this->template_prefix = $pre;
     }
-    public function setPrefix($pre)
+    public function setPrefix($pre): void
     {
         $this->prefix = $pre;
     }
 
-    public function setTwigExt($ext)
+    public function setTwigExt($ext): void
     {
         $this->twig_ext = $ext;
     }

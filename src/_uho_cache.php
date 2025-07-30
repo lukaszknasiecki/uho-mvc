@@ -99,7 +99,7 @@ class _uho_cache
                     foreach ($h0 as $kk => $vv)
                         $h[strtolower($kk)] = $vv;
 
-                    foreach ($v as $kk => $vv)
+                    foreach ($v as $vv)
                         if (!empty($h[$vv]))
                             $add[$vv] = $h[$vv];
             }
@@ -158,33 +158,28 @@ class _uho_cache
 
     /**
      * Stores cached data from current key
+     *
      * @param string $key hashed key to use in caching storage
      * @param string $data data to be stored
-     * @param timestamp $expiration expiration time stamp, if null no expiration date is set
-     * @return null
+     * @param string $expiration expiration time stamp, if null no expiration date is set
      */
-
-    public function store($key, $data, $expiration = null)
+    public function store($key, $data, $expiration = null): void
     {
         $this->cache->store('html', $data, $expiration);
     }
 
     /**
      * Removes all expired files from cache folder
-     * @return null
      */
-
-    public function eraseExpired()
+    public function eraseExpired(): void
     {
         $this->cache->eraseExpired();
     }
 
     /**
      * Removes all the files from cache folder
-     * @return null
      */
-
-    public function eraseAll()
+    public function eraseAll(): void
     {
         $this->cache->eraseAll();
     }

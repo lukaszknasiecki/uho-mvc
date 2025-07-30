@@ -4,6 +4,8 @@ namespace Huncwot\UhoFramework;
 
 use Huncwot\UhoFramework\_uho_mailer;
 use Huncwot\UhoFramework\_uho_thumb;
+use Huncwot\UhoFramework\_uho_fx;
+use Google\Client;
 
 /**
  * This class provides CLIENT object methods
@@ -256,7 +258,7 @@ class _uho_client
 
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hashPass(@$salt['value'] . '5eh');
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hashPass($this->salt. '5eh');
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {
@@ -283,11 +285,10 @@ class _uho_client
 
   /**
    * Sets client record fields structure
+   *
    * @param array $t fields to be set
-   * @return null
    */
-
-  public function setFields($t)
+  public function setFields($t): void
   {
     if ($t['login']) $this->fieldLogin = $t['login'];
     $this->fields = $t;
@@ -295,23 +296,20 @@ class _uho_client
 
   /**
    * Sets client model
+   *
    * @param string $t client model name
-   * @return null
    */
-
-  public function setModel($t)
+  public function setModel($t): void
   {
     $this->model = $t;
   }
 
   /**
    * Sets hash keys used for encryption
+   *
    * @param array $k array of keys
-   * @return null
    */
-
-  // hash keys
-  public function setKeys($k)
+  public function setKeys($k): void
   {
     $this->keys = $k;
   }
@@ -348,11 +346,10 @@ class _uho_client
 
   /**
    * Resets remaining max login attempts number
+   *
    * @param int $user_id user id for this action
-   * @return null
    */
-
-  private function resetRemainingLoginAttempts($user_id)
+  private function resetRemainingLoginAttempts($user_id): void
   {
     if ($user_id && $this->fieldBadLogin && !$this->provider) {
       $data = [$this->fieldBadLogin => 0];
@@ -362,11 +359,10 @@ class _uho_client
 
   /**
    * Removes remaining max login attempts for the user and blocks him
+   *
    * @param string $login users login id
-   * @return int max login attempts number
    */
-
-  private function removeRemainingLoginAttempts($login)
+  private function removeRemainingLoginAttempts($login): void
   {
     if ($login && $this->fieldBadLogin && !$this->provider) {
       $filters = [$this->fieldLogin => $login, 'status' => ['confirmed']];
@@ -384,37 +380,34 @@ class _uho_client
 
   /**
    * Stores current user's data in Session var
+   *
    * @param array $data user's data
-   * @return null
    */
-
-  private function storeData($data)
+  private function storeData($data): void
   {
     $_SESSION[$this->session_key] = $data;
   }
 
   /**
    * Adds data to current user's data in Session var
+   *
    * @param string $key record's key
    * @param string $value record's value
-   * @return null
    */
-
-  public function storeDataParam($key, $value)
+  public function storeDataParam($key, $value): void
   {
     $_SESSION[$this->session_key][$key] = $value;
   }
 
   /**
    * Enables cookie login
+   *
    * @param string $name cookie's name
    * @param int $days cookie's lifespam in days
    * @param string $domain cookie's domain
    * @param boolean $login if true, tries to auto-login with this cookie
-   * @return null
    */
-
-  public function enableCookie($name, $days, $domain, $login = false)
+  public function enableCookie($name, $days, $domain, $login = false): void
   {
     $this->cookieLoginEnabled = true;
     $this->cookie = ['name' => $name, 'days' => $days, 'domain' => $domain];
@@ -423,10 +416,8 @@ class _uho_client
 
   /**
    * Performs login via cookie
-   * @return null
    */
-
-  public function cookieLogin($force = false)
+  public function cookieLogin($force = false): void
   {
     if ($this->cookie || $force) $uid = @$_COOKIE[$this->cookie['name']];
     if (isset($uid)) {
@@ -438,11 +429,10 @@ class _uho_client
 
   /**
    * Saves current cookie in DB, so it can be used if session is cleared
+   *
    * @param int $id user's id
-   * @return null
    */
-
-  public function cookieLoginStore($id)
+  public function cookieLoginStore($id): void
   {
     if ($this->cookie && $this->cookieLoginEnabled) {
       $uid = $this->hashPass(uniqid());
@@ -464,11 +454,10 @@ class _uho_client
 
   /**
    * Clears cookie in DB for selected user, so it cannot be used anymore
+   *
    * @param int $id user's id
-   * @return null
    */
-
-  private function cookieLoginClear($id)
+  private function cookieLoginClear($id): void
   {
     $this->orm->putJsonModel($this->clientModel, ['id' => $id, 'cookie_key' => '']);
   }
@@ -480,10 +469,8 @@ class _uho_client
 
   /**
    * Destroys current login cookie
-   * @return null
    */
-
-  private function cookieLogout()
+  private function cookieLogout(): void
   {
     $id = $this->getClientId();
     if ($this->cookie) {
@@ -516,7 +503,7 @@ class _uho_client
 
   public function validateToken($token)
   {
-    return ($token && $token = $this->getToken());
+    return ($token && ($token == $this->getToken()));
   }
 
   /**
@@ -532,7 +519,7 @@ class _uho_client
       return $this->provider['model']->getData();
     } else {
       $data = @$_SESSION[$this->session_key];
-      if (!is_array($data)) $data=null;
+      if (!is_array($data)) $data = null;
       if ($reload || (!$data && $this->cookie)) {
         $this->cookieLogin();
         $data = @$_SESSION[$this->session_key];
@@ -561,10 +548,10 @@ class _uho_client
 
   /**
    * Returns current user's id
-   * @return int user's id
+   *
+   * @return int|string user's id
    */
-
-  public function getId($reload = false)
+  public function getId($reload = false): string|int
   {
     if ($reload) return $this->getClientId(true);
     else return $this->getDataField('id');
@@ -583,9 +570,9 @@ class _uho_client
 
   /**
    * Returns true is any user is currently logged via Epuap
-   * @return boolean
+   *
+   * @return null|true
    */
-
   public function isLoggedEpuap()
   {
     if (@$this->getData()['epuap_id']) return true;
@@ -610,12 +597,16 @@ class _uho_client
 
   /**
    * Finds user by filters and returns its data form DB
+   *
    * @param array $filters filters used to find the user
    * @param boolean $skip_provide if true provider is not being used for the query
+   * @param (int|mixed|string|string[])[] $params
+   *
    * @return array user's data
+   *
+   * @psalm-param array<array-key|mixed, 0|array{0?: 'confirmed', type?: 'sql', value?: string}|mixed|string> $params
    */
-
-  public function getClient($params, $skip_provider = false)
+  public function getClient(array $params, $skip_provider = false)
   {
     if ($this->provider && !$skip_provider) return $this->provider['model']->getClient($params);
     else {
@@ -629,8 +620,7 @@ class _uho_client
    * Returns current client's id
    * @return integer
    */
-
-  public function getClientId($reload = false)
+  public function getClientId(bool $reload = false)
   {
     $data = $this->getData($reload);
     if (isset($data['id'])) return $data['id'];
@@ -666,7 +656,7 @@ class _uho_client
     if (isset($this->provider)) return $this->provider['model']->beforeLoginCallback($data);
   }
 
-  private function logAdd($type, $result)
+  private function logAdd($type, $result): void
   {
     if (!empty($this->models['logs']))
       $this->orm->postJsonModel($this->models['logs'], ['type' => $type, 'result' => $result]);
@@ -674,13 +664,16 @@ class _uho_client
 
   /**
    * Main login function
+   *
    * @param string $email user's login
    * @param string $pass user's password
    * @param array $pass additional parameters for login
-   * @return array returns [result=>true] if login was successfull
+   * @param (mixed|string)[]|null $params
+   *
+   * @return (array|bool|mixed|string)[]|null
+   *
    */
-
-  public function login($email, $pass, $params = null)
+  public function login($email, $pass, array|null $params = null)
   {
 
     //$initial_id=$this->getClientId();    
@@ -777,9 +770,7 @@ class _uho_client
 
     if (!$this->oAuth['facebook']) return ['result' => false, 'Facebook oAuth config missing'];
 
-    require_once("vendor/facebook/graph-sdk/src/Facebook/autoload.php");
-
-    $fb = new Facebook\Facebook(
+    $fb = new \Facebook\Facebook(
       array(
         'app_id'  => $this->oAuth['facebook'][0],
         'app_secret' => $this->oAuth['facebook'][1]
@@ -792,11 +783,11 @@ class _uho_client
       // TOKEN
       try {
         $accessToken = $helper->getAccessToken();
-      } catch (Facebook\Exceptions\FacebookResponseException $e) {
+      } catch (\Facebook\Exceptions\FacebookResponseException $e) {
         // When Graph returns an error
         echo 'Graph returned an error: ' . $e->getMessage();
         exit;
-      } catch (Facebook\Exceptions\FacebookSDKException $e) {
+      } catch (\Facebook\Exceptions\FacebookSDKException $e) {
         // When validation fails or other local issues
         echo 'Facebook SDK returned an error: ' . $e->getMessage();
         exit;
@@ -813,7 +804,6 @@ class _uho_client
           header('HTTP/1.0 400 Bad Request');
           echo 'Bad request';
           exit();
-          return false;
         }
         exit;
       }
@@ -825,10 +815,10 @@ class _uho_client
       $tokenMetadata = $oAuth2Client->debugToken($accessToken);
       $tokenMetadata->validateAppId($this->oAuth['facebook'][0]);
       $tokenMetadata->validateExpiration();
-    } catch (Facebook\Exceptions\FacebookResponseException $e) {
+    } catch (\Facebook\Exceptions\FacebookResponseException $e) {
       echo 'Graph returned an error: ' . $e->getMessage();
       exit;
-    } catch (Facebook\Exceptions\FacebookSDKException $e) {
+    } catch (\Facebook\Exceptions\FacebookSDKException $e) {
       echo 'Facebook SDK returned an error: ' . $e->getMessage();
       exit;
     }
@@ -836,12 +826,10 @@ class _uho_client
     try {
       // Returns a `Facebook\FacebookResponse` object
       $response = $fb->get('/me?fields=id,first_name,last_name,email', $accessToken);
-    } catch (Facebook\Exceptions\FacebookResponseException $e) {
-      echo 'Graph returned an error: ' . $e->getMessage();
-      exit;
-    } catch (Facebook\Exceptions\FacebookSDKException $e) {
-      echo 'Facebook SDK returned an error: ' . $e->getMessage();
-      exit;
+    } catch (\Facebook\Exceptions\FacebookResponseException $e) {
+      exit ('Graph returned an error: ' . $e->getMessage());
+    } catch (\Facebook\Exceptions\FacebookSDKException $e) {
+      exit ('Facebook SDK returned an error: ' . $e->getMessage());
     }
 
     $facebook_user_profile = $response->getGraphUser();  // id, name, email
@@ -893,7 +881,7 @@ class _uho_client
 
       try {
         $data = $client->verifyIdToken($access_token);
-      } catch (Exception $e) {
+      } catch (\Exception $e) {
         return ['result' => false, 'message' => 'Login with token failed'];
       }
 
@@ -922,7 +910,7 @@ class _uho_client
       if (!$token) return ['result' => false, 'message' => 'No token found'];
       try {
         $client->setAccessToken($access_token);
-      } catch (Exception $e) {
+      } catch (\Exception $e) {
         return ['result' => false, 'message' => $e->getMessage()];
       }
 
@@ -954,10 +942,8 @@ class _uho_client
 
   /**
    * Performs current user's logout
-   * @return null
    */
-
-  public function logout()
+  public function logout(): bool
   {
     $result = !empty($_SESSION[$this->session_key]);
     $this->logsAdd('logout', 1);
@@ -981,24 +967,25 @@ class _uho_client
 
   /**
    * Adds logs to the database
+   *
    * @param string $action action to add to the logs
-   * @return null
+   *
+   * @psalm-param 0|1|null $result
    */
-
-  public function logsAdd($action, $result = null)
+  public function logsAdd($action, int|null $result = null): void
   {
     if (!empty($this->models['client_logs_model'])) {
       $user = $this->getClientId();
       if (!$user) $user = 0;
       $session = intval(@$_SESSION['login_session_id']);
       $data = ['datetime' => _uho_fx::sqlNow(), 'user' => $user, 'action' => $action, 'session' => $session, 'ip' => $this->getIp()];
-      foreach ($data as $k => $v) if (!in_array($k, $this->models['client_logs_model']['fields'])) unset($data[$k]);
+      foreach ($data as $k => $_) if (!in_array($k, $this->models['client_logs_model']['fields'])) unset($data[$k]);
       if (isset($result)) $data['result'] = $result;
       $this->orm->postJsonModel($this->models['client_logs_model']['model'], $data);
     }
   }
 
-  public function loginCheckBan()
+  public function loginCheckBan(): bool
   {
     $result = false;
     if (!empty($this->models['client_logs_model']) && $this->models['client_logs_model']['check_ban']) {
@@ -1009,7 +996,7 @@ class _uho_client
         'datetime' => ['operator' => '>', 'value' => $date],
         'result' => 0
       ];
-      foreach ($f as $k => $v) if (!in_array($k, $this->models['client_logs_model'])) unset($f[$k]);
+      foreach ($f as $k => $_) if (!in_array($k, $this->models['client_logs_model'])) unset($f[$k]);
 
       $find = $this->orm->getJsonModel($this->models['client_logs_model']['model'], $f, false, null, null);
 
@@ -1032,14 +1019,13 @@ class _uho_client
 
   /**
    * Curl_copy function, copies file from one location to another
+   *
    * @param string $remote_file file to be copied
    * @param string $local_file destination path
-   * @return null
    */
-
-  private function curl_copy($remote_file, $local_file)
+  private function curl_copy($remote_file, $local_file): void
   {
-    $ch = curl_init();
+    curl_init();
     $fp = @fopen($local_file, 'w+');
     if ($fp) {
       $ch = curl_init($remote_file);
@@ -1055,13 +1041,14 @@ class _uho_client
 
   /**
    * Saves user's portrait image from remote location
+   *
    * @param string $source image source path
    * @param int $user user's id
    * @param string $user user's uid
-   * @return null
+   *
+   * @return void
    */
-
-  private function setImageFromUrl($source, $user, $uid, $debug = false)
+  private function setImageFromUrl($source, int $user, string $uid, $debug = false)
   {
     $log = [];
     if (!$source) return;
@@ -1070,7 +1057,8 @@ class _uho_client
     if ($image) {
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
       $original = null;
-      foreach ($image['images'] as $k => $v) {
+
+      foreach ($image['images'] as $v) {
         if (!$original) {
           $original = $destination . $v['folder'] . '/' . $uid . '.jpg';
           if (!@copy($source, $original)) {
@@ -1093,17 +1081,16 @@ class _uho_client
 
   /**
    * Remove user's portrait image
+   *
    * @param string $user user's uid
-   * @return null
    */
-
-  private function removeImage($uid)
+  private function removeImage($uid): void
   {
     $schema = $this->orm->getJsonModelSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
     if ($image) {
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
-      foreach ($image['images'] as $k => $v)
+      foreach ($image['images'] as $v)
         @unlink($destination . $v['folder'] . '/' . $uid . '.jpg');
     }
   }
@@ -1111,7 +1098,7 @@ class _uho_client
   /**
    * Sets user's permissions GDPR expiration date
    * @param string $token user's unque token
-   * @param date $date expiration date
+   * @param string $date expiration date
    * @return boolean returns true if succeed
    */
 
@@ -1165,7 +1152,7 @@ class _uho_client
     if (isset($data['password'])) $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
 
     $result = $this->orm->postJsonModel($this->clientModel, $data);
-    
+
     if ($result) {
       $user = $this->orm->getInsertId();
       if (isset($data['image']) && $user) $this->setImageFromUrl($data['image'], $user, $data['uid']);
@@ -1189,7 +1176,7 @@ class _uho_client
       $r = $this->create($data);
       if (!$r) {
         exit('admin creation error::permanent');
-      } else return $r;
+      }
       return $r;
     } else return false;
   }
@@ -1214,7 +1201,7 @@ class _uho_client
   public function adminExists()
   {
     $exists = $this->orm->getJsonModel($this->clientModel, ['admin' => 1]);
-    if ($exists==='error' || !$exists) return false;
+    if ($exists === 'error' || !$exists) return false;
     else return true;
   }
 
@@ -1293,7 +1280,7 @@ class _uho_client
           'facebook_id' => '',
           'epuap_id' => ''
         ];
-        $client = $this->orm->putJsonModel($this->clientModel, $data);
+        $this->orm->putJsonModel($this->clientModel, $data);
         $result = ['result' => true];
       }
     }
@@ -1303,16 +1290,18 @@ class _uho_client
 
   /**
    * Performs registering process including checking for existing user, validation etc.
+   *
    * @param array $data user's data
    * @param string $url url to register process confirmation url
-   * @return boolean returns true if any user exists
+   *
+   * @return (bool|int|mixed|string|string[])[] returns true if any user exists
+   *
+   * @psalm-return array{result: bool|int|mixed, message: string, fields: array<'email_required'|'pass_min8'|'pass_required'>}
    */
-
-  public function register($data, $url = null)
+  public function register($data, $url = null): array
   {
 
     $result = false;
-    $error = null;
 
     if (isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']) || isset($this->provider)) $sso = true;
     else $sso = false;
@@ -1343,7 +1332,6 @@ class _uho_client
       if ($result) $message = 'client_email_sent';
       else {
         $message = 'mailing_system_error';
-        $error = 'client_email_error_repeat';
       }
     }
 
@@ -1374,7 +1362,6 @@ class _uho_client
         if ($result) $message = 'client_email_sent';
         else {
           $message = 'system_error';
-          $error = 'client_email_error';
         }
       } elseif ($result) $message = 'client_registered';
       else $message = 'client_create_error';
@@ -1418,10 +1405,11 @@ class _uho_client
 
   /**
    * Perform hash/encryption based on current method, on given string
+   *
    * @param string $pass string to be encrypted
-   * @return string returns encrypted string
+   *
+   * @return null|string returns encrypted string
    */
-
   private function hashPass($pass)
   {
     if ($this->sql_hash == 'MD5') return md5($pass);
@@ -1431,13 +1419,16 @@ class _uho_client
 
   /**
    * Creates query for hash/encrypted fields
+   *
    * @param string $pass string to be encrypted
    * @param boolean $filter create ORM's style filters
    * @param string $salt uses additional salt for encrpytion
-   * @return string returns encrypted string/query
+   *
+   * @return string|string[] returns encrypted string/query
+   *
+   * @psalm-return array{type: 'sql', value: string}|string
    */
-
-  private function encodePassword($pass, $filter = false, $salt = null)
+  private function encodePassword($pass, $filter = false, $salt = null): array|string
   {
 
     switch ($this->salt['type']) {
@@ -1522,10 +1513,11 @@ class _uho_client
 
   /**
    * Checks is string equals current user's password in the database
+   *
    * @param string $pass password to be checked
-   * @return boolean returns true if passwords are the same
+   *
+   * @return bool|null returns true if passwords are the same
    */
-
   public function passwordCheck($pass)
   {
     $data = $this->getData();
@@ -1615,8 +1607,8 @@ class _uho_client
 
     $result = $this->mailing('password_change', $email, ['url' => str_replace('%key%', $key_confirm, $url)]);
 
-    if (!$result) $result = ['result' => false, 'code' => 'system_error'];
-    $result = ['result' => true];
+    if (!$result)
+      $result = ['result' => true];
     return $result;
   }
 
@@ -1705,11 +1697,12 @@ class _uho_client
 
   /**
    * Generates and saves unique token to user's record
+   *
    * @param string $type user type
    * @param string $date token validation date
-   * @return string returns token
+   *
+   * @return null|string returns token
    */
-
   public function generateUserToken($type, $date, $user_id = 0)
   {
     if ($user_id || $this->isLogged()) {
@@ -1729,11 +1722,10 @@ class _uho_client
 
   /**
    * Marks user token as used so it's not used again
+   *
    * @param string $token token value
-   * @return null
    */
-
-  private function setUserTokenUsed($token)
+  private function setUserTokenUsed($token): void
   {
     $this->orm->putJsonModel($this->tokenModel, ['used' => 1], ['value' => $token]);
   }
@@ -1741,14 +1733,14 @@ class _uho_client
   /**
    * Gets user's id by token from the database
    * @param string $token token value to be found
-   * @param boolean $used check for unused (0) or used (1) token
-   * @return int user's id
+   * @param integer $used check for unused (0) or used (1) token
+   * @return object token model
    */
 
   public function getUserToken($token, $used = 0)
   {
-    $user = $this->orm->getJsonModel($this->tokenModel, ['value' => $token, 'used' => $used, 'date_to' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
-    return $user;
+    $token = $this->orm->getJsonModel($this->tokenModel, ['value' => $token, 'used' => $used, 'date_to' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
+    return $token;
   }
 
   /**
@@ -1780,7 +1772,7 @@ class _uho_client
 
     if (!is_array($emails)) $this->mailer->addEmail($emails, true);
     else
-      foreach ($emails as $k => $v)
+      foreach ($emails as $v)
         $this->mailer->addEmail($v, true);
 
     $this->mailer->addSubject($mailing['subject']);
@@ -1795,13 +1787,12 @@ class _uho_client
 
   /**
    * Add logs entry
+   *
    * @param string $action action
    * @param string $value additional value
    * @param int $user_id user id
-   * @return null
    */
-
-  private function addLog($action, $value, $user_id = null)
+  private function addLog($action, $value, $user_id = null): void
   {
     if (!$user_id && $this->isLogged()) $user_id = $this->getClientId();
     if ($user_id)
@@ -1831,14 +1822,17 @@ class _uho_client
 
   /**
    * Adds newsletter email to DB
+   *
    * @param string $email destination email
    * @param boolean $mailing if true confirmation mail is being sent
    * @param string $url confirmation url
    * @param string $list mailing software list_id
-   * @return array returns ['result'=>true] if went well
+   *
+   * @return bool|true[] returns ['result'=>true] if went well
+   *
+   * @psalm-return array{result: true, mailing: true}|bool
    */
-
-  public function newsletterAdd($email, $mailing = false, $url = null, $list = null)
+  public function newsletterAdd($email, $mailing = false, $url = null, $list = null): array|bool
   {
     $result = $this->newsletterAddData($email, $list);
 
@@ -1873,7 +1867,7 @@ class _uho_client
     $package_count = 10;
     $issues = $this->orm->getJsonModel('client_newsletter_issues', ['status' => 'sending']);
     $i = [];
-    foreach ($issues as $k => $v) $i[] = $v['id'];
+    foreach ($issues as $v) $i[] = $v['id'];
 
     if ($issues) $emails = $this->orm->getJsonModel('client_newsletter_mailing', ['status' => 'waiting', 'issue' => $i], false, 'id', '0,' . $package_count);
 
@@ -1882,7 +1876,7 @@ class _uho_client
     $errors = 0;
 
     if ($emails) {
-      foreach ($emails as $k => $v) {
+      foreach ($emails as $v) {
         $i = _uho_fx::array_filter($issues, 'id', $v['issue'], ['first' => true]);
         $user = $this->orm->getJsonModel('client_users_newsletter', ['id' => $v['user'], 'status' => 'confirmed'], true);
         $error = false;
@@ -1909,8 +1903,7 @@ class _uho_client
         }
       }
     } else {
-      $result = true;
-      foreach ($issues as $k => $v)
+      foreach ($issues as $v)
         $this->orm->putJsonModel('client_newsletter_issues', ['id' => $v['id'], 'status' => 'sent']);
     }
     return ['result' => true, 'count' => $count, 'error' => $errors];
@@ -1950,7 +1943,7 @@ class _uho_client
     if (!isset($this->keys['getresponse']['api_key'])) $message = 'GetResponse API Key not found';
     else {
       if (!$list) $list = @array_shift($this->keys['getresponse']['lists']);
-      else $list = $list = @$this->keys['getresponse']['lists'][$list];
+      else $list = @$this->keys['getresponse']['lists'][$list];
       if (!$list) $message = 'GetResponse List not found';
       else
         $result = $this->newsletterGetResponseAddDataToList($this->keys['getresponse']['api_key'], $list, $email);
@@ -1961,13 +1954,16 @@ class _uho_client
 
   /**
    * Handles getResponse system subsription
+   *
    * @param string $api_key token
    * @param string $list list_id
    * @param string $email email to be added
-   * @return boolean
+   *
+   * @return (bool|mixed)[]
+   *
+   * @psalm-return array{result: bool, message?: mixed}
    */
-
-  private function newsletterGetResponseAddDataToList($api_key, $list_token, $email)
+  private function newsletterGetResponseAddDataToList($api_key, $list_token, $email): array
   {
     $authorization = "X-Auth-Token: api-key " . $api_key;
     $url = 'https://api.getresponse.com/v3/contacts';
@@ -1990,11 +1986,14 @@ class _uho_client
 
   /**
    * Adds newsletter email to internal system
+   *
    * @param string $email email to be added
-   * @return boolean
+   *
+   * @return (bool|mixed|string)[]
+   *
+   * @psalm-return array{result: bool, message?: 'System error', key_confirm?: mixed|string}
    */
-
-  public function newsletterStandardAddData($email)
+  public function newsletterStandardAddData($email): array
   {
 
     $result = false;
@@ -2049,15 +2048,13 @@ class _uho_client
 
   /**
    * Loads favourites data from DB to Session VAR
-   * @return null
    */
-
-  private function favouritesLoad()
+  private function favouritesLoad(): void
   {
     if ($this->favourites && $this->isLogged()) {
       $t = $this->orm->getJsonModel($this->favourites['model'], ['user' => $this->getClientId()], false);
       $types = [];
-      foreach ($t as $k => $v) {
+      foreach ($t as $v) {
         if (!isset($types[$v['type']])) $types[$v['type']] = [];
         $types[$v['type']][$v['object_id']] = 1;
       }
@@ -2067,17 +2064,20 @@ class _uho_client
 
   /**
    * Returns favourites data by type
+   *
    * @param string $type data type
-   * @return array
+   *
+   * @return array|null
+   *
+   * @psalm-return list<mixed>|null
    */
-
   public function favouritesGet($type)
   {
     if ($this->isLogged()) {
       $items = @$_SESSION['fav'][$type];
       $i = [];
       if ($items)
-        foreach ($items as $k => $v)
+        foreach ($items as $k => $_)
           $i[] = $k;
       return $i;
     }
@@ -2119,14 +2119,13 @@ class _uho_client
 
   /**
    * Sends user's GDPR expiratiomn email
+   *
    * @param int $days_agree number of max days before expiration
    * @param string $mailing_url url to avoid expiration
    * @param int $user user's id
    * @param int $days days from today when expiration occurs
-   * @return array
    */
-
-  private function user_gdpr_extension_mailing_send($days_agree, $mailing_url, $user, $days)
+  private function user_gdpr_extension_mailing_send($days_agree, $mailing_url, $user, $days): bool
   {
     $token = $this->generateUserToken('gdpr_extension', '+10 days', $user['id']);
 
@@ -2148,12 +2147,13 @@ class _uho_client
 
   /**
    * Sends user's GDPR exntension email
+   *
    * @param int $days_agree number of max days before expiration
    * @param string $mailing_url url to avoid expiration
-   * @return array
+   *
+   * @psalm-return int<0, max>
    */
-
-  public function gdpr_extension_mailing($days_agree, $mailing_url)
+  public function gdpr_extension_mailing($days_agree, $mailing_url): int
   {
     $alerts = [100, 50, 30, 15, 5, 1];
     $i = 0;
@@ -2161,7 +2161,7 @@ class _uho_client
     $date = date('Y-m-d', strtotime($date . ' + ' . $alerts[0] . ' days'));
 
     $users = $this->orm->getJsonModel('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<=', 'value' => $date]]);
-    foreach ($users as $k => $v)
+    foreach ($users as $v)
       if (!_uho_fx::getGet('dbg') || $v['email'] == 'lukasz@huncwot.com') {
         $diff = strtotime($v['gdpr_expiration_date']) - strtotime(date('Y-m-d'));
         $diff = round($diff / 86400);
@@ -2179,13 +2179,12 @@ class _uho_client
 
   /**
    * Anonimizes user and sends the email
+   *
    * @param int $user user's id
    * @param string $why type of expiration
    * @param boolean if true email is being sent
-   * @return boolean
    */
-
-  private function anonimize($user, $why = 'exipration', $mailing = false)
+  private function anonimize($user, $why = 'exipration', bool $mailing = false): void
   {
     // anonimize
     $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'email' => '', 'institution' => '', 'surname' => '', 'uid' => '', 'status' => 'anonimized']);
@@ -2203,7 +2202,7 @@ class _uho_client
   public function gdpr_expiration_check()
   {
     $users = $this->orm->getJsonModel('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<', 'value' => date('Y-m-d')]]);
-    foreach ($users as $k => $v)
+    foreach ($users as $v)
       $this->anonimize($v, 'expiration', true);
     return count($users);
   }
@@ -2227,9 +2226,11 @@ class _uho_client
 
   /**
    * Handles start of ePuap login processs
-   * @return array user's data
+   *
+   * @return (false|string)[]|null user's data
+   *
+   * @psalm-return array{result: false, message: 'oAuth.epuap not found'}|null
    */
-
   public function loginEpuapStart($type, $sso_return_url, $debug = false)
   {
 
@@ -2262,7 +2263,7 @@ class _uho_client
     $ePuap->loginRedirect($auth);
   }
 
-  public function loginEpuap($type, $SAMLart, $debug = false, $return_data_only = false)
+  public function loginEpuap($type, $SAMLart, $debug = false, $return_data_only = false): array|bool
   {
 
     require_once('_uho_client_epuap.php');
@@ -2302,7 +2303,7 @@ class _uho_client
 
         $result = $this->register($data);
         if ($result) {
-          $result = $this->login(null, null, ['epuap_id' => $data['epuap_id']]);
+          $this->login(null, null, ['epuap_id' => $data['epuap_id']]);
         }
       } else {
         $data = [
@@ -2381,6 +2382,6 @@ class _uho_client
   private function getHttpHost()
   {
     if ($this->http_host) return $this->http_host;
-    else return (http . '://' . $_SERVER['HTTP_HOST']);
+    else return ($this->http . '://' . $_SERVER['HTTP_HOST']);
   }
 }

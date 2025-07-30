@@ -24,8 +24,9 @@ class _uho_thumb
 
     /**
      * Static class init
+     *
+     * @return void
      */
-
     private static function initialize()
     {
         if (self::$initialized) {
@@ -36,13 +37,12 @@ class _uho_thumb
 
     /**
      * Adds error to the log
+     *
      * @param array $errors
      * @param int $nr
-     * @param boolean $additional
-     * @return null
+     * @param $additional
      */
-
-    private static function addError(&$errors, $nr, $additional = null)
+    private static function addError(&$errors, $nr, $additional = null): void
     {
 
         $err =
@@ -59,24 +59,27 @@ class _uho_thumb
             ];
 
         $errors[] = $err[$nr][0];
-        if (is_array($additional)) $errors = array_merge($errors, $additional);
+        if (is_array($additional) && $additional) $errors = array_merge($errors, $additional);
         elseif (is_string($additional)) $errors[] = $additional;
     }
 
 
     /**
      * Checks if magic bytes are fine for JPG/PNG/GIF
+     *
      * @param string $filename
      * @param string $file
-     * @return boolean
+     *
+     * @return (bool|string)[]|false
+     *
+     * @psalm-return array{result: bool, errors: string}|false
      */
-
-    public static function fileMagicBytesCheck($filename, $file)
+    public static function fileMagicBytesCheck($filename, $file): array|false
     {
         if ($filename) {
             $ext = explode('.', strtolower($filename));
-            $ext = array_pop($ext);
-        } else $ext = '';
+            array_pop($ext);
+        } else 
         $result = false;
         $errors = '';
 
@@ -91,7 +94,7 @@ class _uho_thumb
         } else {
             $contents = fread($handle, 10);
 
-            foreach ($bytes as $k => $v) {
+            foreach ($bytes as $v) {
                 if (!$result) {
                     $b = explode(' ', $v);
                     $bb = '';
@@ -113,12 +116,11 @@ class _uho_thumb
 
     /**
      * Sets/Unsets imagic as prefered library
+     *
      * @param boolean $q
      * @param string $path
-     * @return boolean
      */
-
-    public static function set_config_prefer_imagemagick($q, $path = null)
+    public static function set_config_prefer_imagemagick($q, $path = null): void
     {
         self::$config_prefer_imagemagick = $q;
         if ($path) self::$config_imagemagick_path = $path;
@@ -158,7 +160,6 @@ class _uho_thumb
 
         $errors = array();
         $comments = array();
-        $result = false;
 
         ini_set('memory_limit', '1024M');
 
@@ -306,10 +307,7 @@ class _uho_thumb
             }
 
             if ($r) {
-                $resizedxx = $width;
-                $resizedyy = $height;
                 _uho_thumb::applyPostFilters($file2, @$v['mask']);
-                $result = true;
                 if (defined("developer") && developer == 1) {
                     array_push($comments, '[OK] Obrazek (' . $source_filename . ') jest w docelowym rozmiarze - został przekopiowany (' . $nr . ',' . $file2 . ')');
                 }
@@ -510,14 +508,6 @@ class _uho_thumb
 
             $phpThumb1->setSourceFilename($file1);
 
-            if (!isset($destX)) {
-                $destX = 0;
-            }
-            if (!isset($destY)) {
-                $destY = 0;
-            }
-
-            //$phpThumb1->x=$destX;
             if (!$v['height']) {
                 $v['height'] = intval($v['width'] * $yy1 / $xx1);
             }
@@ -554,7 +544,7 @@ class _uho_thumb
                 if (!is_array($filters)) {
                     $filters = [$filters];
                 } {
-                    foreach ($filters as $kk => $vv) {
+                    foreach ($filters as $vv) {
                         $phpThumb1->fltr[] = $vv;
                     }
                 }
@@ -598,8 +588,6 @@ class _uho_thumb
 
                 if (!$phpThumb1->RenderToFile($file2)) {
                     array_push($errors, implode("<br>", $phpThumb1->debugmessages) . '<br><b>Error resizing</b> ' . $file1 . '-->' . $file2 . ' (' . $resizedxx . 'x' . $resizedyy . ')');
-                    $resizedxx = 0;
-                    $resizedyy = 0;
                 } else
                 // success
                 {
@@ -617,7 +605,6 @@ class _uho_thumb
                     }
 
                     array_push($comments, '[OK] Obrazek (' . $source_filename . ') został poprawnie zeskalowany i zapisany (' . $resizedxx . 'x' . $resizedyy . ') jako ' . $file2);
-                    $result = true;
                 }
             } else {
                 if (!function_exists('imageantialias')) _uho_thumb::addError($errors, 2);
@@ -650,12 +637,11 @@ class _uho_thumb
 
     /**
      * Applies post-filters to resized image
+     *
      * @param string $file2
      * @param object $mask
-     * @return null
      */
-
-    private static function applyPostFilters($file2, $mask)
+    private static function applyPostFilters($file2, $mask): void
     {
 
         $size = @getimagesize($file2);

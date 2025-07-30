@@ -3,6 +3,7 @@
 namespace Huncwot\UhoFramework;
 
 use SimplePHPCache\Cache;
+use Huncwot\UhoFramework\_uho_fx;
 
 /**
  * This is a class dedicated to direct mySQL connections
@@ -69,23 +70,31 @@ class _uho_mysqli
     }
 
     /**
-     * Sets error logs folder
-     * @param string $error_folder for debug logs
-     * @return null
+     * Return current micro timestamp
      */
+    private function microtime_float()
+    {
+        list($usec, $sec) = explode(" ", microtime());
+        return ((float)$usec + (float)$sec);
+    }
 
-    public function setErrorFolder($folder)
+
+    /**
+     * Sets error logs folder
+     *
+     * @param string $error_folder for debug logs
+     */
+    public function setErrorFolder($folder): void
     {
         $this->error_folder = $folder;
     }
 
     /**
      * Add query to debug log
+     *
      * @param string $query
-     * @return null
      */
-
-    public function addQueryLog($query)
+    public function addQueryLog($query): void
     {
         $this->query_log[] = $query;
     }
@@ -153,20 +162,16 @@ class _uho_mysqli
 
     /**
      * Enables memory (session) cache for queries
-     * @return null
      */
-
-    public function setMemCache()
+    public function setMemCache(): void
     {
         $this->memQuery = true;
     }
 
     /**
      * Disables memory (session) cache for queries
-     * @return null
      */
-
-    public function disableMemCache()
+    public function disableMemCache(): void
     {
         $this->memQuery = false;
         $this->cache = null;
@@ -174,11 +179,10 @@ class _uho_mysqli
 
     /**
      * Adds error-query to the log
+     *
      * @param string $query
-     * @return null
      */
-
-    private function errorAdd($query)
+    private function errorAdd($query): void
     {
         if ($this->error_folder) {
             $fname = $this->error_folder . '/sql_errors.txt';
@@ -210,7 +214,7 @@ class _uho_mysqli
         }
         try {
             $this->base_link = new \mysqli($host, $user, $pass, $name, $port);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             exit('SQL Connection Error.');
         }
 
@@ -223,7 +227,6 @@ class _uho_mysqli
         } else {
             $this->base_link->set_charset($this->charset);
             mysqli_report(MYSQLI_REPORT_OFF);
-            //$this->base_link->query("SET collation_connection = utf8_general_ci");
             return (true);
         }
     }
@@ -242,40 +245,38 @@ class _uho_mysqli
 
     /**
      * Sets DB charset
+     *
      * @param string $charset
-     * @return null
      */
-
-    public function setCharset($charset)
+    public function setCharset($charset): void
     {
         $this->base_link->set_charset($charset);
     }
 
     /**
      * Closes mySQL connection
-     * @return null
      */
-
-    public function close()
+    public function close(): void
     {
-        mysqli::close();
+        $this->base_link->close();
     }
 
 
     /**
      * Fetches mySQL query
-     * @param array $t
+     * @param $t
+     * @param boolean $stripslashes
      * @return array
      */
 
-    private function fetchQuery($t)
+    private function fetchQuery($t,$stripslashes=false)
     {
         $tt = array();
 
         if ($t) {
             while ($t1 = $t->fetch_array(MYSQLI_ASSOC)) {
                 foreach ($t1 as $k => $v) {
-                    if (@$stripslashes) {
+                    if ($stripslashes) {
                         $t1[$k] = stripslashes($v);
                     }
                 }
@@ -320,11 +321,7 @@ class _uho_mysqli
 
     public function queryReal($query, $single = false, $stripslashes = true, $key = null, $force_sql_cache = false)
     {
-        if (_uho_fx::getGet('dbg') == 'performance') $this->perfromance_start = microtime_float();
         $this->iQuery++;
-
-        // cache?
-        if (_uho_fx::getGet('dbg') == 2) echo ('<!-- Fetching  ' . $query . ' -->');
 
         $cached = '[sql]';
         if (isset($this->cache) && $this->cache && ($force_sql_cache || $this->cacheSkip($query))) {
@@ -342,8 +339,12 @@ class _uho_mysqli
                 $tt = $this->fetchQuery($t);
             }
         }
+
+        /*
+            debug
+        */
         if (_uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance')) {
-            if (_uho_fx::getGet('dbg') == 'performance')  $time = '[T=' . number_format((microtime_float() - $this->perfromance_start), 4) . '] ';
+            if (_uho_fx::getGet('dbg') == 'performance')  $time = '[T=' . number_format(($this->microtime_float() - $this->perfromance_start), 4) . '] ';
             else $time = '';
             if (!isset($tt) || !$tt) $i = 0;
             else $i = count($tt);
@@ -354,7 +355,7 @@ class _uho_mysqli
         }
 
         if (!$t) {
-            if (_uho_fx::getGet('dbg') || development === true) { // || strpos($_SERVER['HTTP_HOST'],'.lh'))
+            if (_uho_fx::getGet('dbg') && $this->debug) { 
                 exit('mysql error:' . $query . '<br>Error: ' . $this->base_link->error);
             } else {
                 $this->errorAdd($query . ' ... ' . $this->base_link->error);
@@ -364,7 +365,7 @@ class _uho_mysqli
         } else {
             if ($key) {
                 $new = array();
-                foreach ($tt as $k => $v) {
+                foreach ($tt as $v) {
                     $new[$v[$key]] = $v;
                 }
                 $tt = $new;
@@ -395,7 +396,8 @@ class _uho_mysqli
             $this->errorAdd($query);
         }
 
-        if (_uho_fx::getGet('dbg') && development === true) {
+        if (_uho_fx::getGet('dbg') && $this->debug)
+        {
             echo ('<!-- ' . $query . ' -->');
         }
 
@@ -480,7 +482,6 @@ class _uho_mysqli
     private function cacheSkip($query)
     {
         $result = true;
-        $query0 = $query;
         if ($this->cacheSkipTables) {
             $query = explode(' from ', strtolower($query));
             if (isset($query[1])) $query = explode(' where ', strtolower($query[1]));
@@ -489,7 +490,7 @@ class _uho_mysqli
             foreach ($query as $k => $v) {
                 $query[$k] = trim($v);
             }
-            foreach ($this->cacheSkipTables as $k => $v) {
+            foreach ($this->cacheSkipTables as $v) {
                 if (in_array($v, $query)) {
                     $result = false;
                 }
@@ -500,12 +501,11 @@ class _uho_mysqli
 
     /**
      * Enables cache,
+     *
      * @param string $salt
      * @param array $skipTables
-     * @return null
      */
-
-    public function cacheSet($salt, $skipTables = null, $filename_salt = '', $extension = null)
+    public function cacheSet($salt, $skipTables = null, $filename_salt = '', $extension = null): void
     {
         $this->cacheSalt = $salt;
         $this->cacheSkipTables = $skipTables;
@@ -517,9 +517,8 @@ class _uho_mysqli
 
     /**
      * Disables cache
-     * @return null
      */
-    public function cacheDisable()
+    public function cacheDisable(): void
     {
         $this->cacheSkipTables = [];
         unset($this->cache);
@@ -527,11 +526,10 @@ class _uho_mysqli
 
     /**
      * Sets cache folder
+     *
      * @param string $folder
-     * @return null
      */
-
-    public function cacheSetFolder($folder)
+    public function cacheSetFolder($folder): void
     {
         if ($this->cache) {
             $this->cache->setCachePath($folder . '/');
@@ -563,11 +561,10 @@ class _uho_mysqli
 
     /**
      * Clears file cache
+     *
      * @param string $dir
-     * @return null
      */
-
-    public function cacheKill($dir, $extensions = ['cache'])
+    public function cacheKill($dir, $extensions = ['cache']): void
     {
         if ($dir) {
             $dir = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . trim($dir, '/');

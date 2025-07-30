@@ -13,10 +13,8 @@ class _uho_social
 
     /**
      * Constructor
-     * @return null
      */
-
-    private static function initialize()
+    private static function initialize(): void
     {
         if (self::$initialized) {
             return;
@@ -82,12 +80,13 @@ class _uho_social
 
     /**
      * Returns Email share url
+     *
      * @param string $url
      * @param string $title
-     * @return string
+     *
+     * @return null|string
      */
-
-    public static function getEmailShare($url, $title = null)
+    public static function getEmailShare($url, $title = null): string|null
     {
         self::initialize();
         $br = "%0D%0A";

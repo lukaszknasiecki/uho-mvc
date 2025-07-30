@@ -35,7 +35,7 @@ class _uho_mailer
     if (isset($cfg['oAuth'])) $this->setOauth($cfg['oAuth']);
   }
 
-  public function setOauth($data)
+  public function setOauth($data): void
   {
     if ($data['provider'] == 'google')
       $data['provider'] = new Google(
@@ -50,25 +50,25 @@ class _uho_mailer
 
   /**
    * Set debug option
+   *
    * @param integer $debug based on PHPMailer debug where 3 is the most detailed one
-   * @return null
    */
-
-  public function setDebug($debug)
+  public function setDebug($debug): void
   {
     $this->debug = $debug;
   }
 
   /**
    * Set SMTP server access
+   *
    * @param string $server
    * @param int $port
    * @param string $login
    * @param string $pass
-   * @return null
+   *
+   * @return true
    */
-
-  function setSMTP($server, $port, $login, $pass)
+  function setSMTP($server, $port, $login, $pass): bool
   {
     $this->cfg['smtp'] = array('server' => $server, 'port' => $port, 'login' => $login, 'pass' => $pass);
     return true;
@@ -84,57 +84,52 @@ class _uho_mailer
 
   /**
    * Add message to the e-mail (plain text)
+   *
    * @param string $message
-   * @return null
    */
-
-  public function addMessage($message)
+  public function addMessage($message): void
   {
     $this->message = $message;
   }
 
   /**
    * Add HTML message to the e-mail
+   *
    * @param string $message
-   * @return null
    */
-
-  public function addMessageHtml($message)
+  public function addMessageHtml($message): void
   {
     $this->messageHtml = $message;
   }
 
   /**
    * Set FROM header for the e-mail
+   *
    * @param string $name
    * @param string $email
-   * @return null
    */
-
-  public function setFrom($name, $email)
+  public function setFrom($name, $email): void
   {
     $this->from = $name . ' <' . $email . '>';
   }
 
   /**
    * Set REPLY header for the e-mail
+   *
    * @param string $name
    * @param string $email
-   * @return null
    */
-
-  public function setReply($name, $email)
+  public function setReply($name, $email): void
   {
     $this->reply = $name . ' <' . $email . '>';
   }
 
   /**
    * Set SUBJECT for the e-mail
+   *
    * @param string $subject
-   * @return null
    */
-
-  public function addSubject($subject)
+  public function addSubject($subject): void
   {
     $this->subject = $subject;
   }
@@ -166,7 +161,7 @@ class _uho_mailer
   {
     $result = true;
     if ($remove) $this->emails = array();
-    foreach ($emails as $k => $v)
+    foreach ($emails as $v)
       if (filter_var($v, FILTER_VALIDATE_EMAIL))
         array_push($this->emails, $v);
       else $result = false;
@@ -180,7 +175,6 @@ class _uho_mailer
 
   public function send()
   {
-    $result = true;
     if (!$this->cfg['smtp']) return;
     $mail = new PHPMailer(true);
     $mail->CharSet = "UTF-8";
@@ -216,7 +210,7 @@ class _uho_mailer
     }
 
     $iEmail = 0;
-    foreach ($this->emails as $k => $v)
+    foreach ($this->emails as $v)
       if ($v) {
         $mail->addAddress($v);
         $iEmail++;

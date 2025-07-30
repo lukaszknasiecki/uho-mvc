@@ -69,12 +69,11 @@ class _uho_controller
 
     /**
      * Controller first call from the App
+     *
      * @param array $post POST data
      * @param object $get GET data
-     * @return null
      */
-
-    public function actionBefore($post, $get)
+    public function actionBefore($post, $get): void
     {
         $this->post = $post;
         $this->get = $get;
@@ -86,17 +85,13 @@ class _uho_controller
 
     /**
      * Gets data, to be overwritten by child instances
-     * @return null
      */
-
-    public function getData() {}
+    public function getData(): void {}
 
     /**
      * Gets APP data and sets current lang
-     * @return null
      */
-
-    public function getAppData()
+    public function getAppData(): void
     {
         $this->getData();
         $this->data['lang'] = $this->model->lang;
@@ -119,17 +114,15 @@ class _uho_controller
 
     /**
      * Calls views by type
+     *
      * @param string $type output type
-     * @return array
      */
-
-    public function getOutput($type)
+    public function getOutput($type): string
     {
         switch ($type) {
             case 'html':
             case '404':
                 return ($this->getOutputHtml());
-                break;
 
             case 'json':
                 return ($this->getOutputJson());
@@ -188,10 +181,8 @@ class _uho_controller
 
     /**
      * Sets noSQL mode
-     * @return null
      */
-
-    public function setNoSql()
+    public function setNoSql(): void
     {
         $this->no_sql = true;
     }

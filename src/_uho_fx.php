@@ -12,10 +12,8 @@ class _uho_fx
 
     /**
      * Class constructor
-     * @return null
      */
-
-    private static function initialize()
+    private static function initialize(): void
     {
         if (self::$initialized) {
             return;
@@ -64,7 +62,7 @@ class _uho_fx
 
     public static function securePost($PostVar)
     {
-        return addslashes(htmlspecialchars(mysql_real_escape_string(stripslashes(strip_tags($_POST[$PostVar])))));
+        return addslashes(htmlspecialchars(stripslashes(strip_tags($_POST[$PostVar]))));
     }
 
     /**
@@ -88,7 +86,7 @@ class _uho_fx
         $get = explode('?', $_SERVER["REQUEST_URI"]);
         if (isset($get[1])) $get = $get[1];
         else $get = '';
-        $get = parse_str($get, $get2);
+        parse_str($get, $get2);
         return $get2;
     }
 
@@ -281,7 +279,7 @@ class _uho_fx
     public static function array_multi_fill($array, $key, $value)
     {
         if (is_array($array)) {
-            foreach ($array as $k => $v) {
+            foreach ($array as $k => $_) {
                 $array[$k][$key] = $value;
             }
         }
@@ -299,7 +297,7 @@ class _uho_fx
      * @return array
      */
 
-    public static function array_multisort($data, $field, $style = SORT_ASC, $lang = null, $sort = SORT_LOCALE_STRING)
+    public static function array_multisort($data, $field, $style = SORT_ASC, $lang = "", $sort = SORT_LOCALE_STRING)
     {
         $surname = array();
         $surname2 = array();
@@ -318,7 +316,6 @@ class _uho_fx
 
         sort($surname, $sort);
 
-        $i = 0;
         foreach ($surname2 as $k => $v) {
             $id = array_search($v, $surname);
             $surname2[$k] = $id;
@@ -345,7 +342,7 @@ class _uho_fx
     public static function array_change_keys($array, $new_key, $value = null)
     {
         $result = [];
-        foreach ($array as $k => $v) {
+        foreach ($array as $v) {
             $key = $v[$new_key];
             if ($value) $v = $v[$value];
             $result[$key] = $v;
@@ -364,7 +361,7 @@ class _uho_fx
     {
         $r = [];
         if (is_array($array)) {
-            foreach ($array as $k => $v) {
+            foreach ($array as $v) {
                 if ($flip) $r[$v[$key]] = 1;
                 else $r[] = $v[$key];
             }
@@ -436,22 +433,26 @@ class _uho_fx
 
     /**
      * Gets image size adding full server path
+     *
      * @param string $filename
-     * @return boolean
+     *
+     * @return (int|string)[]|false
+     *
+     * @psalm-return array{0: int, 1: int, 2: int, 3: string, mime: string, channels?: 3|4, bits?: int}|false
      */
-
-    public static function getimagesize(string $filename)
+    public static function getimagesize(string $filename): array|false
     {
         return @getimagesize(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $filename);
     }
 
     /**
      * Gets image ratio
+     *
      * @param string $filename
-     * @return float
+     *
+     * @return float|int|null
      */
-
-    public static function image_ratio($filename)
+    public static function image_ratio($filename): int|float|null
     {
         $filename = _uho_fx::image_decache($filename);
         $ratio = @getimagesize(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $filename);
@@ -462,13 +463,14 @@ class _uho_fx
 
     /**
      * Gets image filesize
+     *
      * @param string $filename
      * @param boolean readable
      * @param boolean skip_query
-     * @return integer
+     *
+     * @return false|int|string
      */
-
-    public static function filesize($filename, $readable = false, $skip_query = true)
+    public static function filesize($filename, $readable = false, $skip_query = true): int|string|false
     {
         if ($skip_query) {
             $filename = _uho_fx::image_decache($filename);
@@ -512,7 +514,14 @@ class _uho_fx
     }
 
 
-    private static function strftime($format, $d, $lang = null)
+    /**
+     * @param null|string $lang
+     *
+     * @psalm-param '%A'|'%B'|'%b' $format
+     *
+     * @return false|string
+     */
+    private static function strftime(string $format, string $d, string|null $lang = null): string|false
     {
 
         $ff = ['%B' => 'MMMM', '%b' => 'MMM'];
@@ -809,7 +818,7 @@ class _uho_fx
 
         $i = ['r.', 'w.', 'm', 'km', 'tys.', 'mln', 'mld', 'godz.', 'cm', 'kg', 'g'];
 
-        foreach ($i as $k => $v) {
+        foreach ($i as $v) {
             if ($v[strlen($v) - 1] == '.') {
                 $value = str_replace(' ' . $v, '&nbsp;' . $v, $value);
             }
@@ -948,7 +957,6 @@ class _uho_fx
             'Ć' => 'C',
             'ć' => 'c',
             'ą' => 'a',
-            'ć' => 'c',
             'ę' => 'e',
             'ł' => 'l',
             'ń' => 'n',
@@ -997,7 +1005,6 @@ class _uho_fx
             'è' => 'e',
             'é' => 'e',
             'ê' => 'e',
-            'ë' => 'e',
             'ì' => 'i',
             'í' => 'i',
             'î' => 'i',
@@ -1005,7 +1012,6 @@ class _uho_fx
             'ð' => 'o',
             'ñ' => 'n',
             'ò' => 'o',
-            'ó' => 'o',
             'ô' => 'o',
             'õ' => 'o',
             'ö' => 'o',
@@ -1014,13 +1020,11 @@ class _uho_fx
             'ú' => 'u',
             'û' => 'u',
             'ý' => 'y',
-            'ý' => 'y',
             'þ' => 'b',
             'ÿ' => 'y',
             'Ŕ' => 'R',
             'ŕ' => 'r',
             'Ł' => 'l',
-
             'Á' => 'A',
             'À' => 'A',
             'Â' => 'A',
@@ -1032,8 +1036,6 @@ class _uho_fx
             'É' => 'E',
             'È' => 'E',
             'Ê' => 'E',
-            'Ë' => 'E',
-            'Í' => 'I',
             'Ì' => 'I',
             'Î' => 'I',
             'Ï' => 'I',
@@ -1050,7 +1052,6 @@ class _uho_fx
             'Û' => 'U',
             'Ü' => 'U',
             'Ý' => 'Y',
-
             'á' => 'a',
             'à' => 'a',
             'â' => 'a',
@@ -1149,13 +1150,16 @@ class _uho_fx
 
     /**
      * Removes Tags from Text
+     *
      * @param string $html
      * @param string $start
      * @param string $end
-     * @return string
+     *
+     * @return string[]
+     *
+     * @psalm-return list{0?: string,...}
      */
-
-    public static function excludeTagsFromText($html, $start = '%', $end = '%')
+    public static function excludeTagsFromText($html, $start = '%', $end = '%'): array
     {
         $i = 0;
         $result = [];
@@ -1171,10 +1175,11 @@ class _uho_fx
 
     /**
      * Halts everything
+     *
      * @param string $message
-     * @return null
+     *
+     * @return never
      */
-
     public static function halt($message)
     {
         exit($message);
@@ -1315,16 +1320,15 @@ class _uho_fx
 
     /**
      * Fills array with key/value pair
+     *
      * @param array $array
      * @param string $key
      * @param string $value
-     * @return array
      */
-
-    public static function array_fill_key(&$array, $key, $value)
+    public static function array_fill_key(&$array, $key, $value): void
     {
         if (is_array($array))
-            foreach ($array as $k => $v) {
+            foreach ($array as $k => $_) {
                 if (is_array($key)) $array[$k][$key[0]][$key[1]] = $value;
                 else $array[$k][$key] = $value;
             }
@@ -1332,11 +1336,14 @@ class _uho_fx
 
     /**
      * Load CSV as an object
+     *
      * @param string $filename
-     * @return array
+     *
+     * @return null|string[][]
+     *
+     * @psalm-return list{0?: array<string, string>,...}|null
      */
-
-    public static function loadCsv($filename, $delimiter = ';')
+    public static function loadCsv($filename, $delimiter = ';'): array|null
     {
         $file_to_read = @fopen($filename, 'r');
         if (!$file_to_read) return null;
@@ -1350,7 +1357,7 @@ class _uho_fx
         $keys = array_shift($lines);
 
         $data = [];
-        foreach ($lines as $k => $v) {
+        foreach ($lines as $v) {
             $item = [];
             foreach ($keys as $kk => $vv)
                 if (isset($v[$kk]))
@@ -1371,14 +1378,13 @@ class _uho_fx
     {
         $file_to_read = @fopen($filename, 'w');
         if (!$file_to_read) return null;
-        $lines = [];
-        foreach ($data as $k => $v)
+        foreach ($data as $v)
             fputcsv($file_to_read, $v, $delimiter);
 
         fclose($file_to_read);
     }
 
-    public static function dec2dms($latitude, $longitude)
+    public static function dec2dms($latitude, $longitude): string
     {
         $latitudeDirection = $latitude < 0 ? 'S' : 'N';
         $longitudeDirection = $longitude < 0 ? 'W' : 'E';
@@ -1423,13 +1429,18 @@ class _uho_fx
             ['id'=>2,'First_name'=>'Jane','Last_name'=>'Smith]
         ]
     */
-    public static function convertSpreadsheet($items)
+    /**
+     * @return array[]
+     *
+     * @psalm-return list<non-empty-array>
+     */
+    public static function convertSpreadsheet($items): array
     {
         $cols = array_shift($items);
         $result = [];
         foreach ($cols as $k => $v) if (!$v) unset($cols[$k]);
 
-        foreach ($items as $k => $v) {
+        foreach ($items as $v) {
             $row = [];
             $empty = true;
             foreach ($cols as $kk => $vv) {

@@ -67,7 +67,7 @@ class _uho_s3
             'secret'
         ];
 
-        foreach ($validate as $k => $v)
+        foreach ($validate as $v)
             if (empty($config[$v])) return;
 
 
@@ -104,17 +104,19 @@ class _uho_s3
         }
     }
 
-    public function ready()
+    public function ready(): bool
     {
         return isset($this->s3Client);
     }
 
     /**
      * Loads Bucket contents and saves it to cache
-     * @return null
+     *
+     * @return int[]
+     *
+     * @psalm-return array{count: int<0, max>, skipped: int<0, max>}
      */
-
-    public function buildCache($params = [])
+    public function buildCache($params = []): array
     {
         $this->cacheClearAll();
         $c = 0;
@@ -175,8 +177,7 @@ class _uho_s3
      * Returns current S3 Host
      * @return string
      */
-
-    public function getHost($slash = false)
+    public function getHost(bool $slash = false)
     {
         $result = $this->cfg['host'];
         if ($this->folder) $result .= '/' . $this->folder;
@@ -186,10 +187,11 @@ class _uho_s3
 
     /**
      * Classsic file_exists functin but using S3 cache
+     *
      * @param array $filename
-     * @return boolean
+     *
+     * @return null|true
      */
-
     public function file_exists($filename)
     {
         $d = $this->getFileMetadata($filename);
@@ -198,11 +200,14 @@ class _uho_s3
 
     /**
      * Clears filename from root path
+     *
      * @param array $filename
-     * @return string
+     *
+     * @return string[]
+     *
+     * @psalm-return array<string>
      */
-
-    private function clear_filename($filename)
+    private function clear_filename($filename): array
     {
         $root = $_SERVER['DOCUMENT_ROOT'] . $this->path_skip;
         $root = str_replace('//', '/', $root);
@@ -215,13 +220,14 @@ class _uho_s3
 
     /**
      * Sets cache for one bucket item
+     *
      * @param array $filename
-     * @param array $valie
+     * @param $valie
      * @param boolean $save
-     * @return boolean
+     * @param (mixed|string|string[])[]|false $value
+     *
      */
-
-    private function cacheSet($filename, $value, $save = true, $compress = true)
+    private function cacheSet($filename, array|false $value, $save = true, bool $compress = true): void
     {
         if ($this->folder) $filename = str_replace($this->folder . '/', '', $filename);
         if ($filename) {
@@ -231,7 +237,7 @@ class _uho_s3
         }
     }
 
-    private function cacheGet($filename)
+    private function cacheGet(string $filename)
     {
 
         $result = null;
@@ -258,7 +264,7 @@ class _uho_s3
         return $result;
     }
 
-    private function compressObject(&$key, &$value)
+    private function compressObject(array &$key, &$value): void
     {
         switch ($this->compress) {
             case "md5":
@@ -275,11 +281,10 @@ class _uho_s3
 
     /**
      * Clears cache for one bucket item
+     *
      * @param array $filename
-     * @return null
      */
-
-    private function cacheClear($filename)
+    private function cacheClear($filename): void
     {
         unset($this->cache[$filename]);
         unset($_SESSION['_uho_s3_cache'][$filename]);
@@ -288,10 +293,8 @@ class _uho_s3
 
     /**
      * Clears full cache
-     * @return null
      */
-
-    private function cacheClearAll()
+    private function cacheClearAll(): void
     {
         unset($_SESSION['_uho_s3_cache']);
         unset($this->cache);
@@ -367,12 +370,11 @@ class _uho_s3
 
     /**
      * Copies file using S3 bucket
+     *
      * @param string $soruce
      * @param string $destination
-     * @return boolean
      */
-
-    public function copy($source, $destination, $download = false, $length = 0)
+    public function copy($source, $destination, $download = false, $length = 0): void
     {
         if (!$source || !$destination) return;
         $destination = $this->clear_filename($destination);
@@ -406,22 +408,19 @@ class _uho_s3
             $result = $result['@metadata'];
             if ($result && $result['statusCode'] == 200) {
                 $this->cacheSet($destination, ['time' => md5($result['headers']['date'])], true);
-                $result = true;
             }
         } catch (AwsException $e) {
 
             exit('[AWS COPY ERROR][' . $e->getAwsErrorCode() . ']');
-            $result = null;
         }
     }
 
     /**
      * Unlink function for S3
+     *
      * @param string $filename
-     * @return null
      */
-
-    public function unlink($filename)
+    public function unlink($filename): bool
     {
         $filename = $this->clear_filename($filename);
         $key = $this->createS3Key($filename);
@@ -445,10 +444,8 @@ class _uho_s3
 
     /**
      * Return permissions for current bucket, debug use only
-     * @return null
      */
-
-    private function permissionsGet()
+    private function permissionsGet(): void
     {
         try {
             $resp = $this->s3Client->getBucketAcl([
@@ -476,7 +473,7 @@ class _uho_s3
         return $objects;
     }
 
-    public function listFilesPaginator($prefix = '')
+    public function listFilesPaginator($prefix = ''): array
     {
         $objects = $this->s3Client->getPaginator('ListObjects', ['Bucket' => $this->cfg['bucket']]);
         $items = [];
@@ -561,9 +558,9 @@ class _uho_s3
 
     /**
      * Loads cache from file
-     * @return boolean
+     *
+     * @return bool|null
      */
-
     public function loadCache()
     {
         if ($this->cache_file) {
@@ -587,7 +584,10 @@ class _uho_s3
         } else return false;
     }
 
-    public function getCachedItemsCount()
+    /**
+     * @psalm-return int<0, max>
+     */
+    public function getCachedItemsCount(): int
     {
         if (isset($this->cache)) return count($this->cache);
         else return 0;
@@ -661,7 +661,7 @@ class _uho_s3
         
     }*/
 
-    private function createCloudFrontClient()
+    private function createCloudFrontClient(): void
     {
         $cfg = [
             'region' =>     $this->cfg['region'],
@@ -672,10 +672,15 @@ class _uho_s3
             ]
         ];
 
-        $this->cloudFrontClient = new Aws\CloudFront\CloudFrontClient($cfg);
+        $this->cloudFrontClient = new \Aws\CloudFront\CloudFrontClient($cfg);
     }
 
-    public function cloudfrontInvalidate($distributionId, $urls)
+    /**
+     * @return (bool|string)[]
+     *
+     * @psalm-return array{result: bool, message?: string}
+     */
+    public function cloudfrontInvalidate($distributionId, $urls): array
     {
         if (!$this->cloudFrontClient) $this->createCloudFrontClient();
         $uid = 'hbo' . date('YmdHis');
@@ -690,24 +695,24 @@ class _uho_s3
                     ],
                 ]
             ];
-            $result = $this->cloudFrontClient->createInvalidation($data);
+            $this->cloudFrontClient->createInvalidation($data);
             return ['result' => true];
         } catch (\Exception $exception) {
             return ['result' => false, 'message' => $exception->getMessage()];
         }
     }
 
-    public function setCacheSql($value)
+    public function setCacheSql($value): void
     {
         $this->cache_sql = $value;
     }
 
-    public function setFolder($value)
+    public function setFolder($value): void
     {
         $this->folder = $value;
     }
 
-    private function createS3Key($destination)
+    private function createS3Key(string $destination)
     {
         if ($this->folder) $destination = $this->folder . '/' . $destination;
         return $destination;

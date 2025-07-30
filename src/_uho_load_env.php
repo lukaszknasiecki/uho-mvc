@@ -28,9 +28,7 @@ class _uho_load_env
 
     /**
      * Loads ENV file
-     * @return array
      */
-
     public function load(): void
     {
         if (!is_readable($this->path)) {

@@ -103,24 +103,22 @@ class _uho_worker
 
     /**
      * Adds new items to worker
+     *
      * @param array $actions
-     * @return null
      */
-
-    function add($actions)
+    function add($actions): void
     {
         if (!is_array($actions)) $actions = [$actions];
-        foreach ($actions as $k => $v)
+        foreach ($actions as $v)
             $this->orm->postJsonModel('uho_worker', ['action' => $v, 'status' => 'waiting']);
     }
 
     /**
      * Adds existing item again to the query
+     *
      * @param integer $id
-     * @return null
      */
-
-    function addRepeat($id)
+    function addRepeat($id): void
     {
         $data = $this->orm->getJsonModel('uho_worker', ['id' => $id], true);
         if ($data) {

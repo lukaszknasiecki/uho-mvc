@@ -12,10 +12,8 @@ class _uho_geo
 
     /**
      * Class constructor
-     * @return null
      */
-
-    private static function initialize()
+    private static function initialize(): void
     {
         if (self::$initialized) {
             return;
@@ -26,10 +24,10 @@ class _uho_geo
 
     /**
      * Returns centroid from geojson
-     * @return boolean
+     *
+     * @psalm-return list{mixed, mixed}|null
      */
-
-    public static function geojson2centroid($geojson)
+    public static function geojson2centroid($geojson): array|null
     {
         $bbox = _uho_geo::geojson2bbox($geojson);
         if ($bbox && is_array($bbox) && !empty($bbox[0]) && count($bbox) == 4 && !is_array($bbox[0])) {
@@ -43,16 +41,14 @@ class _uho_geo
 
     /**
      * Returns bbox from geojson
-     * @return boolean
      */
-
-    private static function deArrayPoints($items)
+    private static function deArrayPoints(array $items): array
     {
         $result = [];
 
-        foreach ($items as $k => $v) {
+        foreach ($items as $v) {
             if (is_array($v))
-                foreach ($v as $kk => $vv) {
+                foreach ($v as $vv) {
                     if (is_array($vv)) {
                         $result = array_merge($result, _uho_geo::deArrayPoints($vv));
                     } else {
@@ -77,8 +73,8 @@ class _uho_geo
 
         if (@$geojson['type'] == 'MultiPolygon') {
             $points = [];
-            foreach ($geojson['coordinates'] as $k => $v)
-                foreach ($v as $kk => $vv) {
+            foreach ($geojson['coordinates'] as  $v)
+                foreach ($v as $vv) {
                     $points = array_merge($points, $vv);
                 }
 
@@ -90,9 +86,9 @@ class _uho_geo
         if (@$geojson['type'] == 'FeatureCollection') {
             $points = [];
 
-            foreach ($geojson['features'] as $k => $v)
-                foreach ($v['geometry']['coordinates'] as $k2 => $v2)
-                    foreach ($v2 as $k3 => $v3)
+            foreach ($geojson['features'] as $v)
+                foreach ($v['geometry']['coordinates'] as $v2)
+                    foreach ($v2 as $v3)
                         $points[] = $v3;
 
             $points = _uho_geo::deArrayPoints($points);
@@ -102,7 +98,12 @@ class _uho_geo
     }
 
 
-    public static function bbox2geojson($bbox)
+    /**
+     * @return (array[][]|string)[]
+     *
+     * @psalm-return array{type: 'Polygon', coordinates: list{list{list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}, list{mixed, mixed}}}}
+     */
+    public static function bbox2geojson($bbox): array
     {
         $g = [
             'type' => "Polygon",
@@ -120,7 +121,7 @@ class _uho_geo
         return $g;
     }
 
-    public static function points_distance($lat1, $lon1, $lat2, $lon2, $unit)
+    public static function points_distance($lat1, $lon1, $lat2, $lon2, $unit): float
     {
 
         $theta = $lon1 - $lon2;
@@ -139,12 +140,17 @@ class _uho_geo
         }
     }
 
-    public static function points2bbox($points)
+    /**
+     * @return (mixed|null)[]
+     *
+     * @psalm-return list{mixed|null, mixed|null, mixed|null, mixed|null}
+     */
+    public static function points2bbox(array|bool $points): array
     {
 
         $bbox = [null, null, null, null];
 
-        foreach ($points as $k => $v3) {
+        foreach ($points as $v3) {
             if ($bbox[0] === null || $v3[0] < $bbox[0]) $bbox[0] = $v3[0];
             if ($bbox[2] === null || $v3[0] > $bbox[2]) $bbox[2] = $v3[0];
             if ($bbox[1] === null || $v3[1] < $bbox[1]) $bbox[1] = $v3[1];
@@ -200,7 +206,10 @@ class _uho_geo
      distance-based simplification
      */
 
-    public static function simplifyRadialDistance($points, $sqTolerance)
+    /**
+     * @psalm-return list{0: mixed, 1?: mixed,...}
+     */
+    public static function simplifyRadialDistance($points, $sqTolerance): array
     {
 
         $len = count($points);
@@ -229,7 +238,10 @@ class _uho_geo
      Simplification using optimized Douglas-Peucker algorithm with recursion elimination
     */
 
-    public static function simplifyDouglasPeucker($points, $sqTolerance)
+    /**
+     * @psalm-return list{0?: mixed,...}
+     */
+    public static function simplifyDouglasPeucker($points, $sqTolerance): array
     {
 
         $len = count($points);
@@ -285,7 +297,14 @@ class _uho_geo
         Simplify Points
     */
 
-    public static function simplifyPoints($points, $tolerance = 1, $highestQuality = false)
+    /**
+     * @param array[] $points
+     * @param float|int $tolerance
+     *
+     * @psalm-param list{0?: array{x: mixed, y: mixed},...} $points
+     * @psalm-param 1|float $tolerance
+     */
+    public static function simplifyPoints(array $points, int|float $tolerance = 1, bool $highestQuality = false)
     {
         if (count($points) < 2)
             return $points;
@@ -330,7 +349,7 @@ class _uho_geo
                     }
                 }
             } else {
-                throw new Exception('Error');
+                exit('Error');
             }
         }
 

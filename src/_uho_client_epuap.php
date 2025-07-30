@@ -2,10 +2,6 @@
 
 namespace Huncwot\UhoFramework;
 
-/**
- * Depreceated
- */
-
 class _uho_client_epuap
 {
     public $issuer;
@@ -19,6 +15,8 @@ class _uho_client_epuap
     public $sso_logout_url;
     public $sso_return_url;
     private $debug = false;
+    private string $sso_service_url_destination;
+    private string $temp_folder;
 
     /**
      * Constructor
@@ -55,7 +53,7 @@ class _uho_client_epuap
                 'artifact_resolve_url' => 'https://int.login.gov.pl/login-services/idpArtifactResolutionService',
                 'sso_logout_url' => 'https://int.login.gov.pl/login-services/singleLogoutService'
             ];
-        } else exit('_uho_client_epuap wrong type=' . $type);
+        } else exit('_uho_client_epuap wrong type=' . $params['type']);
 
         foreach ($p as $k => $v)
             if (empty($params[$k])) $params[$k] = $v;
@@ -82,7 +80,7 @@ class _uho_client_epuap
     public function authRequest()
     {
         $authRequest = $this->genAuthRequest();
-        $signed = $this->signXml($authRequest, 'AuthRequest', $debug);
+        $signed = $this->signXml($authRequest, 'AuthRequest');
         $result = base64_encode($signed);
 
         if ($this->debug) {
@@ -98,10 +96,14 @@ class _uho_client_epuap
 
     /**
      * Podpisuje AuthRequest przy pomocy jar-ki
+     *
      * @param $authRequest
+     *
      * @return string
+     *
+     * @psalm-param 'ArtifactResolve'|'AuthRequest'|'LogoutRequest' $element
      */
-    private function signXml($xml, $element, $debug = 0)
+    private function signXml($xml, string $element)
     {
 
         $uid = uniqid();
@@ -115,11 +117,6 @@ class _uho_client_epuap
         exec($exe);
 
         $ret = @file_get_contents($tmpXmlSignedFile);
-
-        if ($elements == 'ArtifactResolve') exit('<hr>' . $tmpXmlSignedFile);
-
-        //unlink($tmpXmlFile);
-        //unlink($tmpXmlSignedFile);
 
         return $ret;
     }
@@ -260,10 +257,14 @@ class _uho_client_epuap
 
     /**
      * Pobiera rozwiazanie artefaktu
+     *
      * @param $req
-     * @return array
+     *
+     * @return false|string[]
+     *
+     * @psalm-return array{session_id: string, session_name_id: string, imie: string, nazwisko: string, data_urodzenia: string, pesel: string}|false
      */
-    private function getArtifactResolved($req)
+    private function getArtifactResolved(string $req): array|false
     {
 
         $tmpEncryptedArtifactResolved = $this->temp_folder . uniqid() . '_encrypted_artifact_resolved.xml';
@@ -332,11 +333,13 @@ class _uho_client_epuap
 
     /**
      * Prints XML to readable format
+     *
      * @param $xmp
+     * @param bool|string $xml
+     *
      * @return string
      */
-
-    private function printXml($xml)
+    private function printXml(string|bool $xml)
     {
         $dom = new \DOMDocument('1.0');
         $dom->preserveWhiteSpace = true;
@@ -352,7 +355,7 @@ class _uho_client_epuap
      * @param $encryptedXmlFile
      * @return bool|false|string
      */
-    private function decrytpArtifactResolved($encryptedXmlFile)
+    private function decrytpArtifactResolved(string $encryptedXmlFile)
     {
 
 
@@ -428,10 +431,10 @@ class _uho_client_epuap
 
     /**
      * Wysyla koperte do wylogowania
+     *
      * @param $req
-     * @return bool
      */
-    private function sendLogoutRequest($req)
+    private function sendLogoutRequest(string $req): bool|string
     {
         $headers = array(
             'Content-type: text/xml',
@@ -466,14 +469,14 @@ class _uho_client_epuap
 
     /**
      * Przekierowuje redirect - funkcja do debugu
+     *
      * @param $auth
      * @param $debug
-     * @return null
+     *
+     * @return never
      */
-
-    public function loginRedirect($auth, $debug = false)
+    public function loginRedirect(string $auth, $debug = false)
     {
-        $url = $this->sso_service_url;
 
 
         if ($this->debug) {

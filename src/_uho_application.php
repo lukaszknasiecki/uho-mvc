@@ -40,8 +40,8 @@ class _uho_application
     private $root_path;
 
     private $application_params;
-    private $application_title;
     private $route;
+    private $development=false;
 
     /**
      * Application constructor
@@ -59,6 +59,7 @@ class _uho_application
         }
 
         $app_path = $root_path . 'application/';
+        $this->development=$development;
         $this->root_path = $root_path;
         $root_doc = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/';
 
@@ -87,7 +88,7 @@ class _uho_application
             $this->application_params = ['application_title' => 'app', 'application_class' => 'app', 'nosql' => true];
         }
 
-        $this->application_title = @$this->application_params['application_title'];
+        // $this->application_title = @$this->application_params['application_title'];
 
         $app_class = $this->application_params['application_class'];
         
@@ -231,8 +232,7 @@ class _uho_application
      * $folder (string) - application config folder
      * @return array config object
      */
-
-    private function getConfig($folder = 'application_config',$pre_additional_cfg_files=[])
+    private function getConfig(string $folder = 'application_config',$pre_additional_cfg_files=[])
     {
         if (file_exists($folder . '/.env')) {
             require_once('_uho_load_env.php');
@@ -242,14 +242,13 @@ class _uho_application
 
         // pre - config.php
         $pre=[];
-        foreach ($pre_additional_cfg_files as $k=>$v)
+        foreach ($pre_additional_cfg_files as $v)
         {
             $cfg=[];
             include($v . '/config.php');
             if (!empty($cfg)) $pre=$cfg+$pre;
         }
 
-        $additional = [];
         if ($folder[0] == '/') {
             include($folder . '/config.php');
             $hosts_folder=$folder;            
@@ -265,7 +264,7 @@ class _uho_application
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
         // load hosts
-        foreach ($pre_additional_cfg_files as $k=>$v)
+        foreach ($pre_additional_cfg_files as $v)
         {
             if (file_exists($v.'/hosts.php')) include($v . '/hosts.php');
         }
@@ -275,7 +274,7 @@ class _uho_application
 
         // find domain by hostname
         $found = null;
-        if (!is_array($cfg_domains)) exit('_uho_application::No cfg_domains defined');
+        if (!is_array($cfg_domains)) $this->halt('_uho_application::No cfg_domains defined');
         foreach ($cfg_domains as $k => $v) {
             $vv = explode('@', $k);
             if ($vv[0] == @$_SERVER['HTTP_HOST'] && isset($vv[1])) {
@@ -303,7 +302,8 @@ class _uho_application
             $cfg_domains['application_domain'] = $_SERVER['HTTP_HOST'];
         }
         // found domain by strictname
-        elseif (isset($cfg_domains[$_SERVER['HTTP_HOST']])) {
+        elseif (isset($cfg_domains[$_SERVER['HTTP_HOST']]))
+        {
             $cfg_domains = $cfg_domains[$_SERVER['HTTP_HOST']];
             $cfg_domains['application_domain'] = $_SERVER['HTTP_HOST'];
         }
@@ -348,10 +348,8 @@ class _uho_application
 
     /**
      * Initializes mySQL DB connection
-     * @return null
      */
-
-    private function sql_init()
+    private function sql_init(): void
     {
         if ($this->application_params['sql_host']) {
             $this->sql = new _uho_mysqli(null, false);
@@ -393,13 +391,14 @@ class _uho_application
 
     /**
      * Halt utility
-     * @return null
+     *
+     * @return never
+     *
+     * @psalm-param 'SQL Database connection error.' $message
      */
-
-
-    public function halt($message)
+    public function halt(string $message)
     {
-        if (development === true) {
+        if ($this->development) {
             exit($message);
         } else {
             exit('System error. Please, try again later.');

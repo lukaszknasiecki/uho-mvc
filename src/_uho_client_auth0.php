@@ -42,10 +42,10 @@ class _uho_client_auth0
 
     /**
      * Get's user data
-     * @return array returns user's data
+     *
+     * @return array|null returns user's data
      */
-
-    public function getData()
+    public function getData(): array|null
     {
         $session = $this->auth0->getCredentials();
 
@@ -87,10 +87,10 @@ class _uho_client_auth0
 
     /**
      * Actions to be performed before login
-     * @return null
+     *
+     * @return true
      */
-
-    public function beforeLogin()
+    public function beforeLogin(): bool
     {
         if ($this->getData()) {
             return true;
@@ -103,10 +103,8 @@ class _uho_client_auth0
 
     /**
      * Actions to be performed before logout
-     * @return null
      */
-
-    public function beforeLogout()
+    public function beforeLogout(): void
     {
         if ($this->getData()) {
             $this->auth0->logout();
@@ -115,9 +113,9 @@ class _uho_client_auth0
 
     /**
      * Actions to be performed before lggin callback
-     * @return null
+     *
+     * @return null|true
      */
-
     public function beforeLoginCallback($data)
     {
         $this->auth0->exchange($this->params['callback'], $data['code'], $data['state']);
@@ -125,7 +123,7 @@ class _uho_client_auth0
         if ($client) return true;
     }
 
-    public function beforePasswordReset()
+    public function beforePasswordReset(): void
     {
         /*
         $this->auth0->configuration()->setManagementToken($env['AUTH0_MANAGEMENT_API_TOKEN']);

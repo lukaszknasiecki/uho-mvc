@@ -87,10 +87,8 @@ class _uho_route
 
     /**
      * Starts routing
-     * @return null
      */
-
-    public function init()
+    public function init(): void
     {
         if ($this->cfg['overwriteUrl'] && $this->cfg['overwriteUrl'] != 'overwriteUrl') {
             $this->urlString = $this->cfg['overwriteUrl'];
@@ -138,7 +136,7 @@ class _uho_route
                 if ($this->cfg['langDetect']) {
                     $langs = explode(',', $_SERVER["HTTP_ACCEPT_LANGUAGE"]);
                     if ($langs) {
-                        foreach ($langs as $k => $v) {
+                        foreach ($langs as $v) {
                             $v = explode(';', $v);
                             $v = @$v[0];
                             foreach ($this->cfg['langDetect'] as $k2 => $v2) {
@@ -150,7 +148,6 @@ class _uho_route
                             }
                         }
                     }
-                    $fi = 9999;
                 } else {
                     $lang = null;
                 }
@@ -163,7 +160,7 @@ class _uho_route
                     $s = explode(';', $_SERVER["HTTP_ACCEPT_LANGUAGE"]);
                     $s = ' ' . $s[0];
                     $fi = 9999;
-                    foreach ($this->cfg['langArray'] as $key => $value) {
+                    foreach ($this->cfg['langArray'] as $value) {
                         if (strpos($s, $value) && strpos($s, $value) < $fi && (!isset($this->cfg['langExcludeAutoLanguage']) || !$this->cfg['langExcludeAutoLanguage'] || array_search($value, $this->cfg['langExcludeAutoLanguage']) === false)) {
                             $lang = $value;
                             $fi = strpos($s, $value);
@@ -198,24 +195,22 @@ class _uho_route
         if (isset($get[1])) parse_str(@$get[1], $this->getArray);
     }
 
-    /** 
+    /**
      * Set lang prefix
+     *
      * @param string $lang
-     * @return null
      */
-
-    public function setLang($lang)
+    public function setLang($lang): void
     {
         $this->urlLang = $lang;
     }
 
     /**
      * Enabled language cookie
+     *
      * @param string $lang
-     * @return null
      */
-
-    public function setCookieLang($lang = null)
+    public function setCookieLang($lang = null): void
     {
         if (!$lang) {
             $lang = $this->urlLang;
@@ -242,11 +237,10 @@ class _uho_route
 
     /**
      * Sets prefix URL for routing
+     *
      * @param string $url
-     * @return null
      */
-
-    public function setPrefixUrl($url)
+    public function setPrefixUrl($url): void
     {
         $this->cfg['urlPrefix'] = $url;
     }
@@ -283,12 +277,13 @@ class _uho_route
 
     /**
      * Redirecting tool
+     *
      * @param string $url
      * @param array $get
      * @param boolean $addUrlLang
-     * @return null
+     *
+     * @return never
      */
-
     public function redirect($url, $get = null, $addUrlLang = true)
     {
         if ($this->urlLang && $addUrlLang && $this->cfg['langPrefix']) {
@@ -312,27 +307,23 @@ class _uho_route
         exit();
     }
 
-    public function setClosingSlash()
+    public function setClosingSlash(): void
     {
         $this->closingSlash = true;
     }
 
     /**
      * Redirecting tool for homepage
-     * @return null
      */
-
-    public function redirectHome()
+    public function redirectHome(): void
     {
         $this->redirect($this->cfg['urlHome']);
     }
 
     /**
      * Redirecting tool for 404 page
-     * @return null
      */
-
-    public function redirect404()
+    public function redirect404(): void
     {
         $this->redirect($this->cfg['url404']);
     }
@@ -423,12 +414,11 @@ class _uho_route
 
     /**
      * Changes element of url array
+     *
      * @param int $i
      * @param string $value
-     * @return string
      */
-
-    public function urlChange($i, $value)
+    public function urlChange($i, $value): void
     {
         $this->urlArray[$i] = $value;
     }
@@ -497,12 +487,12 @@ class _uho_route
 
     /**
      * Returns current full URL based on adv options
-     * @param string $domain
+     * @param $domain
      * @param array $getAdd
      * @param array $getNew
      * @param array $getRemove
      * @param string $lang
-     * @param string $prefix
+     * @param $prefix
      * @return string
      */
 
@@ -520,7 +510,7 @@ class _uho_route
             if ($getAdd == '[all]') {
                 $get = $this->getArray;
             } elseif ($getAdd) {
-                foreach ($getAdd as $k => $v) {
+                foreach ($getAdd as $v) {
                     $get[$v] = @$this->getArray[$v];
                 }
             }
@@ -572,12 +562,11 @@ class _uho_route
 
     /**
      * Update URLs in array based on URL types
+     *
      * @param array $array
      * @param string $field
-     * @return null
      */
-
-    public function updateUrls(&$array, $field = 'url')
+    public function updateUrls(&$array, $field = 'url'): void
     {
         if (is_array($array)) {
             foreach ($array as $k => $v) {
@@ -675,7 +664,7 @@ class _uho_route
             case "twig":
     
                 $input=[];
-                foreach ($path['input'] as $kp=>$vp)
+                foreach ($path['input'] as $vp)
                   if (isset($v[$vp])) $input[$vp]=$v[$vp];
                 $v=$this->getTwigFromHtml($path['value'],$input);
                 break;
@@ -691,14 +680,12 @@ class _uho_route
         return $result;
     }
 
-    public function updatePaths($t)
+    public function updatePaths(array $t)
     {
         if (empty($this->cfg['pathArray'])) return $t;
 
         if (is_array($t))
             foreach ($t as $k => $v) {
-                $vv = $v;
-                $lang = null;
                 $hash = null;
 
                 // update everything with prefix url and .type set
