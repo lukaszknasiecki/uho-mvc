@@ -1,12 +1,12 @@
 {
-    "name": "huncwotdigital/uho-framework",
+    "name": "lukaszknasiecki/uho-mvc",
     "description": "PHP model-view-controller framework",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Lukasz Knasiecki",
-            "email": "lukasz@huncwot.com"
+            "email": "lukasz@knasiecki.com"
         }
     ],
     "require": {
