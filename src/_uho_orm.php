@@ -26,6 +26,7 @@ class _uho_orm
      * array of shortcuts of current languages available
      */
     private $langs = [];
+    private $lang='';
     /**
      * array of root_paths where orm is looking for JSON model files
      */
@@ -59,9 +60,7 @@ class _uho_orm
     private $s3cacheSql = false;
     private $s3compress = null;
 
-    private $m;
     private $sql;
-    private $lang;
     private $lang_add;
     private $keys;
     private $test;
@@ -77,14 +76,13 @@ class _uho_orm
 
     function __construct($model, $sql, $lang, $keys, $test = false)
     {
-        $this->m = $model;
         $this->sql = $sql;
         $this->lang = $lang;
         $this->keys = $keys;
         $this->test = $test;
 
         $this->root_paths[] = '/application/models/json/';
-        $this->lang_add = '_' . strtoupper($lang);
+        if ($lang) $this->lang_add = '_' . strtoupper($lang);
     }
 
     /**

@@ -614,9 +614,15 @@ class _uho_route
         $path = isset($paths[$v['type']]) ? $paths[$v['type']] : null;
         if (isset($path)) {
             $val = [];
+            
             foreach ($path as $pk => $pv)
-                if ($pk != 'type' && isset($v[$pk])) $val[$pv] = $v[$pk];
+                if ($pk != 'type' && $pk != 'params' && isset($v[$pk])) $val[$pv] = $v[$pk];
         }
+
+        if (empty($path['type']) && !empty($path['value'])) {
+            $v=$path['value'];
+        }
+
 
 
         if (isset($path['type']))
@@ -661,17 +667,65 @@ class _uho_route
                 break;
 
 
-            case "twig":
-    
+                case "twig":
+                        
                 $input=[];
                 foreach ($path['input'] as $vp)
-                  if (isset($v[$vp])) $input[$vp]=$v[$vp];
+                {
+                  if (isset($v[$vp]))
+                    {
+                        
+                        $input[$vp]=$v[$vp];
+                        
+                        if (isset($path['input_format'][$vp]))
+                        {
+
+                            switch ($path['input_format'][$vp])
+                            {
+                                case "raw":
+                                    break;
+                                case "json":
+                                    $input[$vp] = urlencode(json_encode($input[$vp]));
+                                    break;
+                                default:
+                                    
+                            }
+                        }
+
+                    }
+                }
+
+                if (!empty($path['params']))
+                    {
+                       foreach ($path['params'] as $key => $val)
+                        if (isset($input[$key]))
+                       {
+                            switch ($val)
+                            {
+                                case "raw":
+                                    break;
+                                case "json":                                    
+                                    $input[$key] = json_encode($$input[$key]);
+                                    break;
+                                    default:
+                                    exit('error');
+                            }
+
+                            
+                            
+                       }
+                       
+                    }
+
+
+
                 $v=$this->getTwigFromHtml($path['value'],$input);
                 break;
 
+
         }
 
-        if (!$skip) $result = $v;
+        if ($skip) $result = $v;
         else if ($type == 'hash') $result = $v;
         else if (is_array($v));
         else if (substr($v, 0, 4) == 'http') $result = $v;
@@ -680,7 +734,7 @@ class _uho_route
         return $result;
     }
 
-    public function updatePaths(array $t)
+    public function updatePaths(array $t,$root=true)
     {
         if (empty($this->cfg['pathArray'])) return $t;
 
@@ -700,7 +754,7 @@ class _uho_route
                 }
                 /*
                     for other arrays - lets recursively call the same function
-                */ elseif (is_array($v)) $t[$k] = $this->updatePaths($v);
+                */ elseif (is_array($v)) $t[$k] = $this->updatePaths($v,false);
 
                 if ($hash) $t[$k] .= '#' . $hash;
             }

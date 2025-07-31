@@ -491,9 +491,10 @@ class _uho_client
    * @return null
    */
 
-  public function getToken()
+  public function getToken($key='')
   {
-    return $_SESSION[$this->session_key . '_token'];
+    if ($key) return $_SESSION[$key . '_token'];
+      return $_SESSION[$this->session_key . '_token'];
   }
 
   /**
@@ -502,9 +503,10 @@ class _uho_client
    * @return boolean
    */
 
-  public function validateToken($token)
+  public function validateToken($token,$key='')
   {
-    return ($token && ($token == $this->getToken()));
+    $result = !empty($token) && ($token == $this->getToken($key));
+    return $result;
   }
 
   /**
@@ -676,10 +678,8 @@ class _uho_client
    */
   public function login($email, $pass, array|null $params = null)
   {
-
-    //$initial_id=$this->getClientId();    
-    if ((!$email && $this->fieldLogin) && !$pass && !$params) {
-
+      //$initial_id=$this->getClientId();    
+      if ((!$email && $this->fieldLogin) && !$pass && !$params) {
       return;
     }
 

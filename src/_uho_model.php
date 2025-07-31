@@ -478,9 +478,9 @@ class _uho_model
      *
      * @param string $f
      *
-     * @return bool|null
+     * @return bool
      */
-    public function file_exists($f)
+    public function file_exists(string $f): bool
     {
         $f = str_replace('//', '/', $f);
         $f = $this->image_decache($f);
@@ -493,7 +493,7 @@ class _uho_model
             curl_close($ch);
             if ($retCode == 200) {
                 return true;
-            }
+            } else return false;
         } else {
             return file_exists($this->root_path . $f);
         }

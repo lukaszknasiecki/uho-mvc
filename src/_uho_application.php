@@ -91,16 +91,16 @@ class _uho_application
         // $this->application_title = @$this->application_params['application_title'];
 
         $app_class = $this->application_params['application_class'];
-        
-        $routing_config=$app_path.'routes/route_'.$app_class.'.json';        
 
-        if (file_exists($routing_config))
+        $src_routing_config=$app_path.'routes/route_'.$app_class.'.json';        
+
+        if (file_exists($src_routing_config))
         {
-            $routing_config=file_get_contents($routing_config);
+            $routing_config=file_get_contents($src_routing_config);
             if ($routing_config) $routing_config=json_decode($routing_config,true);
-        }
+        } else $routing_config=null;
 
-        if (!$routing_config) exit('No ROUTING config found');
+        if (!$routing_config) exit('No ROUTING config found at: '.$src_routing_config);
 
         $overwriteUrl = false;
 
@@ -127,7 +127,6 @@ class _uho_application
             true,
             $force_ssl
         );
-
 
         $lang = @$this->application_params['application_language'];
         if (!$lang) {
@@ -179,7 +178,7 @@ class _uho_application
         } else {
             $lang_model = null;
         }
-
+        
         $this->view = new $view_class($app_class, $app_path . "views", "application/views", $root_path);
         $this->view->debug = $development;
 
@@ -212,7 +211,7 @@ class _uho_application
         // get CONTROLLER class  ----------------------------------------
 
         $controller_class = 'controller_' . $app_class . '_' . $this->route->getRouteClass();
-        
+
         require_once($app_path . "controllers/" . $controller_class . '.php');
 
         $this->controller = new $controller_class($this->application_params, $this->cms, $this->view, $this->route);

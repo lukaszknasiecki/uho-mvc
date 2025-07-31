@@ -73,7 +73,7 @@ class _uho_controller
      * @param array $post POST data
      * @param object $get GET data
      */
-    public function actionBefore($post, $get): void
+    public function actionBefore(array $post, array $get) : void
     {
         $this->post = $post;
         $this->get = $get;
