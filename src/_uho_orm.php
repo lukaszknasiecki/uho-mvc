@@ -14,7 +14,6 @@ class _uho_orm
     /**
      * indicates if filesDecache should be performed
      */
-    private $root_path;
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
     /**
@@ -2985,8 +2984,11 @@ class _uho_orm
         $queries=[];
         $queries[]=$query;
 
-        if (!$sql_schema['id']) $queries[]='ALTER TABLE `'.$schema['table'].'` ADD PRIMARY KEY (`id`);';
-        if (!$sql_schema['id'] || $sql_schema['id']=='int(11)') $queries[]='ALTER TABLE `'.$schema['table'].'` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;';
+        if (!empty($sql_schema['id']))
+        {
+            $queries[]='ALTER TABLE `'.$schema['table'].'` ADD PRIMARY KEY (`id`);';
+            if ($sql_schema['id']=='int(11)') $queries[]='ALTER TABLE `'.$schema['table'].'` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;';
+        }
 
         if (!empty($sql))
         {
@@ -3088,7 +3090,7 @@ class _uho_orm
             {
                 if (isset($options) && !empty($options['update']))
                 {
-                    $this->updateTable($schema,$options['update']);
+                    //$this->updateTable($schema,$options['update']);
                     $messages[]='Table has been updated';                
                 } else $actions[]='table_update';
 
