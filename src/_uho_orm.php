@@ -133,16 +133,6 @@ class _uho_orm
     }
 
     /**
-     * Sets single root path and parses JSON file
-     *
-     * @param string $path
-     */
-    public function setRootPath($path): void
-    {
-        $this->root_path = $_SERVER['DOCUMENT_ROOT'] . rtrim($path, '/') . '/';
-    }
-
-    /**
      * Returns all possible Json file paths
      * @return array
      */
@@ -2960,7 +2950,11 @@ class _uho_orm
             }
         }
 
-        if (!$id) array_unshift($fields,'`id` int(11)');
+        if (!$id)
+            {
+                $id='int(11)';
+                array_unshift($fields,'`id` int(11)');
+            }
 
         return ['fields'=>$fields,'fields_sql'=>$fields_sql,'id'=>$id];
 

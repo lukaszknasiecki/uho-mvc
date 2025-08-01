@@ -11,7 +11,7 @@ class _uho_model
     /**
      * instance of _uho_mysqli
      */
-    public $sql;
+    public  $sql;
     /**
      * current language shortcut
      */
@@ -77,7 +77,7 @@ class _uho_model
 
     /**
      * Constructor
-     * @param array $sql instance of _uho_mysql class
+     * @param  $sql instance of _uho_mysql class
      * @param array $lang language shortcut, i.e. en
      * @param array $salt out of use
      * @param array $lang_model language suffix, i.e. _EN
