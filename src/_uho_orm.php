@@ -873,7 +873,11 @@ class _uho_orm
         // setting field defaults ------------------------------------------------------------
         if ($model && is_array($model['fields']))
             foreach ($model['fields'] as $k => $v)
-                if (!isset($v['type'])) $model['fields'][$k]['type'] = 'string';
+                if (!isset($v['type']))
+                    {
+                        if ($v['field'] == 'id') $model['fields'][$k]['type'] = 'integer';
+                            else $model['fields'][$k]['type'] = 'string';
+                    }
 
         // setting langs  ------------------------------------------------------------
         if ($lang && $model && $this->langs) {
@@ -2857,6 +2861,7 @@ class _uho_orm
 
         foreach ($schema['fields'] as $v)
         {
+
             $type='';
             switch ($v['type'])
             {
@@ -3084,7 +3089,7 @@ class _uho_orm
             {
                 if (isset($options) && !empty($options['update']))
                 {
-                    //$this->updateTable($schema,$options['update']);
+                    $this->updateTable($schema,$options['update']);
                     $messages[]='Table has been updated';                
                 } else $actions[]='table_update';
 
