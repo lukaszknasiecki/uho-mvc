@@ -623,8 +623,6 @@ class _uho_route
             $v=$path['value'];
         }
 
-
-
         if (isset($path['type']))
         switch ($path['type']) {
 
@@ -670,6 +668,7 @@ class _uho_route
                 case "twig":
                         
                 $input=[];
+                
                 foreach ($path['input'] as $vp)
                 {
                   if (isset($v[$vp]))
@@ -697,27 +696,24 @@ class _uho_route
 
                 if (!empty($path['params']))
                     {
+                        $query=[];
                        foreach ($path['params'] as $key => $val)
                         if (isset($input[$key]))
-                       {
+                        {
                             switch ($val)
                             {
                                 case "raw":
                                     break;
                                 case "json":                                    
-                                    $input[$key] = json_encode($$input[$key]);
+                                    $input[$key] = json_encode($input[$key]);
                                     break;
                                     default:
                                     exit('error');
-                            }
-
-                            
-                            
-                       }
-                       
+                            }                     
+                            $query[$key]=$input[$key];
+                        }       
+                       $input['build_query']='?'.http_build_query($query);
                     }
-
-
 
                 $v=$this->getTwigFromHtml($path['value'],$input);
                 break;
