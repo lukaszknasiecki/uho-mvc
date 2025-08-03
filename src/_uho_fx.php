@@ -1254,10 +1254,13 @@ class _uho_fx
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         }
-        if (isset($params['put']) && $data) {
+        if (isset($params['put'])) {
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-            if (is_string($data)) $data = json_decode($data, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+            if ($data)
+            {
+                if (is_string($data)) $data = json_decode($data, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+            }
         }
         if (isset($params['delete'])) {
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
