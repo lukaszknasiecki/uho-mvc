@@ -83,7 +83,9 @@ class _uho_fx
 
     public static function getGetArray()
     {
-        $get = explode('?', $_SERVER["REQUEST_URI"]);
+        if (isset($_SERVER["REQUEST_URI"]))
+            $get = explode('?', $_SERVER["REQUEST_URI"]);
+            else $get=[];
         if (isset($get[1])) $get = $get[1];
         else $get = '';
         parse_str($get, $get2);
@@ -99,7 +101,9 @@ class _uho_fx
 
     public static function getGet($param, $default = '')
     {
-        $request = (string) $_SERVER['REQUEST_URI'];
+        if (isset($_SERVER['REQUEST_URI']))
+            $request = (string) $_SERVER['REQUEST_URI'];
+            else $request='';
         if (preg_match('/' . (string) $param . '\=([a-zA-Z0-9\%\_\-\+ ]{1,})/', $request, $request)) {
             return _uho_FX::secureGet(urldecode(strip_tags($request[1])));
         }

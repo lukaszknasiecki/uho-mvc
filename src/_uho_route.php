@@ -190,8 +190,10 @@ class _uho_route
             }
         }
 
-        // ==============================================================================================================
-        $get = explode('?', (string) $_SERVER['REQUEST_URI']);
+        if (isset($_SERVER['REQUEST_URI']))
+        {
+            $get = explode('?', (string) $_SERVER['REQUEST_URI']);
+        } else $get=[];
         if (isset($get[1])) parse_str(@$get[1], $this->getArray);
     }
 
@@ -705,7 +707,7 @@ class _uho_route
                                 case "raw":
                                     break;
                                 case "json":                                    
-                                    $input[$key] = json_encode($input[$key]);
+                                    $input[$key] = urlencode(json_encode($input[$key]));
                                     break;
                                     default:
                                     exit('error');
