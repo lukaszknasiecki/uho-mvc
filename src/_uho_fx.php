@@ -106,6 +106,31 @@ class _uho_fx
         return $default;
     }
 
+    public static function sanitize_input(array $input, array $keys)
+    {
+        $output = [];
+
+        foreach ($keys  as $k => $v)
+            if (isset($input[$k]))
+                switch ($v) {
+                    case "string":
+                        $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+                        break;
+                    case "boolean":
+                        $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+                        if ($output[$k]=='true') $output[$k]=1; else $output[$k]=0;
+                        break;
+                    case "url":
+                        $output[$k] = filter_var($input[$k], FILTER_SANITIZE_ENCODED);
+                        break;
+                    case "int":
+                        $output[$k] = filter_var($input[$k], FILTER_VALIDATE_INT);
+                        break;
+                }
+
+        return $output;
+    }
+
     /**
      * Util function replacing array values
      * @param array $array
