@@ -203,11 +203,11 @@ class _uho_s3
      *
      * @param array $filename
      *
-     * @return string[]
+     * @return string
      *
      * @psalm-return array<string>
      */
-    private function clear_filename($filename): array
+    private function clear_filename($filename): string
     {
         $root = $_SERVER['DOCUMENT_ROOT'] . $this->path_skip;
         $root = str_replace('//', '/', $root);
