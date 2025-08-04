@@ -55,7 +55,6 @@ class _uho_orm
      */
     private $uhoS3 = null;
     private $s3cache = null;
-    private $s3cacheSql = false;
     private $s3compress = null;
 
     private $sql;
@@ -2743,14 +2742,7 @@ class _uho_orm
         if ($force || !$this->s3cache['data']) {
             $data = @file_get_contents($this->s3cache['filename']);
             if ($data) $data = json_decode($data, true);
-            if ($data) $this->s3cache['data'] = $data;
-
-            if (!$data && $this->s3cacheSql) {
-                $data = [];
-                $items = $this->getJsonModel('uho_image_cache');
-                foreach ($items as $v) $data[$v['filename']] = ['time' => $v['time']];
-                if ($data) @file_put_contents($this->s3cache['filename'], json_encode($data, true));
-            }
+            if ($data) $this->s3cache['data'] = $data;            
         }
     }
 
@@ -2808,11 +2800,6 @@ class _uho_orm
     public function s3getCacheFilename()
     {
         if (isset($this->s3cache) && !empty($this->s3cache['filename'])) return $this->s3cache['filename'];
-    }
-
-    public function s3setCacheSql($cache): void
-    {
-        $this->s3cacheSql = $cache;
     }
 
     /**

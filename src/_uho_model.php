@@ -532,7 +532,6 @@ class _uho_model
             $this->orm->setFolderReplace('/public/upload/', $host);
         }
 
-        if (isset($s3['cache_sql'])) $this->orm->s3setCacheSql($s3['cache_sql']);
         if (isset($s3['cache'])) $this->orm->s3setCache($s3['cache']);
         if (isset($s3['compress'])) $this->orm->setS3Compress($s3['compress']);
         if (!empty($s3['cache_build_on_run']) && !empty($s3['cache']) && !file_exists($this->orm->s3getCacheFilename()))
