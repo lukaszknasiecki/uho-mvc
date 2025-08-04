@@ -6,7 +6,6 @@ namespace Huncwot\UhoFramework;
  * This is an ORM class providing model-based communication
  *  with mySQL databases, using JSON composed model structures
  * It also supports image caching including S3 support
- *  v 2022
  */
 
 class _uho_orm
@@ -3010,6 +3009,18 @@ class _uho_orm
     {
         $sql_schema= $this->getSchemaSQL($schema);
         $columns=$this->query('SHOW COLUMNS FROM `'.$schema['table'].'`');
+
+        /*
+            Array with the same depreceated types
+        */
+        $the_same=[
+            'int'=>['int(11)','int(4)'],
+            'tinyint'=>['tinyint(4)'],
+            'int(11)'=>'int',
+            'int(4)'=>'int',
+            'tinyint(4)'=>'tinyint'
+        ];
+        
         $update=[];
         $add=[];
 
@@ -3017,7 +3028,12 @@ class _uho_orm
         {
             $find=_uho_fx::array_filter($columns,'Field',$v['Field'],['first'=>true]);
             if ($find && $find['Type']==$v['Type']);
-            elseif ($find) $update[]=$v; else
+            elseif ($find)
+            {
+                if (isset($the_same[$find['Type']]) && in_array($v['Type'],$the_same[$find['Type']]));
+                else $update[]=$v;
+            }
+            else
             {
                 $add[]=$v;
             }
@@ -3040,7 +3056,7 @@ class _uho_orm
             }
 
             if ($action=='auto')
-            {
+            {                
                 foreach ($update as $v)
                 {            
                     $query='ALTER TABLE `'.$schema['table'].'` CHANGE `'.$v['Field'].'` `'.$v['Field'].'` '.$v['Type'];

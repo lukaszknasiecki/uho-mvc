@@ -452,7 +452,7 @@ class _uho_fx
      * @return boolean
      */
 
-    public static function file_exists($filename, $skip_query = false)
+    public static function file_exists($filename, $skip_query = false) : bool
     {
         if ($skip_query) {
             $filename = _uho_fx::image_decache($filename);
