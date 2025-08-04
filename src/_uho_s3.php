@@ -6,6 +6,7 @@ use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\CloudFront\CloudFrontClient;
+use Huncwot\UhoFramework\_uho_orm;
 
 /**
  * This class provides S3 bucket interface
@@ -30,7 +31,7 @@ class _uho_s3
      * is mysql cache
      */
     private $cache_sql = false;
-    private $orm = false;
+    private $orm;
     /**
      * currenat cache filename
      */
@@ -101,7 +102,9 @@ class _uho_s3
             }
             if (empty($_SESSION['_uho_s3_cache'])) $_SESSION['_uho_s3_cache'] = [];
             $this->cache = $_SESSION['_uho_s3_cache'];
+            
         }
+        
     }
 
     public function ready(): bool
@@ -221,10 +224,9 @@ class _uho_s3
     /**
      * Sets cache for one bucket item
      *
-     * @param array $filename
-     * @param $valie
+     * @param string $filename
+     * @param $value
      * @param boolean $save
-     * @param (mixed|string|string[])[]|false $value
      *
      */
     private function cacheSet($filename, array|false $value, $save = true, bool $compress = true): void
@@ -264,7 +266,7 @@ class _uho_s3
         return $result;
     }
 
-    private function compressObject(array &$key, &$value): void
+    private function compressObject(string &$key, &$value): void
     {
         switch ($this->compress) {
             case "md5":
@@ -302,7 +304,7 @@ class _uho_s3
 
     /**
      * Returns bucket object metadata
-     * @param array $filename
+     * @param string $filename
      * @param boolean $force
      * @return array
      */
@@ -382,16 +384,6 @@ class _uho_s3
 
         $destination = $this->createS3Key($destination);
 
-        /*
-        $s3->putObject(array(
-            'Bucket' => 'my-bucket',
-            'Key'    => 'my-object',
-            'ContentLength' => filesize($url),
-            'Body'   => fopen( $url, 'r' ),
-            'ACL'    => Aws\S3\Enum\CannedAcl::PUBLIC_READ
-        ));*/
-
-
         try {
             $object = [
                 'Bucket' => $this->cfg['bucket'],
@@ -406,7 +398,8 @@ class _uho_s3
             $result = $result->toArray();
 
             $result = $result['@metadata'];
-            if ($result && $result['statusCode'] == 200) {
+            if ($result && $result['statusCode'] == 200)
+            {
                 $this->cacheSet($destination, ['time' => md5($result['headers']['date'])], true);
             }
         } catch (AwsException $e) {
