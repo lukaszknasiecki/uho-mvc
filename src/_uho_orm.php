@@ -2840,7 +2840,7 @@ class _uho_orm
      */
     public function getSchemaSQL ($schema): array
     {
-
+        
         $fields=[];
         $fields_sql=[];
         $id=false;
@@ -2882,21 +2882,23 @@ class _uho_orm
                             $type='longtext';
                     break;
                 case "select":
-                    $type='int(11)';
 
+                    $type='int(11)';
+                    
                     if (!empty($v['source']['model']))
                     {
+                        
                         $source_model=$this->getJsonModelSchema($v['source']['model']);
+                        
                         if ($source_model)
-                        {
+                        {                            
                             $ids=_uho_fx::array_filter($source_model['fields'],'field','id',['first'=>true]);
                             if ($ids && $ids['type']=='string')
                             {
                                 $length= empty($ids['settings']['length']) ? 256 : $ids['settings']['length'];
                                 $type='varchar('.$length.')';
                             }
-                        }
-                        
+                        }                        
                     }
                     elseif (!empty($v['options']))
                     {
@@ -2905,12 +2907,14 @@ class _uho_orm
                     }
                     
                     break;
+
                 case "file":
                 case "image":
                 case "media":
                 case "video":
                         $type=null;
                         break;
+
                 case "string":
                     $length= empty($v['settings']['length']) ? 256 : $v['settings']['length'];
                     $type='varchar('.$length.')';
@@ -3018,7 +3022,11 @@ class _uho_orm
             elseif ($find)
             {
                 if (isset($the_same[$find['Type']]) && in_array($v['Type'],$the_same[$find['Type']]));
-                else $update[]=$v;
+                else
+                {
+                    $v['OldType']=$find['Type'];
+                    $update[]=$v;
+                }
             }
             else
             {
@@ -3035,8 +3043,9 @@ class _uho_orm
                 $html='<h3>Schema for [<code>'.$schema['table'].'</code>] needs to be updated.</h3><ul>';
                 foreach ($add as $v)
                     $html.='<li>New field: '.$v['Field'].' ('.$v['Type'].')</li>';
+                
                 foreach ($update as $v)
-                    $html.='<li>Field to be updated: '.$v['Field'].' ('.$v['Type'].')</li>';
+                    $html.='<li>Field to be updated: '.$v['Field'].' ('.$v['OldType'].' -> '.$v['Type'].')</li>';
 
                 $html.='</ul><form action="" method="POST"><input type="hidden" name="uho_orm_action" value="auto"><input type="submit" value="Proceed"></form>';
                 exit($html);
