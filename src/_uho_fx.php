@@ -1285,6 +1285,69 @@ class _uho_fx
     }
 
     /**
+     * Curl Util
+     * @param string $method='GET|POST|PUT|DELETE'
+     * @param string $url
+     * @param array|string $data
+     * @param array $params
+     * @return string
+     */
+
+    public static function curl($method='GET',$url='',$data=[],$params=[])
+    {
+
+        $params['timeout'] = !empty($params['timeout']) ? $params['timeout'] : 30;
+
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $params['timeout']);
+
+        $header = [];
+        if (isset($params['accept'])) $header[] = 'accept: ' . $params['accept'];
+        if (isset($params['content-type']))   $header[] = 'content-type: ' . $params['content-type'];
+        if (isset($params['authorization'])) $header[] = 'Authorization: ' . $params['authorization'];
+        if (isset($params['bearer'])) $header[] = 'Authorization: Bearer ' . $params['bearer'];
+
+        if ($header) curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ch, CURLOPT_HTTPGET, 1);
+                break;
+            case 'PUT':
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+                if (is_string($data)) $data = json_decode($data, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+                break;
+            case 'DELETE':
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+                break;
+            case 'POST':
+            default:                
+                curl_setopt($ch, CURLOPT_POST, 1);
+                if (is_array($data)) $data=json_encode($data);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        }
+
+        $data = curl_exec($ch);
+
+        curl_close($ch);
+
+        if (!$data) {
+            return ['result' => false, 'error' => curl_error($ch)];
+        }
+        else
+        {
+            if (isset($params['accept']) && $params['accept'] == 'application/json')
+                $data = @json_decode($data, true);
+        }
+
+        return ['result'=>true,'data'=>$data];
+        
+    }
+
+    /**
      * Updates PHP's trim function so it actually works
      * @param string $string
      * @param array $trim
