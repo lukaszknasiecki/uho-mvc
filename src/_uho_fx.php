@@ -121,7 +121,9 @@ class _uho_fx
         {
             if (is_array($v) && isset($input[$k]))
             {
-                $output[$k]=_uho_fx::sanitize_input($input[$k], $v);
+                $output[$k]=[];
+                foreach ($input[$k] as $kk=>$vv)
+                    $output[$k][$kk]=_uho_fx::sanitize_input($vv, $v[0]);
             }
             else
             if (isset($input[$k]))
