@@ -110,15 +110,35 @@ class _uho_fx
         return $default;
     }
 
+    /**
+     * Sanitizes input data based on specified keys and their types
+     */
     public static function sanitize_input(array $input, array $keys)
     {
         $output = [];
 
         foreach ($keys  as $k => $v)
+        {
+            if (is_array($v) && isset($input[$k]))
+            {
+                $output[$k]=_uho_fx::sanitize_input($input[$k], $v);
+            }
+            else
             if (isset($input[$k]))
                 switch ($v) {
                     case "string":
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+                        break;
+                    case "point":
+                        $arr=explode(',',$input[$k]);
+                        $arr = array_filter($arr, 'is_numeric');
+                        $output[$k]=count($arr) == 2 ? implode(',',$arr) : null;
+                        
+                        break;
+                    case "bbox":
+                        $arr=explode(',',$input[$k]);
+                        $arr = array_filter($arr, 'is_numeric');
+                        $output[$k]=count($arr) == 4 ? implode(',',$arr) : null;
                         break;
                     case "boolean":
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -128,9 +148,11 @@ class _uho_fx
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_ENCODED);
                         break;
                     case "int":
+                    case "integer":
                         $output[$k] = filter_var($input[$k], FILTER_VALIDATE_INT);
                         break;
                 }
+            }
 
         return $output;
     }
