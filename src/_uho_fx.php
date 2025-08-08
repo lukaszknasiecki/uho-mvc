@@ -129,6 +129,10 @@ class _uho_fx
                     case "string":
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
                         break;
+                    case "array":
+                        if (is_array($input[$k]))
+                            $output[$k] = $input[$k];
+                        break;
                     case "point":
                         $arr=explode(',',$input[$k]);
                         $arr = array_filter($arr, 'is_numeric');
