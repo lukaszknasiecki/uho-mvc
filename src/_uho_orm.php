@@ -2231,7 +2231,7 @@ class _uho_orm
      *
      * @return boolean|int
      */
-    public function postJsonModel($model, $data, $multiple = false): boolean|int
+    public function postJsonModel($model, $data, $multiple = false): bool|int
     {
         $model = $this->getJsonModelSchema($model, true);
         if (!$model) return false;
