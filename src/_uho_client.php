@@ -1147,7 +1147,7 @@ class _uho_client
     $data['date_set'] = date('Y-m-d H:i:s');
     $data['ip'] = $this->getIp();
 
-    if ($this->settings['gdpr_days'])
+    if (!empty($this->settings['gdpr_days']))
       $data['gdpr_expiration_date'] = date('Y-m-d', strtotime("+" . $this->settings['gdpr_days'] . " days"));
 
     $data['uid'] = $this->uniqid();
