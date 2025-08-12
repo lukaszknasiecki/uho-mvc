@@ -305,6 +305,11 @@ class _uho_model
         return @$this->api_keys[$section];
     }
 
+    public function getOrm()
+    {
+        return $this->orm;
+    }
+
     /**
      * Converts string for safe use with mySQL
      * @param string $s

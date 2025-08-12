@@ -1102,7 +1102,7 @@ class _uho_client
    * @param string $date expiration date
    * @return boolean returns true if succeed
    */
-
+  /*
   public function setGdprExpirationDate($date, $token = null)
   {
     $result = false;
@@ -1119,7 +1119,9 @@ class _uho_client
     }
     return $result;
   }
-
+  */
+  
+  /*
   public function getGdprExpirationDate($token)
   {
     $result = null;
@@ -1130,7 +1132,7 @@ class _uho_client
       if ($result) $result = $result['gdpr_expiration_date'];
     }
     return $result;
-  }
+  }*/
 
   /**
    * Creates new user
@@ -1158,6 +1160,20 @@ class _uho_client
       $user = $this->orm->getInsertId();
       if (isset($data['image']) && $user) $this->setImageFromUrl($data['image'], $user, $data['uid']);
       if ($returnId) $result = $user;
+
+      // use separate token table
+      if (!empty($data['key_confirm']) && $this->tokenModel)
+      {
+        $days= $this->settings['registration_confirmation_days'] ?? 7;
+        $this->orm->postJsonModel($this->tokenModel,
+        [
+            'expiration'=> date('Y-m-d', strtotime("+" . $days . " days")),
+            'user'=>$user,
+            'value'=>$data['key_confirm'],
+            'type'=>'registration_confirmation'
+        ]);
+      }
+
     }
     return $result;
   }
@@ -1295,24 +1311,24 @@ class _uho_client
    * @param array $data user's data
    * @param string $url url to register process confirmation url
    *
-   * @return (bool|int|mixed|string|string[])[] returns true if any user exists
-   *
-   * @psalm-return array{result: bool|int|mixed, message: string, fields: array<'email_required'|'pass_min8'|'pass_required'>}
+   * @return array
    */
+
   public function register($data, $url = null): array
   {
 
     $result = false;
 
-    if (isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']) || isset($this->provider)) $sso = true;
-    else $sso = false;
+    $sso=(isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']) || isset($this->provider));
 
     if (!isset($data['lang'])) $data['lang'] = $this->lang;
     if (!isset($data['status'])) $data['status'] = 'submitted';
 
     $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]]);
 
+    // get login and pass fields
     $fields = array();
+    
     $data['password'] = trim(@$data['password']);
     if (!$data['password']) unset($data['password']);
 
@@ -1346,7 +1362,6 @@ class _uho_client
 
     // already confirmed
     elseif ($status && $status['status'] == 'confirmed') {
-      //$this->update($status['id'],$data);
       $message = 'client_already_registered';
     } elseif ($this->provider) {
       $result = $this->provider['model']->create($data);
@@ -1354,9 +1369,10 @@ class _uho_client
     // create new user      
     else {
 
-      $data['key_confirm'] = $this->uniqid();
+      $data['key_confirm'] = $this->generateToken();
 
       $result = $this->create($data);
+      
       // mail for confirmation
       if ($result && !@$sso) {
         $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $data['key_confirm'], $url)]);
@@ -1372,6 +1388,17 @@ class _uho_client
     return $result;
   }
 
+  private function base64url(string $bin): string {
+    return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
+  }
+
+  private function generateToken(): string
+  {
+    $raw = $this->base64url(random_bytes(32));         // ~256-bit
+    $hash = hash('sha256', $raw);                      // 64 hex chars
+    return $hash;
+  }
+
   /**
    * Completes registering proccess
    * @param string $key unique token create during registration process
@@ -1380,10 +1407,18 @@ class _uho_client
 
   public function registerConfirmation($key)
   {
-    $exists = $this->orm->getJsonModel($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
-    if ($exists) {
-      $result = $this->orm->putJsonModel($this->clientModel, ['id' => $exists['id'], 'status' => 'confirmed']);
-    } else $result = false;
+    if ($this->tokenModel)
+    {
+      $user=$this->getUserToken($key,'registration_confirmation',true); 
+      if ($user) $user = $this->orm->getJsonModel($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
+    } else
+    {
+      $user = $this->orm->getJsonModel($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
+    }
+
+    if ($user) $result = $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
+      else $result=false;
+
     return $result;
   }
 
@@ -1735,13 +1770,18 @@ class _uho_client
    * Gets user's id by token from the database
    * @param string $token token value to be found
    * @param integer $used check for unused (0) or used (1) token
-   * @return object token model
+   * @return integer|null
    */
 
-  public function getUserToken($token, $used = 0)
+  public function getUserToken($token, $type = null,$remove_if_present=false)
   {
-    $token = $this->orm->getJsonModel($this->tokenModel, ['value' => $token, 'used' => $used, 'date_to' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
-    return $token;
+    $f=['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];
+    
+    if ($type) $f['type'] = $type;
+    $item = $this->orm->getJsonModel($this->tokenModel, $f, true);
+
+    if ($item && $remove_if_present) $this->orm->deleteJsonModel($this->tokenModel, ['id' => $item['id']]);
+    if ($item) return $item['user']; else return null;
   }
 
   /**

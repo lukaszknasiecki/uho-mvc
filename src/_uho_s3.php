@@ -198,7 +198,7 @@ class _uho_s3
     public function file_exists($filename)
     {
         $d = $this->getFileMetadata($filename);
-        if (isset($d)) return true;
+        if (isset($d)) return true; else return false;
     }
 
     /**

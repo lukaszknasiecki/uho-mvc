@@ -1126,6 +1126,31 @@ class _uho_orm
     }
 
     /**
+     * REST Aliases for methods
+     */
+
+    public function get($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
+    {
+        return $this->getJsonModel($name, $filters, $single, $order, $limit, $params);
+    }
+    public function post($model, $data, $multiple = false)
+    {
+        return $this->postJsonModel($model, $data, $multiple);
+    }
+    public function delete($model, $filters, $multiple = false): bool
+    {
+        return  $this->deleteJsonModel($model, $filters, $multiple);
+    }
+    public function put($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
+    {
+        return $this->putJsonModel($model, $data, $filters, $multiple, $externals, $params);
+    }
+    public function getSchema ($name, $lang = false, $params = [])
+    {
+        return $this->getJsonModelSchema ($name, $lang,$params);
+    }
+
+    /**
      * Gets model from mySQL
      * @param $name
      * @param array $filters
@@ -2204,9 +2229,9 @@ class _uho_orm
      * @param array $data
      * @param boolean $multiple
      *
-     * @return false|int
+     * @return boolean|int
      */
-    public function postJsonModel($model, $data, $multiple = false): int|false
+    public function postJsonModel($model, $data, $multiple = false): boolean|int
     {
         $model = $this->getJsonModelSchema($model, true);
         if (!$model) return false;
