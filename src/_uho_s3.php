@@ -87,7 +87,6 @@ class _uho_s3
         if (!empty($config['folder']) && $config['folder'] != 'folder') $this->setFolder($config['folder']);
         if (!empty($params['orm'])) $this->orm = $params['orm'];
         if (!empty($config['acl']) && $config['acl'] == 'no') $this->acl = false;
-
         if (isset($config['cache'])) $this->cache_file = $config['cache'];
         if (isset($config['path_skip'])) $this->path_skip = rtrim($config['path_skip'], '/') . '/';
 
@@ -373,7 +372,7 @@ class _uho_s3
     /**
      * Copies file using S3 bucket
      *
-     * @param string $soruce
+     * @param string $source
      * @param string $destination
      */
     public function copy($source, $destination, $download = false, $length = 0): void
@@ -392,6 +391,44 @@ class _uho_s3
                 'ContentDisposition' => "attachment"
             ];
             if ($length) $object['ContentLength'] = $length;
+            if ($this->acl) $object['ACL'] = 'public-read';
+
+            $result = $this->s3Client->putObject($object);
+            $result = $result->toArray();
+
+            $result = $result['@metadata'];
+            if ($result && $result['statusCode'] == 200)
+            {
+                $this->cacheSet($destination, ['time' => md5($result['headers']['date'])], true);
+            }
+        } catch (AwsException $e) {
+
+            exit('[AWS COPY ERROR][' . $e->getAwsErrorCode() . ']');
+        }
+    }
+
+    /**
+     * Create file using S3 bucket
+     *
+     * @param string $soruce
+     * @param string $destination
+     */
+    public function create($data, $destination): void
+    {
+        if (!$data || !$destination) return;
+        $destination = $this->clear_filename($destination);
+        $this->cacheClear($destination);
+
+        $destination = $this->createS3Key($destination);
+
+        try {
+            $object = [
+                'Bucket' => $this->cfg['bucket'],
+                'Key' => $destination,
+                'Body' => $data,
+                'ContentDisposition' => "attachment"
+            ];
+            $object['ContentLength'] = strlen($data);
             if ($this->acl) $object['ACL'] = 'public-read';
 
             $result = $this->s3Client->putObject($object);
@@ -512,7 +549,7 @@ class _uho_s3
 
     public function checkCacheFile()
     {
-        if ($this->cache_file) return file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
+        if ($this->cache_file) return @file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
         else return false;
     }
     /**

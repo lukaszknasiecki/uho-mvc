@@ -157,6 +157,9 @@ class _uho_fx
                     case "integer":
                         $output[$k] = filter_var($input[$k], FILTER_VALIDATE_INT);
                         break;
+                    case "any":
+                        $output[$k] = $input[$k];
+                        break;
                 }
             }
 

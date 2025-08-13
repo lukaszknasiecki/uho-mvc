@@ -1719,8 +1719,10 @@ class _uho_orm
                         $src = $v2['folder'] . '/' . $v2['filename']; //.$v2['extension'];
 
                         if (!empty($src)) {
+                            
                             $this->fileAddTime($src);
                             @$data[$k][$v2['field']] = ['src' => $src];
+                            
                         }
 
                         if (@$v2['images']) {
@@ -2464,6 +2466,11 @@ class _uho_orm
         return $f;
     }
 
+    public function getS3()
+    {
+        return $this->uhoS3;
+    }
+
     /**
      * Adds cache to filename
      *
@@ -2472,7 +2479,8 @@ class _uho_orm
     public function fileAddTime(&$f): void
     {
 
-        if (isset($this->uhoS3)) {
+        if (isset($this->uhoS3))
+        {
             if ($this->filesDecache) {
                 $time = $this->uhoS3->file_time($f);
                 if ($time) $f .= '?' . $time;
@@ -2482,29 +2490,31 @@ class _uho_orm
             if ($f) {
                 $f = $this->uhoS3->getFilenameWithHost($f, true);
             }
-        } elseif ($this->filesDecache && isset($this->folder_replace)) {
+        } elseif ($this->filesDecache && isset($this->folder_replace))
+        {
+
 
             if ($this->folder_replace['source'])
                 $f = str_replace($this->folder_replace['source'], $this->folder_replace['destination'], $f);
 
-            if (isset($this->s3cache['data'])) {
+            if (isset($this->s3cache['data']))
+            {
                 $f0 = str_replace($this->folder_replace['destination'], '', $f);
                 $time = $this->s3get($f0);
 
                 if ($time) $f .= '?v=' . md5($time['time']);
 
-                //if (isset($this->s3cache['data'][$f0]) && isset($this->s3cache['data'][$f0]['time']))
-                //  $f .= '?v=' . md5($this->s3cache['data'][$f0]['time']);
-
-
                 elseif ($this->filesDecache_style == 'standard') $f = '';
-            } elseif ($this->folder_replace['s3']) {
+            } elseif ($this->folder_replace['s3'])
+            {
                 $time = $this->folder_replace['s3']->file_time($f);
                 if ($time) $f .= '?v=' . $time;
                 else $f = '';
             }
+
         } else
-        if ($this->filesDecache) {
+        if ($this->filesDecache)
+        {
 
             $filename = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $f;
 
@@ -2520,6 +2530,7 @@ class _uho_orm
             if ($this->folder_replace['source'])
                 $f = str_replace($this->folder_replace['source'], $this->folder_replace['destination'], $f);
         }
+        
     }
 
     /**
