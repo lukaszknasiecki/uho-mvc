@@ -1351,6 +1351,11 @@ class _uho_fx
                 if (is_string($data)) $data = json_decode($data, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
                 break;
+            case 'PATCH':
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PATCH");
+                if (is_array($data)) $data = json_encode($data);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                break;
             case 'DELETE':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
                 break;
