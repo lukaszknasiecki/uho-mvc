@@ -1147,6 +1147,10 @@ class _uho_orm
     {
         return $this->putJsonModel($model, $data, $filters, $multiple, $externals, $params);
     }
+    public function patch($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
+    {
+        return $this->putJsonModel($model, $data, $filters, $multiple, $externals, $params);
+    }
     public function getSchema ($name, $lang = false, $params = [])
     {
         return $this->getJsonModelSchema ($name, $lang,$params);
