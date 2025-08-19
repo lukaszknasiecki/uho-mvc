@@ -190,10 +190,9 @@ class _uho_route
             }
         }
 
-        if (isset($_SERVER['REQUEST_URI']))
-        {
+        if (isset($_SERVER['REQUEST_URI'])) {
             $get = explode('?', (string) $_SERVER['REQUEST_URI']);
-        } else $get=[];
+        } else $get = [];
         if (isset($get[1])) parse_str(@$get[1], $this->getArray);
     }
 
@@ -614,114 +613,110 @@ class _uho_route
         $skip = false;
 
         $path = isset($paths[$v['type']]) ? $paths[$v['type']] : null;
-        if (isset($path)) {
+
+        if (isset($path))
+        {
             $val = [];
-            
+
             foreach ($path as $pk => $pv)
                 if ($pk != 'type' && $pk != 'params' && isset($v[$pk])) $val[$pv] = $v[$pk];
         }
 
         if (empty($path['type']) && !empty($path['value'])) {
-            $v=$path['value'];
+            $v = $path['value'];
         }
 
         if (isset($path['type']))
-        switch ($path['type']) {
+            switch ($path['type']) {
 
-            case "facebook":
-                if (isset($val['slug']))
-                    $v = _uho_social::getFacebookShare($this->getUrl($val['slug'], true));
-                else $v = _uho_social::getFacebookShare($this->getUrlNow(true));
-                break;
-            case "twitter":
-                if (isset($val['slug']))
-                    $v = _uho_social::getTwitterShare($this->getUrl($val['slug'], true), @$val['title']);
-                else $v = _uho_social::getTwitterShare($this->getUrlNow(true), $val['title']);
-                break;
-            case "pinterest":
-                if (isset($val['slug']))
-                    $v = _uho_social::getPinterestShare($this->getUrl($val['slug'], true), @$val['title'], @$val['image']);
-                else $v = _uho_social::getPinterestShare($this->getUrlNow(true), @$val['title'], @$val['image']);
-                break;
-            case "email":
-                $v = _uho_social::getEmailShare($this->getUrlNow(true), @$val['title']);
-                $type = 'hash';
-                break;
+                case "facebook":
+                    if (isset($val['slug']))
+                        $v = _uho_social::getFacebookShare($this->getUrl($val['slug'], true));
+                    else $v = _uho_social::getFacebookShare($this->getUrlNow(true));
+                    break;
+                case "twitter":
+                    if (isset($val['slug']))
+                        $v = _uho_social::getTwitterShare($this->getUrl($val['slug'], true), @$val['title']);
+                    else $v = _uho_social::getTwitterShare($this->getUrlNow(true), $val['title']);
+                    break;
+                case "pinterest":
+                    if (isset($val['slug']))
+                        $v = _uho_social::getPinterestShare($this->getUrl($val['slug'], true), @$val['title'], @$val['image']);
+                    else $v = _uho_social::getPinterestShare($this->getUrlNow(true), @$val['title'], @$val['image']);
+                    break;
+                case "email":
+                    $v = _uho_social::getEmailShare($this->getUrlNow(true), @$val['title']);
+                    $type = 'hash';
+                    break;
+                case "home":
+                    $v = '';
+                    break;
+                case "url_now":
 
-            case "url_now":
-                $getNew = @$val['get'];
-                if (!$getNew) $getNew = [];
-                if (!empty($val['setlang'])) $getNew['setlang'] = 'true';
+                    $getNew = @$val['get'];
+                    
+                    if (!$getNew) $getNew = [];
+                    if (!empty($val['setlang'])) $getNew['setlang'] = 'true';
 
-                if ($getNew) $v = $this->getUrlNow(false, '[all]', $getNew, @$v['get_remove'], $val['lang']);
-                else $v = $this->getUrlNow(false, null, null, null, @$val['lang']);
+                    if ($getNew) $v = $this->getUrlNow(false, '[all]', $getNew, @$v['get_remove'], $val['lang']);
+                    else $v = $this->getUrlNow(false, null, null, null, @$val['lang']);
 
-                $v = rtrim($v, '/');
-                $v = str_replace('=&', '&', $v);
-                $skip = true;
+                    $v = rtrim($v, '/');
+                    $v = str_replace('=&', '&', $v);
+                    
+                    $skip = true;
 
-                break;
+                    break;
 
-            case "url_now_http":
-                $v = $this->getUrlNow(true);
-                break;
+                case "url_now_http":
+                    $v = $this->getUrlNow(true);
+                    break;
 
 
                 case "twig":
-                        
-                $input=[];
-                
-                foreach ($path['input'] as $vp)
-                {
-                  if (isset($v[$vp]))
-                    {
-                        
-                        $input[$vp]=$v[$vp];
-                        
-                        if (isset($path['input_format'][$vp]))
-                        {
 
-                            switch ($path['input_format'][$vp])
-                            {
-                                case "raw":
-                                    break;
-                                case "json":
-                                    $input[$vp] = urlencode(json_encode($input[$vp]));
-                                    break;
-                                default:
-                                    
+                    $input = [];
+
+                    foreach ($path['input'] as $vp) {
+                        if (isset($v[$vp])) {
+
+                            $input[$vp] = $v[$vp];
+
+                            if (isset($path['input_format'][$vp])) {
+
+                                switch ($path['input_format'][$vp]) {
+                                    case "raw":
+                                        break;
+                                    case "json":
+                                        $input[$vp] = urlencode(json_encode($input[$vp]));
+                                        break;
+                                    default:
+                                }
                             }
                         }
-
                     }
-                }
 
-                if (!empty($path['params']))
-                    {
-                        $query=[];
-                       foreach ($path['params'] as $key => $val)
-                        if (isset($input[$key]))
-                        {
-                            switch ($val)
-                            {
-                                case "raw":
-                                    break;
-                                case "json":                                    
-                                    $input[$key] = urlencode(json_encode($input[$key]));
-                                    break;
+                    if (!empty($path['params'])) {
+                        $query = [];
+                        foreach ($path['params'] as $key => $val)
+                            if (isset($input[$key])) {
+                                switch ($val) {
+                                    case "raw":
+                                        break;
+                                    case "json":
+                                        $input[$key] = urlencode(json_encode($input[$key]));
+                                        break;
                                     default:
-                                    exit('error');
-                            }                     
-                            $query[$key]=$input[$key];
-                        }       
-                       $input['build_query']='?'.http_build_query($query);
+                                        exit('error');
+                                }
+                                $query[$key] = $input[$key];
+                            }
+                        $input['build_query'] = '?' . http_build_query($query);
                     }
 
-                $v=$this->getTwigFromHtml($path['value'],$input);
-                break;
-
-
-        }
+                    $v = $this->getTwigFromHtml($path['value'], $input);
+                    break;
+            }
 
         if ($skip) $result = $v;
         else if ($type == 'hash') $result = $v;
@@ -732,7 +727,7 @@ class _uho_route
         return $result;
     }
 
-    public function updatePaths(array $t,$root=true)
+    public function updatePaths(array $t, $root = true)
     {
         if (empty($this->cfg['pathArray'])) return $t;
 
@@ -752,7 +747,7 @@ class _uho_route
                 }
                 /*
                     for other arrays - lets recursively call the same function
-                */ elseif (is_array($v)) $t[$k] = $this->updatePaths($v,false);
+                */ elseif (is_array($v)) $t[$k] = $this->updatePaths($v, false);
 
                 if ($hash) $t[$k] .= '#' . $hash;
             }
@@ -777,6 +772,4 @@ class _uho_route
         }
         return $html;
     }
-
-
 }

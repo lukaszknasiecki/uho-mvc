@@ -95,7 +95,7 @@ class _uho_thumb
             $contents = fread($handle, 10);
 
             foreach ($bytes as $v) {
-                if (!$result) {
+                if (empty($result)) {
                     $b = explode(' ', $v);
                     $bb = '';
                     for ($i = 0; $i < count($b); $i++) {

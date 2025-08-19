@@ -36,6 +36,7 @@ class _uho_mysqli
      * folder for error logs
      */
     private $error_folder = '';
+    private $halt_on_error = true;
     /**
      * number of performed queries
      */
@@ -354,13 +355,14 @@ class _uho_mysqli
         -->');
         }
 
-        if (!$t) {
+        if (!$t)
+        {
             if (_uho_fx::getGet('dbg') && $this->debug) { 
                 exit('mysql error:' . $query . '<br>Error: ' . $this->base_link->error);
             } else {
                 $this->errorAdd($query . ' ... ' . $this->base_link->error);
-                exit('error:'.$query.'<br>Error: '.$this->base_link->error);
-                //return 'error';
+                if ($this->halt_on_error) exit('error:'.$query.'<br>Error: '.$this->base_link->error);
+                     else return false;
             }
         } else {
             if ($key) {
@@ -577,5 +579,10 @@ class _uho_mysqli
                     unlink($dir . DIRECTORY_SEPARATOR . $item);
                 }
         }
+    }
+
+    public function setHaltOnError(bool $halt): void
+    {
+        $this->halt_on_error = $halt;
     }
 }

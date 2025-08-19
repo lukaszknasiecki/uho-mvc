@@ -15,6 +15,7 @@ class _uho_orm
      */
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
+    private $halt_on_error=true;
     /**
      * indicates if for elements_double fields we should
      * use integer is only one value is set
@@ -845,9 +846,10 @@ class _uho_orm
             $filename = $name . '.json';
             $model = $this->loadJson($filename);
 
-            if ($model && !isset($model['model_name'])) $model['model_name'] = $name;
+            if ($model && !isset($model['model_name'])) $model['model_name'] = $name;            
             $message = '_uho_orm::JSON not found: ' . $filename . ' @ ' . implode(', ', $this->root_paths);
-            if (!$model && isset($params['return_error'])) return ['result' => false, 'message' => $message];
+            if (!$model && (!$this->halt_on_error || isset($params['return_error'])))
+                     return ['result' => false, 'message' => $message];
             if (!$model && $this->debug) $this->halt($message);
         }
 
@@ -1049,7 +1051,7 @@ class _uho_orm
                 $schema['fields'][$k]['options'] = $t;
             }
             // source --> by options
-            elseif (in_array($v['type'], ['select', 'checkboxes']) && !$v['source'] && !$v['options']) {
+            elseif (in_array($v['type'], ['select', 'checkboxes']) && empty($v['source']) && empty($v['options'])) {
                 $query = 'SHOW FIELDS FROM ' . $schema['table'] . ' LIKE "' . $v['field'] . '"';
                 $t = $this->query($query, true);
                 if ($t && $t['Type'] && substr($t['Type'], 0, 4) == 'enum') {
@@ -1142,10 +1144,6 @@ class _uho_orm
         return  $this->deleteJsonModel($model, $filters, $multiple);
     }
     public function put($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
-    {
-        return $this->putJsonModel($model, $data, $filters, $multiple, $externals, $params);
-    }
-    public function patch($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
     {
         return $this->putJsonModel($model, $data, $filters, $multiple, $externals, $params);
     }
@@ -1248,8 +1246,6 @@ class _uho_orm
         $fields_models = array();
         $fields_auto = array();
 
-
-
         if (is_array($model['fields']))
             foreach ($model['fields'] as $v) {
                 if (isset($v['container']));
@@ -1294,7 +1290,11 @@ class _uho_orm
 
         if (isset($model['table']))
             $query = 'SELECT ' . implode(',', $this->sanitizeFields($fields_read)) . ' FROM ' . $model['table'] . ' ' . $model['filters'];
-        else exit('_uho_orm::getJsonModel->table not found [' . @$name . ']');
+        else
+        {
+            if ($this->halt_on_error) exit('_uho_orm::getJsonModel->table not found [' . @$name . ']');
+                else return false;
+        }
 
 
         if (@$groupBy) $query .= ' GROUP BY ' . $groupBy;
@@ -1507,7 +1507,7 @@ class _uho_orm
 
                         if (@$v2['source']['url'] && $v2['source']['data'])
                             foreach ($v2['source']['data'] as $k3 => $v3) {
-                                $v2['source']['data'][$k3]['url'] = $this->updateTemplate($v2['source']['url'], $v3);
+                                $v2['source']['data'][$k3]['url'] = $this->updateTemplate($v2['source']['url'], $v3);                                
                             }
                     }
 
@@ -1868,7 +1868,7 @@ class _uho_orm
                 }
             }
 
-        // submodels
+        // load field models
 
         foreach ($data as $k => $v)
             foreach ($fields_models as $v2)
@@ -1879,9 +1879,12 @@ class _uho_orm
                     else $order = null;
 
                     if (isset($v2['field']))
+                    {
                         $data[$k][$v2['field']] = $this->getJsonModel($v2['model']['model'], $v2['model']['filters'], false, $order);
+                    }
 
                 }
+
 
         // last update - template fields as field_output
 
@@ -1919,7 +1922,9 @@ class _uho_orm
 
                 $data[$kk]['url'] = $url = $model['url'];
                 foreach ($url as $k => $v)
-                    if (is_string($v)) {
+                    if (is_string($v))
+                    {
+                        // % pattern
                         while (strpos(' ' . $v, '%')) {
                             $i = strpos($v, '%');
                             $j = strpos($v, '%', $i + 1);
@@ -1939,6 +1944,8 @@ class _uho_orm
                             $v = substr($v, 0, $i) . $cut . substr($v, $j + 1);
                             $data[$kk]['url'][$k] = $v;
                         }
+                        // twig pattern
+                        $data[$kk]['url'][$k]=$this->getTwigFromHtml($data[$kk]['url'][$k], $vv);
                     }
             }
         }
@@ -2695,7 +2702,7 @@ class _uho_orm
      * @param boolean $single
      * @return array
      */
-    public function updateJsonModelSchemaRanges($schema, bool $single)
+    public function updateJsonModelSchemaRanges($schema, $single)
     {
 
         if (isset($schema['ranges']))
@@ -2873,17 +2880,14 @@ class _uho_orm
 
     // Table Creators
 
-    /**
-     * @return (((mixed|null|string)[]|string)[]|false|string)[]
-     *
-     * @psalm-return array{fields: list{0?: string, 1?: string,...}, fields_sql: list{0?: array{Field: mixed, Type: string, Null: 'YES', Default: ''0''|'current_timestamp()'|null},...}, id: false|string}
-     */
     public function getSchemaSQL ($schema): array
     {
         
         $fields=[];
         $fields_sql=[];
         $id=false;
+
+        // converts UHO ORM field types to SQL types
 
         foreach ($schema['fields'] as $v)
         {
@@ -2920,6 +2924,7 @@ class _uho_orm
                     $type='text';
                     if (!empty($v['settings']['long']) && $v['settings']['long'])
                             $type='longtext';
+
                     break;
                 case "select":
 
@@ -3002,6 +3007,7 @@ class _uho_orm
     public function createTable ($schema,$sql)
     {
         $sql_schema= $this->getSchemaSQL($schema);
+        
 
         $charset='utf8mb4';
         $collate='utf8mb4_general_ci';
@@ -3039,6 +3045,7 @@ class _uho_orm
     public function updateTable ($schema,$action)
     {
         $sql_schema= $this->getSchemaSQL($schema);
+        
         $columns=$this->query('SHOW COLUMNS FROM `'.$schema['table'].'`');
 
         /*
@@ -3116,15 +3123,34 @@ class _uho_orm
         And if not - to update/create those tables
     */
 
-    /**
-     * @return (mixed|string)[][]
-     *
-     * @psalm-return array{actions: list{0?: 'table_create'|'table_update'}, messages: list{0?: 'Table has been created'|'Table has been updated'}, additional: list{0?: mixed,...}}
-     */
-    public function creator (array $schema,$options,$recursive=false): array
+
+    private function updateSchemaLanguages($schema)
+    {
+        $fields=[];
+        foreach ($schema['fields'] as $field)
+        if (strpos($field['field'],':lang')!==false)
+        {
+            $field_name=explode(':lang', $field['field'])[0];
+            foreach ($this->langs as $lang)
+            {
+                $new_field=$field;
+                $new_field['field']=$field_name.$lang['lang_add'];
+                $fields[]=$new_field;
+            }
+
+        } else $fields[]=$field;
+
+        $schema['fields']=$fields;
+        return $schema;
+
+    }
+
+    public function creator (array $schema,$options,$recursive=false,$update_languages=true): array
     {
         $messages=[];
         $actions=[];
+
+        if ($update_languages) $schema=$this->updateSchemaLanguages($schema);
 
         $exists=$this->query("SHOW TABLES LIKE '".$schema['table']."'",true);;
 
@@ -3179,7 +3205,10 @@ class _uho_orm
         exit('<pre>'.$message.'</pre>');
     }
 
-
-
+    public function setHaltOnError(bool $halt): void
+    {
+        $this->halt_on_error=$halt;
+        $this->sql->setHaltOnError($halt);
+    }
 
 }

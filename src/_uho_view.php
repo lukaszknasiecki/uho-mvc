@@ -248,6 +248,18 @@ class _uho_view
                 return substr($string, 8, 2) . '.' . substr($string, 5, 2) . '.' . substr($string, 0, 4);
             });
 
+            // --- date
+            /*
+            $twig_filter_date = new \Twig\TwigFilter('date', function ($context, $string, $params)
+            {
+                $separator=isset($params['separator']) ? $params['separator'] : '.';
+                return substr($string, 8, 2) . $separator . substr($string, 5, 2) . $separator . substr($string, 0, 4);
+            });*/
+            // --- time
+            $twig_filter_time = new \Twig\TwigFilter('time', function ($string) {
+                return substr($string, 11, 5);
+            });
+
 
             $twig_filter_shuffle = new \Twig\TwigFilter('shuffle', function ($array) {
                 shuffle($array);
@@ -321,6 +333,8 @@ class _uho_view
             $this->twig->addFilter($twig_filter_filesize);
 
             $this->twig->addFilter($twig_filter_date_PL);
+            //$this->twig->addFilter($twig_filter_date);
+            $this->twig->addFilter($twig_filter_time);
             $this->twig->addFilter($twig_filter_szewce);
             $this->twig->addFilter($twig_filter_brackets2tag);
 
