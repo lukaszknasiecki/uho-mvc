@@ -623,7 +623,7 @@ class _uho_client
       if ($this->salt['type']=='double')
           $pass.=$t[$this->salt['field']];
 
-      if (!$pass || empty($t) || !password_verify($pass, $t['password'])) unset($t);
+      if (!$pass || empty($t) || !password_verify($pass, $t['password'])) $t=null;
 
       if ($t) return $t;
     }
@@ -1576,7 +1576,7 @@ class _uho_client
       {
         if ($this->salt['type']=='double')
             $pass.=$t[$this->salt['field']];
-        if (empty($t['password']) || !password_verify($pass, $t['password'])) unset($t);
+        if (empty($t['password']) || !password_verify($pass, $t['password'])) $t=null;
       }
 
       if ($t) return true;
