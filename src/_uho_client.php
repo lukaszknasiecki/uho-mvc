@@ -259,7 +259,7 @@ class _uho_client
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
     
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hashPass($this->salt['value']. '5eh');
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value']. '5eh');
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {
@@ -614,7 +614,17 @@ class _uho_client
     if ($this->provider && !$skip_provider) return $this->provider['model']->getClient($params);
     else {
       $filters = $params;
+      $pass=$filters['password'];
+      
+      unset($filters['password']);
+
       $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
+
+      if ($this->salt['type']=='double')
+          $pass.=$t[$this->salt['field']];
+
+      if (!$pass || empty($t) || !password_verify($pass, $t['password'])) unset($t);
+
       if ($t) return $t;
     }
   }
@@ -678,7 +688,6 @@ class _uho_client
    */
   public function login($email, $pass, array|null $params = null)
   {
-      //$initial_id=$this->getClientId();    
       if ((!$email && $this->fieldLogin) && !$pass && !$params) {
       return;
     }
@@ -705,16 +714,7 @@ class _uho_client
         return ['result' => false, 'message' => 'client_login_ban'];
 
 
-      switch ($this->salt['type']) {
-        case "standard":
-          $pass = $this->hashPass(trim($pass) . $this->salt['salt']);
-          break;
-        case "double":
-          $pass = $this->mysql_hash('CONCAT("' . trim($pass) . '",' . $this->salt['field'] . ',"' . $this->salt['value'] . '")');
-          $pass = ['type' => 'sql', 'value' => $pass];
-
-          break;
-      }
+      $pass = trim($pass) . $this->salt['value'];
 
       if ($this->fieldLogin)
         $filters = [$this->fieldLogin => $email, 'password' => $pass, 'status' => ['confirmed']];
@@ -722,13 +722,12 @@ class _uho_client
 
       if (isset($this->fields['locked'])) $filters[$this->fields['locked']] = 0;
 
-      $client = $this->getClient($filters);
+      $client = $this->getClient($filters);      
 
       if ($client) {
         session_regenerate_id(true);
         $this->resetRemainingLoginAttempts($client['id']);
         $this->cookieLoginStore($client['id']);
-
         $this->logsAdd('login', 1);
       } else {
         $this->logsAdd('login', 0);
@@ -736,7 +735,8 @@ class _uho_client
       }
     }
 
-    if ($client) {
+    if ($client)
+    {
       $result = true;
       $this->storeData($client);
     } else {
@@ -744,14 +744,17 @@ class _uho_client
       $message = 'client_login_failed';
     }
 
-    if (isset($this->models['client_logins_model'])) {
+    if (isset($this->models['client_logins_model']))
+    {
       $val = ['login' => $email, 'success' => intval($result), 'ip' => $this->getIp()];
       $this->orm->postJsonModel($this->models['client_logins_model'], $val);
       $_SESSION['login_session_id'] = $this->orm->getInsertId();
     }
+
     if ($result) $this->favouritesLoad();
 
-    if ($result) {
+    if ($result)
+    {
       if (!isset($message)) $message = 'client_login_success';
       return (array('result' => $result, 'client' => $client, 'message' => $message));
     } else return (array('result' => $result, 'message' => $message));
@@ -1152,7 +1155,9 @@ class _uho_client
 
     $data['uid'] = $this->uniqid();
     $data['salt'] = substr(bin2hex(random_bytes(32)), 0, 3);
-    if (isset($data['password'])) $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
+
+    if (isset($data['password']))
+        $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
 
     $result = $this->orm->postJsonModel($this->clientModel, $data);
 
@@ -1447,10 +1452,15 @@ class _uho_client
    * @return null|string returns encrypted string
    */
   private function hashPass($pass)
-  {
-    if ($this->sql_hash == 'MD5') return md5($pass);
+  {    
     if ($this->sql_hash == 'SHA256') return hash('sha256', $pass);
-    if ($this->sql_hash == 'BCRYPT') return password_hash($pass, PASSWORD_BCRYPT);
+    elseif ($this->sql_hash == 'BCRYPT') return password_hash($pass, PASSWORD_BCRYPT);
+    else return password_hash($pass, PASSWORD_DEFAULT);
+  }
+
+  private function hash($token)
+  {    
+    return hash('sha256', $token);
   }
 
   /**
@@ -1469,12 +1479,10 @@ class _uho_client
 
     switch ($this->salt['type']) {
       case "standard":
-        $pass = $this->hashPass(trim($pass) . $this->salt['salt']);
+        $pass = $this->hashPass(trim($pass) . $this->salt['value']);
         break;
       case "double":
-        if ($salt) $pass = $this->mysql_hash('CONCAT("' . trim($pass) . '","' . $salt . '","' . $this->salt['value'] . '")');
-        else $pass = $this->mysql_hash('CONCAT("' . trim($pass) . '",' . $this->salt['field'] . ',"' . $this->salt['value'] . '")');
-        if ($filter) $pass = ['type' => 'sql', 'value' => $pass];
+        $pass = $this->hashPass(trim($pass.$this->salt['value'].$salt));
         break;
     }
 
@@ -1559,19 +1567,18 @@ class _uho_client
     $data = $this->getData();
     if ($data) {
 
-      switch ($this->salt['type']) {
-        case "standard":
-          $pass = $this->hashPass(trim($pass) . $this->salt['salt']);
-          break;
-        case "double":
-          $pass = $this->mysql_hash('CONCAT("' . trim($pass) . '",' . $this->salt['field'] . ',"' . $this->salt['value'] . '")');
-          $pass = ['type' => 'sql', 'value' => $pass];
-          break;
-      }
-
-      $filters = ['id' => $data['id'], 'password' => $pass]; //['type'=>'sql','value'=>$this->encodePassword($pass) ]];
+      $pass = trim($pass.$this->salt['value']);
+      $filters = ['id' => $data['id']];
 
       $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
+
+      if ($t && $pass)
+      {
+        if ($this->salt['type']=='double')
+            $pass.=$t[$this->salt['field']];
+        if (empty($t['password']) || !password_verify($pass, $t['password'])) unset($t);
+      }
+
       if ($t) return true;
       else return false;
     }
@@ -1607,11 +1614,12 @@ class _uho_client
       $data = $this->getData();
       if ($data) $user = $data['id'];
     }
-    if ($user) {
-      $pass = $this->encodePassword($pass);
-      $data = ['id' => $user, 'salt' => substr(bin2hex(random_bytes(32)), 0, 3), 'date_set' => date('Y-m-d H:i:s')];
-      $data['password'] = ['type' => 'sql', 'value' => $pass];
-
+    if ($user)
+    {
+      $salt=substr(bin2hex(random_bytes(32)), 0, 3);
+      $pass = $this->encodePassword($pass,false,$salt);
+      $data = ['id' => $user, 'salt' => $salt, 'date_set' => date('Y-m-d H:i:s'),'password'=>$pass];
+      
       $result = $this->orm->putJsonModel($this->clientModel, $data);
       if ($result) $this->cookieLoginStore($user);
       else {
