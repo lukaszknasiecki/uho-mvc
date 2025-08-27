@@ -85,7 +85,7 @@ class _uho_fx
     {
         if (isset($_SERVER["REQUEST_URI"]))
             $get = explode('?', $_SERVER["REQUEST_URI"]);
-            else $get=[];
+        else $get = [];
         if (isset($get[1])) $get = $get[1];
         else $get = '';
         parse_str($get, $get2);
@@ -103,7 +103,7 @@ class _uho_fx
     {
         if (isset($_SERVER['REQUEST_URI']))
             $request = (string) $_SERVER['REQUEST_URI'];
-            else $request='';
+        else $request = '';
         if (preg_match('/' . (string) $param . '\=([a-zA-Z0-9\%\_\-\+ ]{1,})/', $request, $request)) {
             return _uho_FX::secureGet(urldecode(strip_tags($request[1])));
         }
@@ -117,15 +117,12 @@ class _uho_fx
     {
         $output = [];
 
-        foreach ($keys  as $k => $v)
-        {
-            if (is_array($v) && isset($input[$k]))
-            {
-                $output[$k]=[];
-                foreach ($input[$k] as $kk=>$vv)
-                    $output[$k][$kk]=_uho_fx::sanitize_input($vv, $v[0]);
-            }
-            else
+        foreach ($keys  as $k => $v) {
+            if (is_array($v) && isset($input[$k])) {
+                $output[$k] = [];
+                foreach ($input[$k] as $kk => $vv)
+                    $output[$k][$kk] = _uho_fx::sanitize_input($vv, $v[0]);
+            } else
             if (isset($input[$k]))
                 switch ($v) {
                     case "string":
@@ -136,19 +133,20 @@ class _uho_fx
                             $output[$k] = $input[$k];
                         break;
                     case "point":
-                        $arr=explode(',',$input[$k]);
+                        $arr = explode(',', $input[$k]);
                         $arr = array_filter($arr, 'is_numeric');
-                        $output[$k]=count($arr) == 2 ? implode(',',$arr) : null;
-                        
+                        $output[$k] = count($arr) == 2 ? implode(',', $arr) : null;
+
                         break;
                     case "bbox":
-                        $arr=explode(',',$input[$k]);
+                        $arr = explode(',', $input[$k]);
                         $arr = array_filter($arr, 'is_numeric');
-                        $output[$k]=count($arr) == 4 ? implode(',',$arr) : null;
+                        $output[$k] = count($arr) == 4 ? implode(',', $arr) : null;
                         break;
                     case "boolean":
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-                        if ($output[$k]=='true') $output[$k]=1; else $output[$k]=0;
+                        if ($output[$k] == 'true') $output[$k] = 1;
+                        else $output[$k] = 0;
                         break;
                     case "url":
                         $output[$k] = filter_var($input[$k], FILTER_SANITIZE_ENCODED);
@@ -161,7 +159,7 @@ class _uho_fx
                         $output[$k] = $input[$k];
                         break;
                 }
-            }
+        }
 
         return $output;
     }
@@ -483,7 +481,7 @@ class _uho_fx
      * @return boolean
      */
 
-    public static function file_exists($filename, $skip_query = false) : bool
+    public static function file_exists($filename, $skip_query = false): bool
     {
         if ($skip_query) {
             $filename = _uho_fx::image_decache($filename);
@@ -1291,8 +1289,7 @@ class _uho_fx
         }
         if (isset($params['put'])) {
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-            if ($data)
-            {
+            if ($data) {
                 if (is_string($data)) $data = json_decode($data, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
             }
@@ -1324,7 +1321,7 @@ class _uho_fx
      * @return string
      */
 
-    public static function curl($method='GET',$url='',$data=[],$params=[])
+    public static function curl($method = 'GET', $url = '', $data = [], $params = [])
     {
 
         $params['timeout'] = !empty($params['timeout']) ? $params['timeout'] : 30;
@@ -1360,9 +1357,9 @@ class _uho_fx
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
                 break;
             case 'POST':
-            default:                
+            default:
                 curl_setopt($ch, CURLOPT_POST, 1);
-                if (is_array($data)) $data=json_encode($data);
+                if (is_array($data)) $data = json_encode($data);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         }
 
@@ -1372,15 +1369,12 @@ class _uho_fx
 
         if (!$data) {
             return ['result' => false, 'error' => curl_error($ch)];
-        }
-        else
-        {
+        } else {
             if (isset($params['accept']) && $params['accept'] == 'application/json')
                 $data = @json_decode($data, true);
         }
 
-        return ['result'=>true,'data'=>$data];
-        
+        return ['result' => true, 'data' => $data];
     }
 
     /**
@@ -1581,5 +1575,71 @@ class _uho_fx
             if ($row && !$empty) $result[] = $row;
         }
         return array_values($result);
+    }
+
+    /**
+     * Resolve a request path to a handler class and extracted params.
+     *
+     * @param string $queryString Raw request URI (e.g., "/projects/123/download?x=1")
+     * @param array<string,string> $routing Map of "pattern" => "class"
+     * @return array{class:string, params:array<string,string>}|null
+     */
+
+    public static function resolveRoute(string $queryString, array $routing): ?array
+    {
+        $path = parse_url($queryString, PHP_URL_PATH) ?? '';
+        $path = trim($path, '/');
+
+        $best = null;
+
+        foreach ($routing as $pattern => $class) {
+            $normPattern = trim($pattern, '/');
+            $segments    = $normPattern === '' ? [] : explode('/', $normPattern);
+            $literalCount = 0;
+
+            $regexParts = [];
+            foreach ($segments as $seg) {
+                if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/', $seg, $m)) {
+                    // placeholder {name}
+                    $name = $m[1];
+                    $regexParts[] = '(?P<' . $name . '>[^/]+)';
+                } else {
+                    // literal: escape safely using '~' as delimiter
+                    $literalCount++;
+                    $regexParts[] = preg_quote($seg, '~');
+                }
+            }
+
+            // use ~ as delimiter instead of /
+            $regex = '~^' . implode('/', $regexParts) . '$~';
+
+            if ($normPattern === '') {
+                if ($path !== '') continue;
+                $matches = [];
+            } else {
+                if (!preg_match($regex, $path, $matches)) {
+                    continue;
+                }
+            }
+
+            $params = [];
+            foreach ($matches as $k => $v) {
+                if (!is_int($k)) {
+                    $params[$k] = urldecode($v);
+                }
+            }
+
+            $score = $literalCount * 1000 + count($segments);
+
+            if ($best === null || $score > $best['score']) {
+                $best = [
+                    'class'  => $class,
+                    'params' => $params,
+                    'score'  => $score,
+                ];
+            }
+        }
+
+        return $best ? ['class' => $best['class'], 'params' => $best['params']] : null;
     }
 }
