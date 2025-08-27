@@ -614,8 +614,7 @@ class _uho_route
 
         $path = isset($paths[$v['type']]) ? $paths[$v['type']] : null;
 
-        if (isset($path))
-        {
+        if (isset($path)) {
             $val = [];
 
             foreach ($path as $pk => $pv)
@@ -654,7 +653,7 @@ class _uho_route
                 case "url_now":
 
                     $getNew = @$val['get'];
-                    
+
                     if (!$getNew) $getNew = [];
                     if (!empty($val['setlang'])) $getNew['setlang'] = 'true';
 
@@ -663,7 +662,7 @@ class _uho_route
 
                     $v = rtrim($v, '/');
                     $v = str_replace('=&', '&', $v);
-                    
+
                     $skip = true;
 
                     break;
@@ -772,4 +771,6 @@ class _uho_route
         }
         return $html;
     }
+
+
 }
