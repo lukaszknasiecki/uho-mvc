@@ -760,6 +760,21 @@ class _uho_client
     } else return (array('result' => $result, 'message' => $message));
   }
 
+  public function loginByToken($token)
+  {
+    $user_id=$this->getUserToken($token);
+    
+    if (!empty($user_id))
+      $client = $this->orm->getJsonModel($this->clientModel, ['id'=>intval($user_id)], true);
+      else $client=null;
+
+    if ($client)
+    {      
+      $this->storeData($client);
+      return true;
+    }
+  }
+
   /**
    * Facebook login
    * @param string $accessToken token from FB API
