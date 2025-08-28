@@ -132,6 +132,14 @@ class _uho_fx
                         if (is_array($input[$k]))
                             $output[$k] = $input[$k];
                         break;
+                    case "array_int":
+                        if (is_array($input[$k]))
+                        {
+                            foreach ($input[$k] as $k2=>$v2)
+                                $input[$k][$k2]=intval($v2);
+                            $output[$k] = $input[$k];
+                        }
+                        break;
                     case "point":
                         $arr = explode(',', $input[$k]);
                         $arr = array_filter($arr, 'is_numeric');
