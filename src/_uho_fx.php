@@ -599,10 +599,10 @@ class _uho_fx
 
             $fmt = datefmt_create(
                 $locale,
-                IntlDateFormatter::FULL,
-                IntlDateFormatter::FULL,
+                0, //IntlDateFormatter::FULL,
+                0, //IntlDateFormatter::FULL,
                 date_default_timezone_get(),
-                IntlDateFormatter::GREGORIAN,
+                1, //IntlDateFormatter::GREGORIAN,
                 $format
             );
 

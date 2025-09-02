@@ -3058,9 +3058,9 @@ class _uho_orm
         $the_same=[
             'int'=>['int(11)','int(4)'],
             'tinyint'=>['tinyint(4)'],
-            'int(11)'=>'int',
-            'int(4)'=>'int',
-            'tinyint(4)'=>'tinyint'
+            'int(11)'=>['int'],
+            'int(4)'=>['int'],
+            'tinyint(4)'=>['tinyint']
         ];
         
         $update=[];
