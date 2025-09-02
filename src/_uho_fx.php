@@ -126,7 +126,7 @@ class _uho_fx
             if (isset($input[$k]))
                 switch ($v) {
                     case "string":
-                        $output[$k] = filter_var($input[$k], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+                        $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
                     case "array":
                         if (is_array($input[$k]))
