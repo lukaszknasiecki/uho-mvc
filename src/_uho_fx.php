@@ -128,15 +128,20 @@ class _uho_fx
                     case "string":
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
+                    case "date":
+                        $pattern = "/^\d{4}-\d{2}-\d{2}$/"; // YYYY-MM-DD
+                        if (filter_var($input[$k], FILTER_VALIDATE_REGEXP, ["options" => ["regexp" => $pattern]]))
+                            $output[$k] = $input[$k];
+                        break;
+
                     case "array":
                         if (is_array($input[$k]))
                             $output[$k] = $input[$k];
                         break;
                     case "array_int":
-                        if (is_array($input[$k]))
-                        {
-                            foreach ($input[$k] as $k2=>$v2)
-                                $input[$k][$k2]=intval($v2);
+                        if (is_array($input[$k])) {
+                            foreach ($input[$k] as $k2 => $v2)
+                                $input[$k][$k2] = intval($v2);
                             $output[$k] = $input[$k];
                         }
                         break;
