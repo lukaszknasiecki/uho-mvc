@@ -746,7 +746,7 @@ class _uho_orm
             foreach ($d['fields'] as $v) {
                 if (isset($v['options']))
                     foreach ($v['options'] as $v2) {
-                        $v2[$v['field']] = $v2['values'];
+                        $v2[$v['field']] = @$v2['values'];
                         if ($v2) {
                             $new = $this->getTwigFromHtml($pattern, $v2);
                             if ($new != $pattern) $models[] = $new;
@@ -3072,7 +3072,7 @@ class _uho_orm
         foreach ($sql_schema['fields_sql'] as $v)
         {
             $find=_uho_fx::array_filter($columns,'Field',$v['Field'],['first'=>true]);
-            if ($find && $find['Type']==$v['Type']);
+            if ($find && isset($find['Type']) && $find['Type']==$v['Type']);
             elseif ($find)
             {
                 if (isset($the_same[$find['Type']]) && in_array($v['Type'],$the_same[$find['Type']]));
