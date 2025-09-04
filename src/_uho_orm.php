@@ -1685,6 +1685,9 @@ class _uho_orm
                         case "integer":
                             $data[$k][$v2['field']] = intval($data[$k][$v2['field']]);
                             break;
+                        case "float":
+                            $data[$k][$v2['field']] = floatval($data[$k][$v2['field']]);
+                            break;
                     }
 
         // autofields and type updates ----------------------------------------------------------------------------------------
