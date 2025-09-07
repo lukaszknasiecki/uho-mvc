@@ -422,6 +422,48 @@ class _uho_fx
     }
 
     /**
+     * Remove values by key from the array,multidimensional too
+     * i.e. $items = _uho_fx::array_remove_keys($items,['id','uid','slug','image'=>['original']]);
+     * @param array $array
+     * @param string $keys
+     * @return array
+     */
+    
+    public static function array_remove_keys(array $array, array $keys_to_remove): array
+    {
+        if (is_array($array))
+        {
+            // array
+            if (array_values($array)==$array)
+            {
+                foreach ($array as $key=>$v)
+                    foreach ($keys_to_remove as $key_r => $key_to_remove)
+                    if (is_array($key_to_remove))
+                    {
+                        $array[$key][$key_r] = _uho_fx::array_remove_keys($array[$key][$key_r], $key_to_remove);
+
+                    } else
+                    {
+                        if (isset($array[$key][$key_to_remove]))
+                                unset($array[$key][$key_to_remove]);;
+                    }
+            } else
+            // object
+            {
+                foreach ($keys_to_remove as $key_r => $key_to_remove)
+                    if (is_array($key_to_remove))
+                    {
+                        $array[$key_r] = _uho_fx::array_remove_keys($array[$key_r], $key_to_remove);
+                    }
+                    else
+                    if (isset($array[$key_to_remove]))
+                            unset($array[$key_to_remove]);
+            }  
+        }
+        return $array;
+    }
+
+    /**
      * Extracts values by key from the array
      * @param array $array
      * @param string $key
