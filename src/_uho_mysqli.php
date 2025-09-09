@@ -5,6 +5,8 @@ namespace Huncwot\UhoFramework;
 use SimplePHPCache\Cache;
 use Huncwot\UhoFramework\_uho_fx;
 
+require_once "cache.class.php";
+
 /**
  * This is a class dedicated to direct mySQL connections
  * It supports mySQL query caching to local files

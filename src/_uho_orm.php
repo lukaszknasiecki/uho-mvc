@@ -1770,14 +1770,22 @@ class _uho_orm
                             $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
                         }
 
-                        // image sizes
-                        $sizes = [];
+                        /*
+                            optional: add image sizes
+                        */
+                        
                         if ($this->addImageSizes && !empty($v2['settings']['sizes'])) {
                             $sizes = $data[$k][$v2['settings']['sizes']];
                             if (is_string($sizes)) $sizes = json_decode($sizes, true);
-                        }
+                        } else $sizes = [];
 
-                        foreach ($v2['images'] as $v4) {
+                        /*
+                            update filename patterns
+                        */
+
+                        foreach ($v2['images'] as $v4)
+                        {
+
                             if (isset($v4['filename']))
                                 $filename0 = $this->updateTemplate($v4['filename'], $v, true);
                             elseif (isset($v2['filename']))
@@ -1786,15 +1794,27 @@ class _uho_orm
 
                             if (@$v4['id']) $image_id = $v4['id'];
                             else $image_id = $v4['folder'];
+                            
                             $m[$image_id] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
                             $m[$image_id] = str_replace('//', '/', $m[$image_id]);
 
-                            if (isset($v4['size'])) {
+                            /*
+                                optional - add image size
+                            */
+                            if (isset($v4['size']))
+                            {
                                 $this->imageAddSize($m[$image_id]);
                             } elseif (isset($v2['server'])) $this->imageAddServer($m[$image_id], $v2['server']);
-                            else $this->fileAddTime($m[$image_id]);
+                            /*
+                                default - add image time as suffix to avoid cache                                
+                            */
+                            else
+                            {
+                                $this->fileAddTime($m[$image_id]);
+                            }
 
-                            if ($sizes) {
+                            if ($sizes)
+                            {
                                 $m[$image_id] = ['src' => $m[$image_id]];
                                 if (!empty($sizes[$image_id])) {
                                     $m[$image_id]['width'] = $sizes[$image_id][0];
@@ -2497,9 +2517,14 @@ class _uho_orm
     public function fileAddTime(&$f): void
     {
 
+        /*
+            s3 support
+        */
+            
         if (isset($this->uhoS3))
         {
-            if ($this->filesDecache) {
+            if ($this->filesDecache)
+            {                
                 $time = $this->uhoS3->file_time($f);
                 if ($time) $f .= '?' . $time;
                 else $f = '';
@@ -2508,7 +2533,11 @@ class _uho_orm
             if ($f) {
                 $f = $this->uhoS3->getFilenameWithHost($f, true);
             }
-        } elseif ($this->filesDecache && isset($this->folder_replace))
+        }
+        /*
+            standard files, uploaded to the folder
+        */
+        elseif ($this->filesDecache && isset($this->folder_replace))
         {
 
 

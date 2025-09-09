@@ -83,7 +83,13 @@ class _uho_s3
 
         if (!empty($config['compress'])) $this->setCompress($config['compress']);
         if (!empty($params['compress'])) $this->setCompress($params['compress']);
-        if (!empty($config['cache_sql'])) $this->setCacheSql($config['cache_sql']);
+
+        if (!empty($config['cache_sql']))
+        {
+            $this->setCacheSql($config['cache_sql']);
+            $this->setCompress(true);
+        }
+
         if (!empty($config['folder']) && $config['folder'] != 'folder') $this->setFolder($config['folder']);
         if (!empty($params['orm'])) $this->orm = $params['orm'];
         if (!empty($config['acl']) && $config['acl'] == 'no') $this->acl = false;
@@ -93,15 +99,20 @@ class _uho_s3
         $this->s3Client = new S3Client($cfg);
         $this->cfg = $config;
 
-        if (isset($_SESSION['_uho_s3_cache']) && !$recache) $this->cache = $_SESSION['_uho_s3_cache'];
-        else {
-            if (!$recache && $this->cache_file && $this->loadCache()) {
-            } else {
-                $this->buildCache();
+        if ($this->cache_sql)
+        {
+
+        } else
+        {
+            if (isset($_SESSION['_uho_s3_cache']) && !$recache) $this->cache = $_SESSION['_uho_s3_cache'];
+            else {
+                if (!$recache && $this->cache_file && $this->loadCache()) {
+                } else {
+                    $this->buildCache();
+                }
+                if (empty($_SESSION['_uho_s3_cache'])) $_SESSION['_uho_s3_cache'] = [];
+                $this->cache = $_SESSION['_uho_s3_cache'];            
             }
-            if (empty($_SESSION['_uho_s3_cache'])) $_SESSION['_uho_s3_cache'] = [];
-            $this->cache = $_SESSION['_uho_s3_cache'];
-            
         }
         
     }
@@ -120,6 +131,7 @@ class _uho_s3
      */
     public function buildCache($params = []): array
     {
+        
         $this->cacheClearAll();
         $c = 0;
 
@@ -251,7 +263,17 @@ class _uho_s3
                 break;
         }
 
-        if (isset($this->cache[$filename])) {
+        if ($this->cache_sql && $this->orm)
+        {
+            $c=$this->orm->get('uho_image_cache', ['id'=>$filename],true);
+            if ($c)
+            {
+                return $c;
+            }
+            return null;
+        } 
+
+        elseif (isset($this->cache[$filename])) {
 
             switch ($this->compress) {
                 case "md5":
@@ -311,8 +333,9 @@ class _uho_s3
     public function getFileMetadata($filename, $force = false, $save = false)
     {
 
-        $filename = $this->clear_filename($filename);
+        $filename = $this->clear_filename($filename);        
         $result_simple = null;
+
         $cached = $this->cacheGet($filename);
 
         if ($cached && !$force) {
@@ -560,6 +583,8 @@ class _uho_s3
     public function saveCache()
     {
         $result = false;
+        
+         $_SESSION['_uho_s3_cache'] = $this->cache;
         if ($this->cache_file) {
             $f = fopen($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file, 'w');
             if ($f) {
@@ -571,15 +596,17 @@ class _uho_s3
         }
 
         if ($this->cache_sql && $this->orm) {
+            /*
             $c = [];
-
+                
             foreach ($this->cache as $k => $v)
                 if (isset($v['time'])) {
-                    $c[] = ['filename' => $k, 'time' => $v['time']];
+                    $c[] = ['id' => md5($k), 'time' => str_replace('T',' ',$v['time'])];
                 }
 
             if ($this->orm->truncateModel('uho_image_cache'))
                 $this->orm->postJsonModel('uho_image_cache', $c, true);
+            */
         }
 
 

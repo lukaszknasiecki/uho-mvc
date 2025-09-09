@@ -4,6 +4,8 @@ namespace Huncwot\UhoFramework;
 
 use SimplePHPCache\Cache;
 
+require_once "cache.class.php";
+
 /**
  * This class provides HTML caching
  * supports encoding with SALT parameter
