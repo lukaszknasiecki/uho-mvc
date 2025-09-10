@@ -476,7 +476,7 @@ class _uho_fx
         if (is_array($array)) {
             foreach ($array as $v) {
                 if ($flip) $r[$v[$key]] = 1;
-                else $r[] = $v[$key];
+                elseif (isset($v[$key])) $r[] = $v[$key];
             }
         }
         return $r;

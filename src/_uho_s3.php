@@ -629,8 +629,10 @@ class _uho_s3
                 fclose($f);
                 if ($s) {
                     $this->cacheClearAll();
-                    foreach ($s as $k => $v) {
+                    foreach ($s as $k => $v)
+                    {
                         //if ($this->compress=='md5') $v=['time'=>$v];
+                        if (is_string($v)) $v=['time'=>$v];
                         //    else $v=['time' => $v['time']];
                         $this->cacheSet($k, $v, false, false);
                     }
