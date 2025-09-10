@@ -913,6 +913,7 @@ class _uho_orm
                 switch ($v['type']) {
 
                     case "image":
+
                         if (empty($v['filename']) && empty($v['images'][0]['filename']))
                         {
                             $model['fields'][$k]['filename'] = '%uid%';
@@ -1748,99 +1749,108 @@ class _uho_orm
 
                         $m = array();
 
-                        foreach ($v2['images'] as $k4 => $v4)
-                            if (@$v4['retina'] === true)
-                                $v2['images'][$k4]['retina'] = [['count' => 2, 'label' => @$v4['label'] . '_x2', 'folder' => $v4['folder'] . '_x2']];
-
-
-                        foreach ($v2['images'] as $k4 => $v4)
-                            if (@$v4['retina']) {
-                                foreach ($v4['retina'] as $v5) {
-                                    $v2['images'][] = $v5;
-                                }
-                                unset($v2['images'][$k4]['retina']);
-                            }
-
-                        $extension = 'jpg';
-                        if (@$v2['extension_field']) $extension = $v[$v2['extension_field']];
-                        elseif (@$v2['extensions'] && count($v2['extensions']) == 1)
-                            $extension = $v2['extensions'][0];
-                        if ($v2['folder']) {
-                            $v2['folder'] = $this->updateTemplate($v2['folder'], $v);
-                            $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
-                        }
-
-                        /*
-                            optional: add image sizes
-                        */
-                        
-                        if ($this->addImageSizes && !empty($v2['settings']['sizes'])) {
-                            $sizes = $data[$k][$v2['settings']['sizes']];
-                            if (is_string($sizes)) $sizes = json_decode($sizes, true);
-                        } else $sizes = [];
-
-                        /*
-                            update filename patterns
-                        */
-
-                        foreach ($v2['images'] as $v4)
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
+                        {
+                            $data[$k][$v2['field']] = null;
+                        } else
                         {
 
-                            if (isset($v4['filename']))
-                                $filename0 = $this->updateTemplate($v4['filename'], $v, true);
-                            elseif (isset($v2['filename']))
-                                $filename0 = $this->updateTemplate($v2['filename'], $v);
-                            else $filename0 = $this->updateTemplate('%uid%', $v);
+                            foreach ($v2['images'] as $k4 => $v4)
+                                if (@$v4['retina'] === true)
+                                    $v2['images'][$k4]['retina'] = [['count' => 2, 'label' => @$v4['label'] . '_x2', 'folder' => $v4['folder'] . '_x2']];
 
-                            if (@$v4['id']) $image_id = $v4['id'];
-                            else $image_id = $v4['folder'];
-                            
-                            $m[$image_id] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
-                            $m[$image_id] = str_replace('//', '/', $m[$image_id]);
 
-                            /*
-                                optional - add image size
-                            */
-                            if (isset($v4['size']))
-                            {
-                                $this->imageAddSize($m[$image_id]);
-                            } elseif (isset($v2['server'])) $this->imageAddServer($m[$image_id], $v2['server']);
-                            /*
-                                default - add image time as suffix to avoid cache                                
-                            */
-                            else
-                            {
-                                $this->fileAddTime($m[$image_id]);
-                            }
-
-                            if ($sizes)
-                            {
-                                $m[$image_id] = ['src' => $m[$image_id]];
-                                if (!empty($sizes[$image_id])) {
-                                    $m[$image_id]['width'] = $sizes[$image_id][0];
-                                    $m[$image_id]['height'] = $sizes[$image_id][1];
+                            foreach ($v2['images'] as $k4 => $v4)
+                                if (@$v4['retina']) {
+                                    foreach ($v4['retina'] as $v5) {
+                                        $v2['images'][] = $v5;
+                                    }
+                                    unset($v2['images'][$k4]['retina']);
                                 }
+
+                            $extension = 'jpg';
+                            if (@$v2['extension_field']) $extension = $v[$v2['extension_field']];
+                            elseif (@$v2['extensions'] && count($v2['extensions']) == 1)
+                                $extension = $v2['extensions'][0];
+                            if ($v2['folder']) {
+                                $v2['folder'] = $this->updateTemplate($v2['folder'], $v);
+                                $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
                             }
 
+                            /*
+                                optional: add image sizes
+                            */
+                            
+                            if ($this->addImageSizes && !empty($v2['settings']['sizes'])) {
+                                $sizes = $data[$k][$v2['settings']['sizes']];
+                                if (is_string($sizes)) $sizes = json_decode($sizes, true);
+                            } else $sizes = [];
 
-                            // webp
-                            if (isset($v2['settings']['webp']) && $image_id != 'original') {
-                                $m[$image_id . '_webp'] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.webp';
+                            /*
+                                update filename patterns
+                            */
+
+                            foreach ($v2['images'] as $v4)
+                            {
+
+                                if (isset($v4['filename']))
+                                    $filename0 = $this->updateTemplate($v4['filename'], $v, true);
+                                elseif (isset($v2['filename']))
+                                    $filename0 = $this->updateTemplate($v2['filename'], $v);
+                                else $filename0 = $this->updateTemplate('%uid%', $v);
+
+                                if (@$v4['id']) $image_id = $v4['id'];
+                                else $image_id = $v4['folder'];
+                                
+                                $m[$image_id] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
+                                $m[$image_id] = str_replace('//', '/', $m[$image_id]);
+
+                                /*
+                                    optional - add image size
+                                */
                                 if (isset($v4['size']))
-                                    $this->imageAddSize($m[$image_id . '_webp']);
-                                else $this->fileAddTime($m[$image_id . '_webp']);
+                                {
+                                    $this->imageAddSize($m[$image_id]);
+                                } elseif (isset($v2['server'])) $this->imageAddServer($m[$image_id], $v2['server']);
+                                /*
+                                    default - add image time as suffix to avoid cache                                
+                                */
+                                else
+                                {
+                                    $this->fileAddTime($m[$image_id]);
+                                }
 
-                                if ($sizes) {
-                                    $m[$image_id . '_webp'] = ['src' => $m[$image_id . '_webp']];
+                                if ($sizes)
+                                {
+                                    $m[$image_id] = ['src' => $m[$image_id]];
                                     if (!empty($sizes[$image_id])) {
-                                        $m[$image_id . '_webp']['width'] = $sizes[$image_id][0];
-                                        $m[$image_id . '_webp']['height'] = $sizes[$image_id][1];
+                                        $m[$image_id]['width'] = $sizes[$image_id][0];
+                                        $m[$image_id]['height'] = $sizes[$image_id][1];
                                     }
                                 }
-                            }
+
+
+                                // webp
+                                if (isset($v2['settings']['webp']) && $image_id != 'original') {
+                                    $m[$image_id . '_webp'] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.webp';
+                                    if (isset($v4['size']))
+                                        $this->imageAddSize($m[$image_id . '_webp']);
+                                    else $this->fileAddTime($m[$image_id . '_webp']);
+
+                                    if ($sizes) {
+                                        $m[$image_id . '_webp'] = ['src' => $m[$image_id . '_webp']];
+                                        if (!empty($sizes[$image_id])) {
+                                            $m[$image_id . '_webp']['width'] = $sizes[$image_id][0];
+                                            $m[$image_id . '_webp']['height'] = $sizes[$image_id][1];
+                                        }
+                                    }
+                                }
+                            }                        
+
+                            $data[$k][$v2['field']] = $m;
+
                         }
 
-                        $data[$k][$v2['field']] = $m;
 
 
                         break;
@@ -2532,6 +2542,7 @@ class _uho_orm
 
             if ($f) {
                 $f = $this->uhoS3->getFilenameWithHost($f, true);
+                //if (!$this->filesDecache &&  !_uho_fx::remote_file_exists($f)) $f='';
             }
         }
         /*

@@ -544,6 +544,16 @@ class _uho_fx
         return file_exists(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $filename);
     }
 
+    public static function remote_file_exists($filename, $skip_query = false): bool
+    {
+        if ($skip_query) {
+            $filename = _uho_fx::image_decache($filename);
+        }
+        $headers = @get_headers($filename);
+        if ($headers && strpos($headers[0], '200') !== false) return true;
+        else  return false;
+    }
+
     /**
      * Gets image size adding full server path
      *
