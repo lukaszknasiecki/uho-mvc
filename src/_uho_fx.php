@@ -128,6 +128,13 @@ class _uho_fx
                     case "string":
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
+                    case "email":
+                        
+                        $sanitized_a = filter_var($input[$k], FILTER_SANITIZE_EMAIL);
+                        if (filter_var($sanitized_a, FILTER_VALIDATE_EMAIL))
+                            $output[$k]=$sanitized_a;
+                        
+                        break;
                     case "date":
                         $pattern = "/^\d{4}-\d{2}-\d{2}$/"; // YYYY-MM-DD
                         if (filter_var($input[$k], FILTER_VALIDATE_REGEXP, ["options" => ["regexp" => $pattern]]))

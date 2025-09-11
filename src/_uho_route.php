@@ -82,6 +82,7 @@ class _uho_route
         if ($init) {
             $this->init();
         }
+
         $this->routeClass = $this->findRouteClass($this->cfg['routeArray'][0], $this->cfg['routeArray'][1]);
     }
 
