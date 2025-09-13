@@ -402,6 +402,7 @@ class _uho_s3
     {
         if (!$source || !$destination) return;
         $destination = $this->clear_filename($destination);
+        
         $this->cacheClear($destination);
 
         $destination = $this->createS3Key($destination);
@@ -416,7 +417,7 @@ class _uho_s3
             if ($length) $object['ContentLength'] = $length;
             if ($this->acl) $object['ACL'] = 'public-read';
 
-            $result = $this->s3Client->putObject($object);
+            $result = $this->s3Client->putObject($object);            
             $result = $result->toArray();
 
             $result = $result['@metadata'];
