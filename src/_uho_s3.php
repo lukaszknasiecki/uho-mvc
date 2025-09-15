@@ -490,7 +490,7 @@ class _uho_s3
                 $this->cacheClear($filename);
                 $result = true;
             } catch (AwsException $e) {
-
+                //exit('error');
                 // $e->getAwsErrorCode()
             }
         return $result;

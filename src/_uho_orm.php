@@ -418,7 +418,6 @@ class _uho_orm
 
     private function updateTemplate($vv, $v, $twig = false)
     {
-
         if ($v)
             foreach ($v as $k3 => $v3)
                 if (is_string($v3))
@@ -1767,7 +1766,6 @@ class _uho_orm
                         } else
                         {
 
-
                             foreach ($v2['images'] as $k4 => $v4)
                                 if (@$v4['retina'] === true)
                                     $v2['images'][$k4]['retina'] = [['count' => 2, 'label' => @$v4['label'] . '_x2', 'folder' => $v4['folder'] . '_x2']];
@@ -1785,7 +1783,8 @@ class _uho_orm
                             if (@$v2['extension_field']) $extension = $v[$v2['extension_field']];
                             elseif (@$v2['extensions'] && count($v2['extensions']) == 1)
                                 $extension = $v2['extensions'][0];
-                            if ($v2['folder']) {
+                            if ($v2['folder'])
+                            {
                                 $v2['folder'] = $this->updateTemplate($v2['folder'], $v);
                                 $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
                             }
@@ -1802,25 +1801,30 @@ class _uho_orm
                             /*
                                 update filename patterns
                             */
-
                                 
 
                             foreach ($v2['images'] as $v4) {
 
                                 if (isset($v4['filename']))
-                                    $filename0 = $this->updateTemplate($v4['filename'], $v, true);
+                                {
+                                    $filename0 = $this->updateTemplate($v4['filename'], $v, true);                                    
+                                }
                                 elseif (isset($v2['filename']))
                                 {
                                     $filename0 = $this->updateTemplate($v2['filename'], $v,true);
+                                    
                                 }
                                 else $filename0 = $this->updateTemplate('%uid%', $v);
+
+                                
+
 
                                 if (@$v4['id']) $image_id = $v4['id'];
                                 else $image_id = $v4['folder'];
 
                                 $m[$image_id] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
                                 $m[$image_id] = str_replace('//', '/', $m[$image_id]);
-
+                                
 
                                 /*
                                     optional - add image size
@@ -1834,6 +1838,8 @@ class _uho_orm
                                 else {
                                     $this->fileAddTime($m[$image_id]);
                                 }
+
+                                
 
                                 if ($sizes) {
                                     $m[$image_id] = ['src' => $m[$image_id]];
@@ -1860,7 +1866,7 @@ class _uho_orm
                                     }
                                 }
                             }
-
+                            
                             $data[$k][$v2['field']] = $m;
                         }
 

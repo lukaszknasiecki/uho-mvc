@@ -105,7 +105,7 @@ class _uho_view
     public function renderSVG($html)
     {
         $svgs = [];
-        $max=100;
+        $max=1000;
         while ($max && $i = strpos($html, '[[svg::')) {
 
             $max--;
