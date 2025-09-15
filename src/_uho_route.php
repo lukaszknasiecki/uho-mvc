@@ -637,7 +637,15 @@ class _uho_route
                 case "twitter":
                     if (isset($val['slug']))
                         $v = _uho_social::getTwitterShare($this->getUrl($val['slug'], true), @$val['title']);
-                    else $v = _uho_social::getTwitterShare($this->getUrlNow(true), $val['title']);
+                    else $v = _uho_social::getTwitterShare($this->getUrlNow(true), @$val['title']);
+                    break;
+                case "linkedin":
+                    
+                    if (isset($val['slug']))
+                        $v = _uho_social::getLinkedinShare($this->getUrl($val['slug'], true));
+                    else $v = _uho_social::getLinkedinShare($this->getUrlNow(true));
+                    break;
+                    
                     break;
                 case "pinterest":
                     if (isset($val['slug']))

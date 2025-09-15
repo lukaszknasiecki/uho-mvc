@@ -74,7 +74,7 @@ class _uho_social
     {
         self::initialize();
         if (!$title || !is_string($title)) $title = '';
-        if ($url && is_string($url)) $url = 'https://www.twitter.com/share?text=' . urlencode($title) . '&url=' . urlencode($url);
+        if ($url && is_string($url)) $url = 'https://www.x.com/share?text=' . urlencode($title) . '&url=' . urlencode($url);
         return ($url);
     }
 
