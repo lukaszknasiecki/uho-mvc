@@ -223,7 +223,7 @@ class _uho_fx
 
     public static function dozeruj($s, $ile)
     {
-        if (is_array($s)) return '';
+        if (!is_string($s)) return '';
         self::initialize();
         while (strlen($s) < $ile) {
             $s = '0' . $s;
@@ -257,8 +257,10 @@ class _uho_fx
         if ($enters)
             $text = str_replace(chr(13) . chr(10), ' ', $text);
 
-        // longer than 255? let's get sentences
-        if (strlen($text) > $length) {
+        // longer than length? let's get sentences
+        $text=trim($text);
+        if (strlen($text) > $length)
+        {
             $sentences = explode('. ', $text);
             $text = '';
             $i = 0;
@@ -268,7 +270,7 @@ class _uho_fx
             }
         }
 
-        // longer than 255? let's get words
+        // longer than length? let's get words
         if (strlen($text) > $length) {
             $words = explode(' ', $text);
             $text = '';
