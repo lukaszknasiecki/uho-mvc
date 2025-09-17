@@ -419,6 +419,21 @@ class _uho_s3
             if ($length) $object['ContentLength'] = $length;
             if ($this->acl) $object['ACL'] = 'public-read';
 
+            $ext=explode('.',$destination); $ext=array_pop($ext);
+
+            switch ($ext)
+            {
+                case "jpg":
+                case "jpeg":
+                    $object['ContentType']= 'image/jpeg';
+                    $object['ContentDisposition'] = "inline";
+                    break;
+                case "png":
+                    $object['ContentType']= 'image/png';
+                    $object['ContentDisposition'] = "inline";
+                    break;
+            }
+
             $result = $this->s3Client->putObject($object);            
             $result = $result->toArray();
 

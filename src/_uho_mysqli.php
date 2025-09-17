@@ -272,7 +272,7 @@ class _uho_mysqli
      * @return array
      */
 
-    private function fetchQuery($t,$stripslashes=false)
+    private function fetchQuery($t, $stripslashes = false)
     {
         $tt = array();
 
@@ -288,6 +288,33 @@ class _uho_mysqli
         }
         return $tt;
     }
+
+    public function queryPrepared($query, $params, $first=false)
+    {
+        if (!empty($this->base_link)) {
+
+            $stmt = $this->base_link->prepare($query);
+
+            $types = '';
+            $values = [];
+            foreach ($params as $p) {
+                $types  .= $p[0];
+                $values[] = $p[1];
+            }
+
+            $stmt->bind_param($types, ...$values);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result) {                                
+                $result = $this->fetchQuery($result);
+                if ($first && is_array($result)) $result=$result[0];
+            }
+            return $result;
+        }
+    }
+
+
 
     /**
      * Runs mySQL read-only query, using cache if possible
@@ -357,14 +384,13 @@ class _uho_mysqli
         -->');
         }
 
-        if (!$t)
-        {
-            if (_uho_fx::getGet('dbg') && $this->debug) { 
+        if (!$t) {
+            if (_uho_fx::getGet('dbg') && $this->debug) {
                 exit('mysql error:' . $query . '<br>Error: ' . $this->base_link->error);
             } else {
                 $this->errorAdd($query . ' ... ' . $this->base_link->error);
-                if ($this->halt_on_error) exit('error:'.$query.'<br>Error: '.$this->base_link->error);
-                     else return false;
+                if ($this->halt_on_error) exit('error:' . $query . '<br>Error: ' . $this->base_link->error);
+                else return false;
             }
         } else {
             if ($key) {
@@ -400,8 +426,7 @@ class _uho_mysqli
             $this->errorAdd($query);
         }
 
-        if (_uho_fx::getGet('dbg') && $this->debug)
-        {
+        if (_uho_fx::getGet('dbg') && $this->debug) {
             echo ('<!-- ' . $query . ' -->');
         }
 
