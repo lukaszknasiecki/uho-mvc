@@ -277,7 +277,9 @@ class _uho_s3
 
             switch ($this->compress) {
                 case "md5":
-                    $result = ['time' => $this->cache[$filename]];
+                    $result = $this->cache[$filename];
+                    if (empty($result['time']))
+                        $result = ['time' => $result];
                     break;
                 default:
                     $result = $this->cache[$filename];
