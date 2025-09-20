@@ -61,6 +61,7 @@ class _uho_s3
 
     function __construct($config, $recache = false, $params = null)
     {
+        
         $validate = [
             'region',
             'bucket',
@@ -427,10 +428,17 @@ class _uho_s3
                 case "jpeg":
                     $object['ContentType']= 'image/jpeg';
                     $object['ContentDisposition'] = "inline";
+                    $object['CacheControl'] = "max-age=31536000, public";
+                    break;
+                case "webp":
+                    $object['ContentType']= 'image/webp';
+                    $object['ContentDisposition'] = "inline";
+                    $object['CacheControl'] = "max-age=31536000, public";
                     break;
                 case "png":
                     $object['ContentType']= 'image/png';
                     $object['ContentDisposition'] = "inline";
+                    $object['CacheControl'] = "max-age=31536000, public";
                     break;
             }
 
