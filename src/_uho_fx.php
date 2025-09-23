@@ -223,7 +223,7 @@ class _uho_fx
 
     public static function dozeruj($s, $ile)
     {
-        if (!is_string($s)) return '';
+        if (!is_string($s) && !is_numeric($s)) return '';
         self::initialize();
         while (strlen($s) < $ile) {
             $s = '0' . $s;
