@@ -5,7 +5,8 @@ namespace Huncwot\UhoFramework;
 use Huncwot\UhoFramework\_uho_mailer;
 use Huncwot\UhoFramework\_uho_thumb;
 use Huncwot\UhoFramework\_uho_fx;
-use Google\Client;
+use Google\Client as GoogleClient;
+use Google\Service\Oauth2 as GoogleOauth2;
 
 /**
  * This class provides CLIENT object methods
@@ -258,8 +259,8 @@ class _uho_client
 
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
-    
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value']. '5eh');
+
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value'] . '5eh');
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {
@@ -491,10 +492,10 @@ class _uho_client
    * @return null
    */
 
-  public function getToken($key='')
+  public function getToken($key = '')
   {
     if ($key) return $_SESSION[$key . '_token'];
-      return $_SESSION[$this->session_key . '_token'];
+    return $_SESSION[$this->session_key . '_token'];
   }
 
   /**
@@ -503,7 +504,7 @@ class _uho_client
    * @return boolean
    */
 
-  public function validateToken($token,$key='')
+  public function validateToken($token, $key = '')
   {
     $result = !empty($token) && ($token == $this->getToken($key));
     return $result;
@@ -609,21 +610,21 @@ class _uho_client
    *
    * @psalm-param array<array-key|mixed, 0|array{0?: 'confirmed', type?: 'sql', value?: string}|mixed|string> $params
    */
-  public function getClient(array $params, $skip_provider = false, $skip_pass_check=false)
+  public function getClient(array $params, $skip_provider = false, $skip_pass_check = false)
   {
     if ($this->provider && !$skip_provider) return $this->provider['model']->getClient($params);
     else {
       $filters = $params;
-      $pass=isset($filters['password']) ? $filters['password'] : null;
-      
+      $pass = isset($filters['password']) ? $filters['password'] : null;
+
       unset($filters['password']);
 
       $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
 
-      if ($this->salt['type']=='double')
-          $pass.=@$t[$this->salt['field']];
+      if ($this->salt['type'] == 'double')
+        $pass .= @$t[$this->salt['field']];
 
-      if (!$skip_pass_check && (!$pass || empty($t) || !password_verify($pass, $t['password']))) $t=null;
+      if (!$skip_pass_check && (!$pass || empty($t) || !password_verify($pass, $t['password']))) $t = null;
 
       if ($t) return $t;
     }
@@ -688,16 +689,16 @@ class _uho_client
    */
   public function login($email, $pass, array|null $params = null)
   {
-      if ((!$email && $this->fieldLogin) && !$pass && !$params) {
+    if ((!$email && $this->fieldLogin) && !$pass && !$params) {
       return;
     }
 
 
     if (isset($params['facebook_id'])) {
-      $client = $this->getClient(array('facebook_id' => $params['facebook_id']));
+      $client = $this->getClient(array('facebook_id' => $params['facebook_id']), false, true);
       if ($client) $this->cookieLoginStore($client['id']);
     } elseif (isset($params['google_id'])) {
-      $client = $this->getClient(array('google_id' => $params['google_id']));
+      $client = $this->getClient(array('google_id' => $params['google_id']), false, true);
       if ($client) $this->cookieLoginStore($client['id']);
     } elseif (isset($params['epuap_id'])) {
       $client = $this->getClient(array('epuap_id' => $params['epuap_id']));
@@ -722,7 +723,7 @@ class _uho_client
 
       if (isset($this->fields['locked'])) $filters[$this->fields['locked']] = 0;
 
-      $client = $this->getClient($filters);      
+      $client = $this->getClient($filters);
 
       if ($client) {
         session_regenerate_id(true);
@@ -735,8 +736,7 @@ class _uho_client
       }
     }
 
-    if ($client)
-    {
+    if ($client) {
       $result = true;
       $this->storeData($client);
     } else {
@@ -744,8 +744,7 @@ class _uho_client
       $message = 'client_login_failed';
     }
 
-    if (isset($this->models['client_logins_model']))
-    {
+    if (isset($this->models['client_logins_model'])) {
       $val = ['login' => $email, 'success' => intval($result), 'ip' => $this->getIp()];
       $this->orm->postJsonModel($this->models['client_logins_model'], $val);
       $_SESSION['login_session_id'] = $this->orm->getInsertId();
@@ -753,8 +752,7 @@ class _uho_client
 
     if ($result) $this->favouritesLoad();
 
-    if ($result)
-    {
+    if ($result) {
       if (!isset($message)) $message = 'client_login_success';
       return (array('result' => $result, 'client' => $client, 'message' => $message));
     } else return (array('result' => $result, 'message' => $message));
@@ -762,14 +760,13 @@ class _uho_client
 
   public function loginByToken($token)
   {
-    $user_id=$this->getUserToken($token);
-    
-    if (!empty($user_id))
-      $client = $this->orm->getJsonModel($this->clientModel, ['id'=>intval($user_id)], true);
-      else $client=null;
+    $user_id = $this->getUserToken($token);
 
-    if ($client)
-    {      
+    if (!empty($user_id))
+      $client = $this->orm->getJsonModel($this->clientModel, ['id' => intval($user_id)], true);
+    else $client = null;
+
+    if ($client) {
       $this->storeData($client);
       return true;
     }
@@ -780,7 +777,7 @@ class _uho_client
    * @param string $accessToken token from FB API
    * @return boolean returns true if successfull
    */
-
+  /*
   public function loginFacebook($accessToken)
   {
 
@@ -846,9 +843,9 @@ class _uho_client
       // Returns a `Facebook\FacebookResponse` object
       $response = $fb->get('/me?fields=id,first_name,last_name,email', $accessToken);
     } catch (\Facebook\Exceptions\FacebookResponseException $e) {
-      exit ('Graph returned an error: ' . $e->getMessage());
+      exit('Graph returned an error: ' . $e->getMessage());
     } catch (\Facebook\Exceptions\FacebookSDKException $e) {
-      exit ('Facebook SDK returned an error: ' . $e->getMessage());
+      exit('Facebook SDK returned an error: ' . $e->getMessage());
     }
 
     $facebook_user_profile = $response->getGraphUser();  // id, name, email
@@ -873,6 +870,156 @@ class _uho_client
 
     return ($result);
   }
+*/
+
+  /**
+   * Facebook Oauth Section
+   * 
+   * loginFacebookClient    --> creates Facebook Client
+   * loginFacebookInit      --> shows Facebook Oauth Popup
+   * loginFacebook          --> registers / logins user
+   */
+
+  private function loginFacebookClient()
+  {
+    
+    $client = new \Facebook\Facebook([
+      'app_id' => $this->oAuth['facebook']['client_id'],
+      'app_secret' => $this->oAuth['facebook']['client_secret'],
+      'default_graph_version' => 'v19.0'
+    ]);
+
+
+    return $client;
+  }
+
+  public function loginFacebookInit()
+  {
+    $client = $this->loginFacebookClient();
+    $helper = $client->getRedirectLoginHelper();
+
+    $permissions = ['email', 'public_profile'];
+    $authUrl = $helper->getLoginUrl($this->oAuth['facebook']['redirect_uri'], $permissions);
+
+    header('Location: ' . $authUrl, true, 302);
+    exit;
+  }
+
+  /**
+   * Facebook login
+   * @param string $accessToken token from Google API
+   * @return boolean returns true if successfull
+   */
+
+  public function loginFacebook($accessToken=null,$code=null)
+  {
+
+    if (!$this->oAuth['facebook']) return ['result' => false, 'Facebook oAuth config missing'];
+
+    // we can get data with token or code (from hard redirect)
+
+    if (!$accessToken && !$code) return ['result' => false, 'message' => 'No code/token specified'];
+
+    // $code --> $accessToken    
+    if ($code)
+    {
+      $tokenUrl = "https://graph.facebook.com/v19.0/oauth/access_token?" . http_build_query([
+        'client_id' => $this->oAuth['facebook']['client_id'],
+        'client_secret' => $this->oAuth['facebook']['client_secret'],      
+        'redirect_uri'  => $this->oAuth['facebook']['redirect_uri'],      
+        'code'          => $code
+      ]);
+  
+      $response = @file_get_contents($tokenUrl);
+      $data = @json_decode($response, true);
+      $accessToken=isset($data['access_token']) ? $data['access_token'] : null;
+
+    }
+
+    if (empty($accessToken)) {
+      http_response_code(400);
+      exit('Authentication failed or was cancelled.');
+    }
+
+    // Fetch user profile
+    $graphUrl = "https://graph.facebook.com/me?"
+        . "fields=id,first_name,last_name,email,picture.width(200).height(200)"
+        . "&access_token=" . urlencode($accessToken);
+
+    $response = @file_get_contents($graphUrl);
+    $data = @json_decode($response, true);
+
+    if (empty($data['id'])) {
+        http_response_code(400);
+        exit('Failed to fetch user profile.');
+    }
+
+    $data = [
+      'name' => $data['first_name'],
+      'surname' => $data['last_name'],
+      'email' => $data['email'],
+      'facebook_id' => $data['id'],
+      'image_uri' => $data['picture']['data']['url'],
+      'status' => 'confirmed'
+    ];
+
+    $result = $this->register($data);
+
+    if ($result) {
+      $image = $data['image_uri'];
+      $result = $this->login(null, null, ['facebook_id' => $data['facebook_id']]);
+      @$result['client']['image_uri'] = $image;
+    }
+    
+    return ($result);
+  }
+
+  /**
+   * Google Oauth Section
+   * 
+   * loginGoogleClient    --> creates Google Client
+   * loginGoogleInit      --> shows Google Oauth Popup
+   * loginGoogle          --> registers / logins user
+   */
+
+  private function loginGoogleClient()
+  {
+    $client = new GoogleClient();
+    $client->setClientId($this->oAuth['google']['client_id']);
+    $client->setClientSecret($this->oAuth['google']['client_secret']);
+    $client->setRedirectUri($this->oAuth['google']['redirect_uri']);
+    $client->setScopes([
+      'openid',
+      'email',
+      'profile',
+    ]);
+    $client->setAccessType('offline');       // to receive refresh_token (first consent)
+    $client->setPrompt('consent');           // force consent screen to get refresh_token reliably
+    return $client;
+  }
+
+  /**
+   * Google login init, redirects to login screen
+   */
+
+  public function loginGoogleInit()
+  {
+    $client = $this->loginGoogleClient();
+
+    // CSRF protection: random state
+    $state = bin2hex(random_bytes(16));
+    $_SESSION['oauth2state'] = $state;
+
+    // Build auth URL
+    $authUrl = $client->createAuthUrl();
+
+    // Append state safely
+    $sep = (parse_url($authUrl, PHP_URL_QUERY) ? '&' : '?');
+    $authUrl .= $sep . 'state=' . urlencode($state);
+
+    header('Location: ' . $authUrl, true, 302);
+    exit;
+  }
 
   /**
    * Google login
@@ -889,12 +1036,10 @@ class _uho_client
 
     if (!$access_token && !$code) return ['result' => false, 'message' => 'No token/code specified'];
 
-    $client = new Google_Client();
-    $client->setClientId($this->oAuth['google'][0]);
-    $client->setClientSecret($this->oAuth['google'][1]);
+    $client = $this->loginGoogleClient();
 
-    // ------------------------------------------------------------------------------------
-    // getting data via TOKEN
+
+    // Option#1 - getting data via TOKEN
 
     if ($access_token) {
 
@@ -910,7 +1055,7 @@ class _uho_client
           'surname' => $data['family_name'],
           'email' => $data['email'],
           'google_id' => $data['sub'],
-          'image' => $data['picture'],
+          'image_uri' => $data['picture'],
           'status' => 'confirmed'
         ];
       } else {
@@ -918,30 +1063,30 @@ class _uho_client
       }
     }
 
-    // getting data via CODE
+    // Option#2 - getting data via CODE
 
     elseif ($code) {
-      $client->addScope("email");
-      $client->addScope("profile");
-      $client->setRedirectUri('http://localhost/logowanie-google');
+
       $token = $client->fetchAccessTokenWithAuthCode($code);
 
-      if (!$token) return ['result' => false, 'message' => 'No token found'];
+      if (isset($token['error'])) return ['result' => false, 'message' => 'No token found: ' . $token['error']];
       try {
-        $client->setAccessToken($access_token);
+        $client->setAccessToken($token);
       } catch (\Exception $e) {
         return ['result' => false, 'message' => $e->getMessage()];
       }
 
-      $google_oauth = new Google_Service_Oauth2($client);
+      $google_oauth = new GoogleOauth2($client);
       $google_account_info = $google_oauth->userinfo->get();
 
       if (!$google_account_info->id) return ['result' => false, 'message' => 'No google ID found'];
+
       $data = [
         'name' => $google_account_info->given_name,
         'surname' => $google_account_info->family_name,
         'email' => $google_account_info->email,
         'google_id' => $google_account_info->id,
+        'image_uri' => $google_account_info->picture,
         'status' => 'confirmed'
       ];
     }
@@ -953,7 +1098,9 @@ class _uho_client
 
     // logujemy
     if ($result) {
+      $image = $data['image_uri'];
       $result = $this->login(null, null, ['google_id' => $data['google_id']]);
+      @$result['client']['image_uri'] = $image;
     }
 
     return ($result);
@@ -1138,7 +1285,7 @@ class _uho_client
     return $result;
   }
   */
-  
+
   /*
   public function getGdprExpirationDate($token)
   {
@@ -1172,7 +1319,7 @@ class _uho_client
     $data['salt'] = substr(bin2hex(random_bytes(32)), 0, 3);
 
     if (isset($data['password']))
-        $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
+      $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
 
     $result = $this->orm->postJsonModel($this->clientModel, $data);
 
@@ -1182,18 +1329,18 @@ class _uho_client
       if ($returnId) $result = $user;
 
       // use separate token table
-      if (!empty($data['key_confirm']) && $this->tokenModel)
-      {
-        $days= $this->settings['registration_confirmation_days'] ?? 7;
-        $this->orm->postJsonModel($this->tokenModel,
-        [
-            'expiration'=> date('Y-m-d', strtotime("+" . $days . " days")),
-            'user'=>$user,
-            'value'=>$data['key_confirm'],
-            'type'=>'registration_confirmation'
-        ]);
+      if (!empty($data['key_confirm']) && $this->tokenModel) {
+        $days = $this->settings['registration_confirmation_days'] ?? 7;
+        $this->orm->postJsonModel(
+          $this->tokenModel,
+          [
+            'expiration' => date('Y-m-d', strtotime("+" . $days . " days")),
+            'user' => $user,
+            'value' => $data['key_confirm'],
+            'type' => 'registration_confirmation'
+          ]
+        );
       }
-
     }
     return $result;
   }
@@ -1207,8 +1354,7 @@ class _uho_client
 
   public function createAdmin($login, $pass)
   {
-    if (!$this->adminExists())
-    {
+    if (!$this->adminExists()) {
       $data = ['name' => 'Admin', 'login' => $login, 'password' => $pass, 'admin' => 1, 'status' => 'confirmed', 'edit_all' => 1];
       $r = $this->create($data);
       if (!$r) {
@@ -1339,17 +1485,17 @@ class _uho_client
 
     $result = false;
 
-    $sso=(isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']) || isset($this->provider));
+    $sso = (isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']) || isset($this->provider));
 
     if (!isset($data['lang'])) $data['lang'] = $this->lang;
     if (!isset($data['status'])) $data['status'] = 'submitted';
 
-    $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]],false,true);
+    $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]], false, true);
 
     // get login and pass fields
     $fields = array();
-    
-    $data['password'] = trim(@$data['password']);
+
+    $data['password'] = isset($data['password']) ? trim($data['password']) : "";
     if (!$data['password']) unset($data['password']);
 
     if (!$data[$this->fieldEmail]) $fields[$this->fieldEmail] = 'email_required';
@@ -1362,8 +1508,7 @@ class _uho_client
     if ($fields);
 
     // already submitted...
-    elseif ($status && $status['status'] != 'confirmed' && !@$sso)
-    {
+    elseif ($status && $status['status'] != 'confirmed' && !@$sso) {
       $this->update($status['id'], ['status' => 'submitted']);
       $token = $this->generateUserToken('registration_confirmation', '+10 days', $status['id']);
       $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $token, $url)]);
@@ -1382,9 +1527,13 @@ class _uho_client
     }
 
     // already confirmed
-    elseif ($status && $status['status'] == 'confirmed') {
-      $message = 'client_already_registered';
-    } elseif ($this->provider) {
+    elseif ($status && $status['status'] == 'confirmed')
+    {
+      $result=true;
+      $this->update($status['id'], $data);
+      $message = 'client_already_registered';      
+    } elseif ($this->provider)
+    {
       $result = $this->provider['model']->create($data);
     }
     // create new user      
@@ -1393,7 +1542,7 @@ class _uho_client
       $data['key_confirm'] = $this->generateToken();
 
       $result = $this->create($data);
-      
+
       // mail for confirmation
       if ($result && !@$sso) {
         $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $data['key_confirm'], $url)]);
@@ -1409,7 +1558,8 @@ class _uho_client
     return $result;
   }
 
-  private function base64url(string $bin): string {
+  private function base64url(string $bin): string
+  {
     return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
   }
 
@@ -1428,17 +1578,15 @@ class _uho_client
 
   public function registerConfirmation($key)
   {
-    if ($this->tokenModel)
-    {
-      $user=$this->getUserToken($key,'registration_confirmation',true); 
+    if ($this->tokenModel) {
+      $user = $this->getUserToken($key, 'registration_confirmation', true);
       if ($user) $user = $this->orm->getJsonModel($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
-    } else
-    {
+    } else {
       $user = $this->orm->getJsonModel($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
     }
 
     if ($user) $result = $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
-      else $result=false;
+    else $result = false;
 
     return $result;
   }
@@ -1468,14 +1616,14 @@ class _uho_client
    * @return null|string returns encrypted string
    */
   private function hashPass($pass)
-  {    
+  {
     if ($this->sql_hash == 'SHA256') return hash('sha256', $pass);
     elseif ($this->sql_hash == 'BCRYPT') return password_hash($pass, PASSWORD_BCRYPT);
     else return password_hash($pass, PASSWORD_DEFAULT);
   }
 
   private function hash($token)
-  {    
+  {
     return hash('sha256', $token);
   }
 
@@ -1498,7 +1646,7 @@ class _uho_client
         $pass = $this->hashPass(trim($pass) . $this->salt['value']);
         break;
       case "double":
-        $pass = $this->hashPass(trim($pass.$this->salt['value'].$salt));
+        $pass = $this->hashPass(trim($pass . $this->salt['value'] . $salt));
         break;
     }
 
@@ -1583,16 +1731,15 @@ class _uho_client
     $data = $this->getData();
     if ($data) {
 
-      $pass = trim($pass.$this->salt['value']);
+      $pass = trim($pass . $this->salt['value']);
       $filters = ['id' => $data['id']];
 
       $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
 
-      if ($t && $pass)
-      {
-        if ($this->salt['type']=='double')
-            $pass.=$t[$this->salt['field']];
-        if (empty($t['password']) || !password_verify($pass, $t['password'])) $t=null;
+      if ($t && $pass) {
+        if ($this->salt['type'] == 'double')
+          $pass .= $t[$this->salt['field']];
+        if (empty($t['password']) || !password_verify($pass, $t['password'])) $t = null;
       }
 
       if ($t) return true;
@@ -1630,12 +1777,11 @@ class _uho_client
       $data = $this->getData();
       if ($data) $user = $data['id'];
     }
-    if ($user)
-    {
-      $salt=substr(bin2hex(random_bytes(32)), 0, 3);
-      $pass = $this->encodePassword($pass,false,$salt);
-      $data = ['id' => $user, 'salt' => $salt, 'date_set' => date('Y-m-d H:i:s'),'password'=>$pass];
-      
+    if ($user) {
+      $salt = substr(bin2hex(random_bytes(32)), 0, 3);
+      $pass = $this->encodePassword($pass, false, $salt);
+      $data = ['id' => $user, 'salt' => $salt, 'date_set' => date('Y-m-d H:i:s'), 'password' => $pass];
+
       $result = $this->orm->putJsonModel($this->clientModel, $data);
       if ($result) $this->cookieLoginStore($user);
       else {
@@ -1797,15 +1943,16 @@ class _uho_client
    * @return integer|null
    */
 
-  public function getUserToken($token, $type = null,$remove_if_present=false)
+  public function getUserToken($token, $type = null, $remove_if_present = false)
   {
-    $f=['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];
-    
+    $f = ['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];
+
     if ($type) $f['type'] = $type;
     $item = $this->orm->getJsonModel($this->tokenModel, $f, true);
 
     if ($item && $remove_if_present) $this->orm->deleteJsonModel($this->tokenModel, ['id' => $item['id']]);
-    if ($item) return $item['user']; else return null;
+    if ($item) return $item['user'];
+    else return null;
   }
 
   /**
