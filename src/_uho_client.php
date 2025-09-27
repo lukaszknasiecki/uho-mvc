@@ -609,21 +609,21 @@ class _uho_client
    *
    * @psalm-param array<array-key|mixed, 0|array{0?: 'confirmed', type?: 'sql', value?: string}|mixed|string> $params
    */
-  public function getClient(array $params, $skip_provider = false)
+  public function getClient(array $params, $skip_provider = false, $skip_pass_check=false)
   {
     if ($this->provider && !$skip_provider) return $this->provider['model']->getClient($params);
     else {
       $filters = $params;
-      $pass=$filters['password'];
+      $pass=isset($filters['password']) ? $filters['password'] : null;
       
       unset($filters['password']);
 
       $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
 
       if ($this->salt['type']=='double')
-          $pass.=$t[$this->salt['field']];
+          $pass.=@$t[$this->salt['field']];
 
-      if (!$pass || empty($t) || !password_verify($pass, $t['password'])) $t=null;
+      if (!$skip_pass_check && (!$pass || empty($t) || !password_verify($pass, $t['password']))) $t=null;
 
       if ($t) return $t;
     }
@@ -1344,7 +1344,7 @@ class _uho_client
     if (!isset($data['lang'])) $data['lang'] = $this->lang;
     if (!isset($data['status'])) $data['status'] = 'submitted';
 
-    $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]]);
+    $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]],false,true);
 
     // get login and pass fields
     $fields = array();
@@ -1362,10 +1362,11 @@ class _uho_client
     if ($fields);
 
     // already submitted...
-    elseif ($status && $status['status'] != 'confirmed' && !@$sso) {
-      $key_confirm = $this->uniqid();
-      $this->update($status['id'], ['status' => 'submitted', 'key_confirm' => $key_confirm]);
-      $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $key_confirm, $url)]);
+    elseif ($status && $status['status'] != 'confirmed' && !@$sso)
+    {
+      $this->update($status['id'], ['status' => 'submitted']);
+      $token = $this->generateUserToken('registration_confirmation', '+10 days', $status['id']);
+      $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $token, $url)]);
       if ($result) $message = 'client_email_sent';
       else {
         $message = 'mailing_system_error';
