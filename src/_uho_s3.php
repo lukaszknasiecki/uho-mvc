@@ -601,6 +601,23 @@ class _uho_s3
         if ($this->cache_file) return @file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
         else return false;
     }
+
+    /**
+     * get cache file age
+     * @return boolean
+     */
+
+    public function getCacheFileAge()
+    {
+        if ($this->cache_file)
+        {
+            $time=@filemtime($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
+            if ($time) $time = 1+intval((time() - $time)/60);
+                else $time=null;            
+        } else $time=null;
+        return $time;
+    }
+
     /**
      * Saves current cache to file
      * @return boolean
