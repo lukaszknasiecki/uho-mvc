@@ -61,7 +61,6 @@ class _uho_s3
 
     function __construct($config, $recache = false, $params = null)
     {
-        
         $validate = [
             'region',
             'bucket',
@@ -105,6 +104,7 @@ class _uho_s3
 
         } else
         {
+            
             if (isset($_SESSION['_uho_s3_cache']) && !$recache) $this->cache = $_SESSION['_uho_s3_cache'];
             else {
                 if (!$recache && $this->cache_file && $this->loadCache()) {
@@ -146,12 +146,17 @@ class _uho_s3
         }
 
         $skip = 0;
+        
 
         foreach ($results as $objects)
+        {
             if (!empty($objects['Contents']))
-                foreach ($objects['Contents']  as $object) {
+            {
+                foreach ($objects['Contents']  as $object)
+                {
                     if (@$params['skip_original'] && strpos($object['Key'], '/original/')) $object['Key'] = '';
-                    if ($object['Key']) {
+                    
+                    if (!empty($object['Key'])) {
                         $c++;
                         $time = str_replace('+00:00', '', $object['LastModified']->__toString());
                         $this->cacheSet(
@@ -161,7 +166,9 @@ class _uho_s3
                         );
                     } else $skip++;
                 }
-
+            }
+        }
+        
         $this->saveCache();
         return ['count' => $c, 'skipped' => $skip];
     }
@@ -548,13 +555,26 @@ class _uho_s3
     {
         $list = ['Bucket' => $this->cfg['bucket']];
         if ($prefix) $list['Prefix'] = $prefix;
-        $objects = $this->s3Client->listObjects($list); //, 'MaxKeys' => 1000, 'Prefix' => 'files/'.$value));
+
+        try {
+            $objects = $this->s3Client->listObjects($list);
+        } catch (AwsException $e) {
+            exit('_uho_s3:: Access Denied :: ' . $e->getMessage());
+        }
+
+
+        
         return $objects;
     }
 
     public function listFilesPaginator($prefix = ''): array
     {
-        $objects = $this->s3Client->getPaginator('ListObjects', ['Bucket' => $this->cfg['bucket']]);
+        try {
+            $objects = $this->s3Client->getPaginator('ListObjects', ['Bucket' => $this->cfg['bucket']]);
+        } catch (AwsException $e) {
+            exit('_uho_s3:: Access Denied :: ' . $e->getMessage());
+        }
+
         $items = [];
         foreach ($objects as $listResponse)
             $items = array_merge($items, $listResponse->search("Contents[?starts_with(Key,'" . $prefix . "')]"));

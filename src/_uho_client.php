@@ -895,14 +895,23 @@ class _uho_client
 
   public function loginFacebookInit()
   {
+    /*
     $client = $this->loginFacebookClient();
     $helper = $client->getRedirectLoginHelper();
 
     $permissions = ['email', 'public_profile'];
-    $authUrl = $helper->getLoginUrl($this->oAuth['facebook']['redirect_uri'], $permissions);
+    $authUrl = $helper->getLoginUrl($this->oAuth['facebook']['redirect_uri'], $permissions);*/
 
-    header('Location: ' . $authUrl, true, 302);
-    exit;
+    $redirectUri = "https://www.facebook.com/v23.0/dialog/oauth?" . http_build_query([
+        'client_id' => $this->oAuth['facebook']['client_id'],
+        'response_type'=>'code',
+        'redirect_uri'  => $this->oAuth['facebook']['redirect_uri'],
+        'scope'=>'email,public_profile'
+      ]);
+
+  
+      header('Location: ' . $redirectUri, true, 302);
+      exit;
   }
 
   /**

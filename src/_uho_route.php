@@ -719,6 +719,7 @@ class _uho_route
                                 }
                                 $query[$key] = $input[$key];
                             }
+                        
                         $input['build_query'] = '?' . http_build_query($query);
                     }
 

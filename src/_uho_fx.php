@@ -1326,7 +1326,7 @@ class _uho_fx
 
     public static function fileCurl($url, $params = null, $data = null, $return_error = false)
     {
-        if (!$params) $params = [];
+        if (!$params || !is_array($params)) $params = [];
         if (empty($params['timeout'])) $params['timeout'] = 15;
 
         if (strpos($url, ' --insecure')) {

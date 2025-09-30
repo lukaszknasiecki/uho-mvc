@@ -1897,7 +1897,8 @@ class _uho_orm
 
                         $media = $this->getJsonModel($media_model, ['model' => $model_name . @$v2['media']['suffix'], 'model_id' => $v['id']], false, 'model_id_order');
 
-                        foreach ($media as $k5 => $v5) {
+                        foreach ($media as $k5 => $v5)
+                        {
                             unset($media[$k5]['date']);
                             unset($media[$k5]['model']);
                             unset($media[$k5]['model_id']);
@@ -1918,6 +1919,7 @@ class _uho_orm
                             }
                         }
 
+                        
                         $data[$k][$v2['field']] = $media;
 
                         break;
@@ -3013,8 +3015,10 @@ class _uho_orm
                     break;
 
                 case "string":
+
                     $length = empty($v['settings']['length']) ? 256 : $v['settings']['length'];
-                    $type = 'varchar(' . $length . ')';
+                    if (!empty($v['settings']['static_length'])) $type = 'char(' . $length . ')';
+                        else $type = 'varchar(' . $length . ')';
                     break;
             }
 
