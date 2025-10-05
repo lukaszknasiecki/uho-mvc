@@ -968,7 +968,8 @@ class _uho_client
       'surname' => $data['last_name'],
       'email' => $data['email'],
       'facebook_id' => $data['id'],
-      'image_uri' => $data['picture']['data']['url'],
+      'image_uri' => isset($data['picture']['data']['url']) ? $data['picture']['data']['url'] : null,
+      'image_present' => isset($data['picture']['data']['url']) ? 1 : 0,
       'status' => 'confirmed'
     ];
 
@@ -1064,7 +1065,8 @@ class _uho_client
           'surname' => $data['family_name'],
           'email' => $data['email'],
           'google_id' => $data['sub'],
-          'image_uri' => $data['picture'],
+          'image_uri' => isset($data['picture']) ? $data['picture'] : "",
+          'image_present' => isset($data['picture']) ? 1 : 0,
           'status' => 'confirmed'
         ];
       } else {
@@ -1230,7 +1232,8 @@ class _uho_client
     if (!$source) return;
     $schema = $this->orm->getJsonModelSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
-    if ($image) {
+    if ($image)
+    {
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
       $original = null;
 
@@ -1562,6 +1565,8 @@ class _uho_client
     else
     {
       $data['key_confirm'] = $this->generateToken();
+      $data['image_present'] = isset($data['image']);
+
       $result = $this->create($data);
       // mail for confirmation
       if ($result && !@$sso)
