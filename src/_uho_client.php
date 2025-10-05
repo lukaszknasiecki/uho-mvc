@@ -1565,7 +1565,7 @@ class _uho_client
     else
     {
       $data['key_confirm'] = $this->generateToken();
-      $data['image_present'] = isset($data['image']);
+      $data['image_present'] = isset($data['image']) ? 1: 0;
 
       $result = $this->create($data);
       // mail for confirmation

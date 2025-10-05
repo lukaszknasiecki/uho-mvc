@@ -2085,7 +2085,8 @@ class _uho_orm
                         break;
 
                     case 'boolean':
-                        if ($v === 'on' || $v === 1 || $v === '1') $v = 1;
+                        
+                        if ($v===true || $v === 'on' || $v === 1 || $v === '1') $v = 1;
                         else $v = 0;
                         break;
                     case "float":
@@ -2328,6 +2329,7 @@ class _uho_orm
 
             if ($data) {
                 $query = 'INSERT INTO ' . $model['table'] . ' SET ' . $data;
+                
                 $r = $this->queryOut($query);
                 if (!$r) $this->errors[] = 'postJsonModel:: ' . $query;
                 else {
