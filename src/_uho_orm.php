@@ -2,6 +2,9 @@
 
 namespace Huncwot\UhoFramework;
 
+use Huncwot\UhoFramework\_uho_thumb;
+
+
 /**
  * This is an ORM class providing model-based communication
  *  with mySQL databases, using JSON composed model structures
@@ -3229,4 +3232,94 @@ class _uho_orm
         $this->halt_on_error = $halt;
         $this->sql->setHaltOnError($halt);
     }
+
+    public function convertBase64($image,$allowed_extensions)
+    {
+        if ($image && is_string($image))
+        {
+            if (preg_match('/^data:image\/(\w+);base64,/', $image, $type))
+            {
+                $image = substr($image, strpos($image, ',') + 1);
+                $type = strtolower($type[1]);
+                if (in_array($type, $allowed_extensions))  return base64_decode($image);
+            }
+        }
+        return false;
+    }
+
+    private function getTempFilename()
+    {
+        $filename='/cms_config-temp/'.uniqid();
+        $filename=$_SERVER['DOCUMENT_ROOT'].$filename;
+        return $filename;
+    }
+
+    private function copy ($src,$dest,$remove_src=false)
+    {
+        $dest=$_SERVER['DOCUMENT_ROOT'].$dest;
+        copy($src,$dest);
+        if ($remove_src) unlink($src);
+    }
+
+    /*
+        Upload image to the model
+    */
+
+    public function uploadImage($schema,$record,$field_name,$image)
+    {
+        
+        $root=$_SERVER['DOCUMENT_ROOT'];
+        $field=_uho_fx::array_filter($schema['fields'],'field',$field_name,['first'=>true]);
+        if (!$field) return false;
+
+        /* create original image */
+
+        $extension='jpg';
+        $filename=str_replace($field['filename'],'%uid%',$record['uid']).'.'.$extension;
+        $original=array_shift($field['images']);
+        $original_filename=$field['folder'].'/'.$original['folder'].'/'.$filename;
+
+        $temp_filename = $this->getTempFilename(true);
+        if (!file_put_contents($temp_filename, $image)) {
+            return false;
+        }
+
+        $this->copy($temp_filename,$original_filename,true);
+
+        /* resize */
+        
+        foreach ($field['images'] as $v)
+        {
+            _uho_thumb::convert(
+                $filename,
+                $root.$original_filename,
+                $root.$field['folder'].'/'.$v['folder'].'/'.$filename,
+                $v);
+        }
+        
+        return true;
+
+    }
+
+
+    /*
+        Add base64 image to the model
+    */
+
+    public function addImage($model_name,$record_id,$field_name,$image)
+    {
+
+        $image=$this->convertBase64($image,['jpg', 'jpeg', 'png', 'gif', 'webp']);
+        $schema=$this->getSchema($model_name);
+        if ($image) $record=$this->getJsonModel($model_name,['id'=>$record_id],true); else $record=null;
+
+        if ($schema && $record && isset($record[$field_name]))
+        {
+            return $this->uploadImage($schema,$record,$field_name,$image);
+        }
+        
+        return false;
+    }
+
+
 }

@@ -1225,6 +1225,7 @@ class _uho_client
    */
   private function setImageFromUrl($source, int $user, string $uid, $debug = false)
   {
+
     $log = [];
     if (!$source) return;
     $schema = $this->orm->getJsonModelSchema($this->clientModel);
@@ -1332,9 +1333,17 @@ class _uho_client
 
     $result = $this->orm->postJsonModel($this->clientModel, $data);
 
-    if ($result) {
+    if ($result)
+    {
       $user = $this->orm->getInsertId();
-      if (isset($data['image']) && $user) $this->setImageFromUrl($data['image'], $user, $data['uid']);
+      if (isset($data['image']) && $user)
+      {
+        if ($this->orm->convertBase64($data['image'],['jpg', 'jpeg', 'png', 'gif', 'webp']))
+        {
+          $this->orm->addImage($this->clientModel,$user,'image',$data['image']) ;
+        }        
+        else $this->setImageFromUrl($data['image'], $user, $data['uid']);
+      }
       if ($returnId) $result = $user;
 
       // use separate token table
@@ -1350,6 +1359,9 @@ class _uho_client
           ]
         );
       }
+    } else
+    {
+      $error=$this->orm->getLastError();      
     }
     return $result;
   }
@@ -1502,7 +1514,7 @@ class _uho_client
     $status = $this->getClient([$this->fieldLogin => $data[$this->fieldLogin]], false, true);
 
     // get login and pass fields
-    $fields = array();
+    $fields = [];
 
     $data['password'] = isset($data['password']) ? trim($data['password']) : "";
     if (!$data['password']) unset($data['password']);
@@ -1518,6 +1530,7 @@ class _uho_client
 
     // already submitted...
     elseif ($status && $status['status'] != 'confirmed' && !@$sso) {
+      $fields['id']=$status['id'];
       $this->update($status['id'], ['status' => 'submitted']);
       $token = $this->generateUserToken('registration_confirmation', '+10 days', $status['id']);
       $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $token, $url)]);
@@ -1546,20 +1559,19 @@ class _uho_client
       $result = $this->provider['model']->create($data);
     }
     // create new user      
-    else {
-
+    else
+    {
       $data['key_confirm'] = $this->generateToken();
-
       $result = $this->create($data);
-
       // mail for confirmation
-      if ($result && !@$sso) {
+      if ($result && !@$sso)
+      {
         $result = $this->mailing('register_confirmation', $data['email'], ['url' => str_replace('%key%', $data['key_confirm'], $url)]);
         if ($result) $message = 'client_email_sent';
         else {
           $message = 'system_error';
         }
-      } elseif ($result) $message = 'client_registered';
+      } elseif ($result) $message = 'client_registered';      
       else $message = 'client_create_error';
     }
 
