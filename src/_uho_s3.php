@@ -618,7 +618,7 @@ class _uho_s3
 
     public function checkCacheFile()
     {
-        if ($this->cache_file) return @file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
+        if ($this->cache_file) return @file_exists($_SERVER['DOCUMENT_ROOT'] . $this->cache_file);
         else return false;
     }
 
@@ -631,10 +631,10 @@ class _uho_s3
     {
         if ($this->cache_file)
         {
-            $time=@filemtime($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file);
+            $time=@filemtime($_SERVER['DOCUMENT_ROOT'] . $this->cache_file);
             if ($time) $time = 1+intval((time() - $time)/60);
-                else $time=null;            
-        } else $time=null;
+                else $time=false;
+        } else $time=false;
         return $time;
     }
 

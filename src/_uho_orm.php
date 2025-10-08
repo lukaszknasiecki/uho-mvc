@@ -879,6 +879,7 @@ class _uho_orm
 
         // setting langs  ------------------------------------------------------------
         if ($lang && $model && $this->langs) {
+            
             $f = [];
             foreach ($model['fields'] as $k => $v)
                 if (isset($v['field']) && strpos($v['field'], ':lang'))
@@ -2043,10 +2044,8 @@ class _uho_orm
      * @param array $data
      * @param string $join
      *
-     * @psalm-param ' && '|',' $join
-     *
-     * @psalm-return array<never, never>|string
      */
+
     public function buildOutputQuery($model, $data, string $join = ','): array|string
     {
 
@@ -2057,7 +2056,7 @@ class _uho_orm
             $skip_safe = false;
             $field = _uho_fx::array_filter($model['fields'], 'field', $k, ['first' => true]);
 
-            if ($k == 'id') $data[$k] = $k . '="' . ($v) . '"'; // remove intval for godsake!
+            if ($k == 'id') $data[$k] = $k . '="' . ($v) . '"';
             elseif ($field && in_array($field['type'], $skip_fields)) unset($data[$k]);
             elseif (isset($field['external'])) unset($data[$k]);
             elseif ($field) {
@@ -2363,10 +2362,6 @@ class _uho_orm
 
         if (isset($schema['filters']) && isset($params['skipSchemaFilters'])) unset($schema['filters']);
 
-        /*        if ($schema['table']=='pages_modules')
-        {
-            print_r($schema);exit();
-        }*/
         // ---------------------------------------------------------------------------
         // filters --> get existing elements matching filters
         // data --> all records matching filters to update
@@ -2490,7 +2485,7 @@ class _uho_orm
             return $r;
         } else {
 
-            $this->errors[] = 'mysql error:: buildOutputQuery empty for table ' . $model['table'];
+            $this->errors[] = 'mysql error:: buildOutputQuery empty for table: ' . $model['table'];
             return false;
         }
     }
