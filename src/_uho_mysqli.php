@@ -373,7 +373,7 @@ class _uho_mysqli
         /*
             debug
         */
-        if (_uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance')) {
+        if ($this->debug && _uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance')) {
             if (_uho_fx::getGet('dbg') == 'performance')  $time = '[T=' . number_format(($this->microtime_float() - $this->perfromance_start), 4) . '] ';
             else $time = '';
             if (!isset($tt) || !$tt) $i = 0;
@@ -612,4 +612,10 @@ class _uho_mysqli
     {
         $this->halt_on_error = $halt;
     }
+
+    public function setDebug($dbg)
+    {
+        $this->debug=$dbg;
+    }
+
 }
