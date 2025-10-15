@@ -2077,6 +2077,7 @@ class _uho_orm
 
                         if (is_array($v)) {
                             foreach ($v as $k2 => $v2)
+                            if ($iDigits)
                                 $v[$k2] = _uho_fx::dozeruj($v2, $iDigits);
                             $v = implode(',', $v);
                         }

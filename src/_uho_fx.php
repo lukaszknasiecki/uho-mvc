@@ -117,7 +117,8 @@ class _uho_fx
     {
         $output = [];
 
-        foreach ($keys  as $k => $v) {
+        foreach ($keys  as $k => $v)
+        {
             if (is_array($v) && isset($input[$k])) {
                 $output[$k] = [];
                 foreach ($input[$k] as $kk => $vv)
@@ -126,6 +127,9 @@ class _uho_fx
             if (isset($input[$k]))
                 switch ($v) {
                     case "string":
+                        $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
+                        break;
+                    case "enum":
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
                     case "email":
@@ -177,6 +181,9 @@ class _uho_fx
                         break;
                     case "any":
                         $output[$k] = $input[$k];
+                        break;
+                    default:
+                        if (isset($output[$k])) unset($output[$k]);
                         break;
                 }
         }

@@ -175,6 +175,7 @@ class _uho_mailer
 
   public function send()
   {
+    
     if (!$this->cfg['smtp']) return;
     $mail = new PHPMailer(true);
     $mail->CharSet = "UTF-8";
