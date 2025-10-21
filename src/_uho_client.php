@@ -1833,14 +1833,12 @@ class _uho_client
     $exists = $this->orm->getJsonModel($users, ['email' => $email, 'status' => 'confirmed'], true);
     if (!$exists) return ['result' => false, 'code' => 'user_not_exists'];
 
-    $key_confirm = $this->uniqid();
-    $result = $this->orm->putJsonModel($users, ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
-    if (!$result) return ['result' => false, 'code' => 'system_error'];
-
-    $result = $this->mailing('password_change', $email, ['url' => str_replace('%key%', $key_confirm, $url)]);
+    $token = $this->generateUserToken('password_reset', '+10 days', $exists['id']);        
+    $result = $this->mailing('password_change', $email, ['url' => str_replace('%key%', $token, $url)]);
 
     if (!$result)
-      $result = ['result' => true];
+      $result = ['result' => false];
+      else $result = ['result' => true];
     return $result;
   }
 
@@ -1992,7 +1990,6 @@ class _uho_client
 
   public function mailing($slug, $emails, $data = [], $user_id = null)
   {
-
     if (!isset($this->models['mailing'])) exit('_uho_client::mailing::missing_model');
     if (!$emails) return false;
 
@@ -2005,7 +2002,6 @@ class _uho_client
 
     $mailing['subject'] = $this->orm->getTwigFromHtml($mailing['subject'], $data);
     $mailing['message'] = $this->orm->getTwigFromHtml($mailing['message'], $data);
-
     $mailing['message'] = str_replace('{{http}}', $data['http'], $mailing['message']);
 
     if (!is_array($emails)) $this->mailer->addEmail($emails, true);
@@ -2034,7 +2030,7 @@ class _uho_client
   {
     if (!$user_id && $this->isLogged()) $user_id = $this->getClientId();
     if ($user_id)
-      $this->orm->postJsonModel('users_logs', ['user' => $user_id, 'action' => $action, 'value' => $value]);
+        $this->orm->postJsonModel('users_logs', ['user' => $user_id, 'action' => $action, 'value' => $value]);
   }
 
   /**
