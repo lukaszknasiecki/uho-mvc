@@ -355,6 +355,20 @@ class _uho_orm
                         }
                     break;
 
+                case "datetime":
+                    
+                    if (!empty($full['settings']['format']))
+                    switch ($full['settings']['format'])
+                    {
+                        case "ISO8601":
+                        case "UTC":
+                        
+                            $dt = new \DateTime($v0, new \DateTimeZone('UTC'));
+                            $v0 = $dt->format('Y-m-d\TH:i:s\Z');
+
+                            break;
+                    }
+                    break;
                 case "table":
 
                     if (is_string($v0)) {
