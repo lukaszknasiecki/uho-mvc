@@ -362,9 +362,15 @@ class _uho_orm
                     {
                         case "ISO8601":
                         case "UTC":
-                        
-                            $dt = new \DateTime($v0, new \DateTimeZone('UTC'));
-                            $v0 = $dt->format('Y-m-d\TH:i:s\Z');
+                            try
+                            {
+                                $dt = new \DateTime($v0, new \DateTimeZone('UTC'));
+                                $v0 = $dt->format('Y-m-d\TH:i:s\Z');
+                            
+                            } catch (\Exception $e) 
+                            {
+                                $v0=null;
+                            }
 
                             break;
                     }
