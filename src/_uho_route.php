@@ -685,6 +685,7 @@ class _uho_route
 
                     $input = [];
 
+                    if (isset($path['input']) && is_array($path['input']))
                     foreach ($path['input'] as $vp) {
                         if (isset($v[$vp])) {
 
@@ -730,7 +731,7 @@ class _uho_route
         if ($skip) $result = $v;
         else if ($type == 'hash') $result = $v;
         else if (is_array($v));
-        else if (substr($v, 0, 4) == 'http') $result = $v;
+        else if ($v && substr($v, 0, 4) == 'http') $result = $v;
         else $result = $this->getUrl($v);
 
         return $result;
