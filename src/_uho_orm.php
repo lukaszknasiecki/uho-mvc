@@ -522,7 +522,7 @@ class _uho_orm
 
                             case "elements":
                             case "checkboxes":
-
+                                
                                 $iDigits = 8;
                                 if (@$field['output'] == '4digits') $iDigits = 4;
                                 if (@$field['output'] == '6digits') $iDigits = 6;
@@ -931,6 +931,15 @@ class _uho_orm
             foreach ($model['fields'] as $k => $v)
                 switch ($v['type']) {
 
+                    case "checkboxes":
+                        if (isset($v['settings']['output']) && isset($v['options']))
+                        {
+                            foreach ($v['options'] as $k2=>$v2)                                
+                                if ($v['settings']['output']=='value')
+                                        $model['fields'][$k]['options'][$k2]=$v2['value'];
+                        }
+
+                        break;
                     case "image_media":
 
                         $im_schema = $this->getJsonModelSchema($v['source']['model']);
@@ -1027,7 +1036,8 @@ class _uho_orm
                 $model_schema = $this->getJsonModelSchema($v['source']['model']);
                 if (isset($model_schema['model']))
                     foreach ($model_schema['model'] as $k2 => $v2)
-                        if (!isset($v['source'][$k2])) {
+                        if (!isset($v['source'][$k2]))
+                        {
                             $schema['fields'][$k]['source'][$k2] = $v2;
                         }
             }
@@ -1036,7 +1046,8 @@ class _uho_orm
 
         foreach ($schema['fields'] as $k => $v)
             // source --> options
-            if (@$v['source'] && !@$v['options'] && @$v['input'] != 'search') {
+            if (@$v['source'] && !@$v['options'] && @$v['input'] != 'search')
+            {
                 $prefix = '';
                 // many models -> lets' get first for a start
                 /*if ($v['source']['models'])
@@ -1057,15 +1068,21 @@ class _uho_orm
                 if (isset($v['source']['order'])) $order = 'ORDER BY ' . $v['source']['order'];
                 else $order = '';
 
-                if ($v['source']['model']) {
+                if ($v['source']['model'])
+                {
                     if (!empty($v['source']['model_fields'])) $params0 = ['fields' => $v['source']['model_fields']];
                     else $params0 = [];
-                    $t = $this->getJsonModel($v['source']['model'], $filters, false, null, null, $params0);
+                    
+                    $t = $this->getJsonModel(
+                        $v['source']['model'],
+                        $filters, false, null, null, 
+                        $params0);
                 } else {
                     $t = $this->query('SELECT id AS value,' . implode(',', $v['source']['fields']) . ' FROM ' . $v['source']['table'] . ' ' . $order);
                 }
 
-                foreach ($t as $kk => $vv) {
+                foreach ($t as $kk => $vv)
+                {
                     if (!@$v['source']['label']) $v['source']['label'] = '{{label}}';
                     $label = $this->getTwigFromHtml($v['source']['label'], $vv);
                     if (!isset($vv['value'])) $vv['value'] = $vv['id'];
@@ -1074,6 +1091,7 @@ class _uho_orm
                     if (isset($image)) $t[$kk]['image'] = array_pop($image);
                 }
 
+
                 if (isset($v['source']['order']))
                     $t = _uho_fx::array_multisort($t, $v['source']['order']);
 
@@ -1081,7 +1099,8 @@ class _uho_orm
                 $schema['fields'][$k]['options'] = $t;
             }
             // source --> by options
-            elseif (in_array($v['type'], ['select', 'checkboxes']) && empty($v['source']) && empty($v['options'])) {
+            elseif (in_array($v['type'], ['select', 'checkboxes']) && empty($v['source']) && empty($v['options']))
+            {
                 $query = 'SHOW FIELDS FROM ' . $schema['table'] . ' LIKE "' . $v['field'] . '"';
                 $t = $this->query($query, true);
                 if ($t && $t['Type'] && substr($t['Type'], 0, 4) == 'enum') {
@@ -1092,10 +1111,19 @@ class _uho_orm
                 }
             }
             // options
-            elseif (isset($v['options']) && $v['options']) {
+            elseif (isset($v['options']) && $v['options'])
+            {
+                
                 foreach ($v['options'] as $kk => $vv)
                     if (is_string($vv))
-                        $schema['fields'][$k]['options'][$kk] = ['value' => $vv, 'label' => $vv];
+                    {
+                        if (isset($v['settings']['output']) && $v['settings']['output']=='id')
+                            $schema['fields'][$k]['options'][$kk] = $vv;
+                        else
+                            $schema['fields'][$k]['options'][$kk] = ['value' => $vv, 'label' => $vv];
+                        
+                    }
+                
             }
 
         return $schema;
@@ -1471,12 +1499,18 @@ class _uho_orm
                     if (!empty($v2['source']['model_fields'])) $params0 = ['fields' => $v2['source']['model_fields']];
                     else $params0 = [];
                     $data[$k][$v2['field']] = $this->getJsonModel($v2['source']['model'], ['id' => $f4], false, null, null, $params0);
-                } elseif ($v2['type'] == 'checkboxes' && isset($v2['options'])) {
+                } elseif ($v2['type'] == 'checkboxes' && isset($v2['options']))
+                {
                     $val1 = explode(',', $data[$k][$v2['field']]);
-                    $val2 = [];
-                    foreach ($v2['options'] as $v3)
-                        if (in_array($v3['value'], $val1)) $val2[] = ['label' => $v3['label'], 'id' => $v3['value']];
-
+                    if (isset($v2['settings']['output']) && $v2['settings']['output']=='value')
+                    {
+                        $val2 = $val1;
+                    } else
+                    {
+                        $val2 = [];
+                        foreach ($v2['options'] as $v3)
+                            if (in_array($v3['value'], $val1)) $val2[] = ['label' => $v3['label'], 'id' => $v3['value']];
+                    }
                     $data[$k][$v2['field']] = $val2;
                 }
                 // select as model
@@ -2738,7 +2772,6 @@ class _uho_orm
 
     public function updateRecordSources($schema, $record)
     {
-
         foreach ($schema['fields'] as $v)
             if (isset($v['source']) && isset($record[$v['field']])) {
                 $value = $record[$v['field']];
