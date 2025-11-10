@@ -421,9 +421,9 @@ class _uho_s3
             $object = [
                 'Bucket' => $this->cfg['bucket'],
                 'Key' => $destination,
-                'SourceFile' => $source,
-                'ContentDisposition' => "attachment"
+                'SourceFile' => $source
             ];
+            if ($download) $object['ContentDisposition']='attachment';
             if ($length) $object['ContentLength'] = $length;
             if ($this->acl) $object['ACL'] = 'public-read';
 
