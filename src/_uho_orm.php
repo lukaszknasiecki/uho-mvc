@@ -1951,7 +1951,7 @@ class _uho_orm
 
                         $media_model = isset($v2['source']['model']) ? $v2['source']['model'] : null;
 
-                        if (!$media_model) exit('no source model defined for: ' . $v2['field']);
+                        if (!$media_model) exit('no source model defined for: ' . $name.'::'.$v2['field']);
 
                         $media = $this->getJsonModel($media_model, ['model' => $model_name . @$v2['media']['suffix'], 'model_id' => $v['id']], false, 'model_id_order');
 

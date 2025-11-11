@@ -338,6 +338,7 @@ class _uho_route
 
     private function findRouteClass($routeArray, $headerArray)
     {
+        
         if ($headerArray) {
             $h0 = getallheaders();
             $h = [];

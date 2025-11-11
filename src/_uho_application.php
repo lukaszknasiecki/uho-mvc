@@ -117,7 +117,7 @@ class _uho_application
             'langDetect' => @$this->application_params['application_languages_detect'],
             'langEmpty' => @$this->application_params['application_languages_empty'],
             'urlPrefix' => @$this->application_params['application_url_prefix'],
-            'routeArray' => [$routing_config['controllers'], [] ],
+            'routeArray' => [$routing_config['controllers'], isset($routing_config['headers']) ? $routing_config['headers'] : [] ],
             'pathArray' => $routing_config['paths'], [],
             'overwriteUrl' => $overwriteUrl
         ];
