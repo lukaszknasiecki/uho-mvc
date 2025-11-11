@@ -19,6 +19,7 @@ class _uho_orm
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
     private $halt_on_error = true;
+    private $temp_public_folder='/temp';
     /**
      * indicates if for elements_double fields we should
      * use integer is only one value is set
@@ -3300,9 +3301,14 @@ class _uho_orm
 
     private function getTempFilename()
     {
-        $filename='/cms_config-temp/'.uniqid();
+        $filename=$this->temp_public_folder.'/'.uniqid();
         $filename=$_SERVER['DOCUMENT_ROOT'].$filename;
         return $filename;
+    }
+
+    public function setTempPublicFolder($folder)
+    {
+        $this->temp_public_folder=$folder;
     }
 
     private function copy ($src,$dest,$remove_src=false)
