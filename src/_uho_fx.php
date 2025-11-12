@@ -1673,7 +1673,8 @@ class _uho_fx
 
         $best = null;
 
-        foreach ($routing as $pattern => $class) {
+        foreach ($routing as $pattern => $class)
+        {
             $normPattern = trim($pattern, '/');
             $segments    = $normPattern === '' ? [] : explode('/', $normPattern);
             $literalCount = 0;

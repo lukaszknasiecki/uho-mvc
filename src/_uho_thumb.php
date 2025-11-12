@@ -79,8 +79,8 @@ class _uho_thumb
         if ($filename) {
             $ext = explode('.', strtolower($filename));
             array_pop($ext);
-        } else 
-        $result = false;
+        } else
+            $result = false;
         $errors = '';
 
         $bytes = array('jpeg' => 'FF D8', 'jpg' => 'FF D8', 'gif' => '47 49 46 38', 'png' => '89 50 4E 47 0D 0A 1A 0A', 'webp' => '52 49 46 46');
@@ -387,17 +387,17 @@ class _uho_thumb
             }*/
 
 
-            // cropping classiec
+            // cropping classic
             else {
                 // -------------------------------------------------
-                // obcinamy w pionie
+                // vertical area cut
                 if (($v['width'] / $width) > ($v['height'] / $height)) {
                     $x1 = 0;
                     if ($width < $v['width']) { // enlarging
                         $newratio = $v['width'] / $v['height'];
                         $xx1 = $v['width'];
                         $yy1 = $v['width'] / $newratio;
-                        $y1 = ($height - $width * $newratio) / 2;
+                        $y1 = ($height - $width / $newratio) / 2;
 
                         if ($y1 < 0) {
                             $x1 = 0;
