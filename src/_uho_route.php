@@ -338,7 +338,7 @@ class _uho_route
 
     private function findRouteClass($routeArray, $headerArray)
     {
-        
+
         if ($headerArray) {
             $h0 = getallheaders();
             $h = [];
@@ -630,6 +630,11 @@ class _uho_route
         if (isset($path['type']))
             switch ($path['type']) {
 
+                case "mailto":
+                    $v = 'mailto:' . $v['email'];
+                    $skip = true;
+                    break;
+
                 case "facebook":
                     if (isset($val['slug']))
                         $v = _uho_social::getFacebookShare($this->getUrl($val['slug'], true));
@@ -641,12 +646,12 @@ class _uho_route
                     else $v = _uho_social::getTwitterShare($this->getUrlNow(true), @$val['title']);
                     break;
                 case "linkedin":
-                    
+
                     if (isset($val['slug']))
                         $v = _uho_social::getLinkedinShare($this->getUrl($val['slug'], true));
                     else $v = _uho_social::getLinkedinShare($this->getUrlNow(true));
                     break;
-                    
+
                     break;
                 case "pinterest":
                     if (isset($val['slug']))
@@ -687,24 +692,24 @@ class _uho_route
                     $input = [];
 
                     if (isset($path['input']) && is_array($path['input']))
-                    foreach ($path['input'] as $vp) {
-                        if (isset($v[$vp])) {
+                        foreach ($path['input'] as $vp) {
+                            if (isset($v[$vp])) {
 
-                            $input[$vp] = $v[$vp];
+                                $input[$vp] = $v[$vp];
 
-                            if (isset($path['input_format'][$vp])) {
+                                if (isset($path['input_format'][$vp])) {
 
-                                switch ($path['input_format'][$vp]) {
-                                    case "raw":
-                                        break;
-                                    case "json":
-                                        $input[$vp] = urlencode(json_encode($input[$vp]));
-                                        break;
-                                    default:
+                                    switch ($path['input_format'][$vp]) {
+                                        case "raw":
+                                            break;
+                                        case "json":
+                                            $input[$vp] = urlencode(json_encode($input[$vp]));
+                                            break;
+                                        default:
+                                    }
                                 }
                             }
                         }
-                    }
 
                     if (!empty($path['params'])) {
                         $query = [];
@@ -721,7 +726,7 @@ class _uho_route
                                 }
                                 $query[$key] = $input[$key];
                             }
-                        
+
                         $input['build_query'] = '?' . http_build_query($query);
                     }
 
@@ -783,6 +788,4 @@ class _uho_route
         }
         return $html;
     }
-
-
 }

@@ -1417,6 +1417,7 @@ class _uho_fx
         if (isset($params['content-type']))   $header[] = 'content-type: ' . $params['content-type'];
         if (isset($params['authorization'])) $header[] = 'Authorization: ' . $params['authorization'];
         if (isset($params['bearer'])) $header[] = 'Authorization: Bearer ' . $params['bearer'];
+        
 
         if ($header) curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
@@ -1445,17 +1446,17 @@ class _uho_fx
         }
 
         $data = curl_exec($ch);
-
+        $code=curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if (!$data) {
-            return ['result' => false, 'error' => curl_error($ch)];
+            return ['result' => false, 'error' => curl_error($ch),'code'=>$code];
         } else {
             if (isset($params['accept']) && $params['accept'] == 'application/json')
                 $data = @json_decode($data, true);
         }
 
-        return ['result' => true, 'data' => $data];
+        return ['result' => true, 'data' => $data,'code'=>$code];
     }
 
     /**
