@@ -1418,6 +1418,11 @@ class _uho_fx
         if (isset($params['authorization'])) $header[] = 'Authorization: ' . $params['authorization'];
         if (isset($params['bearer'])) $header[] = 'Authorization: Bearer ' . $params['bearer'];
         
+        if (isset($params['verify_host']) && $params['verify_host'] === false)
+        {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        }        
 
         if ($header) curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
