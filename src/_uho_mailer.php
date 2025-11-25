@@ -219,16 +219,22 @@ class _uho_mailer
 
     if ($this->debug) $mail->SMTPDebug = $this->debug;
 
-    $mail->smtpConnect(
-      array(
-        "ssl" => array(
-          "verify_peer" => false,
-          "verify_peer_name" => false,
-          "allow_self_signed" => true
+    try
+    {
+      $mail->smtpConnect(
+        array(
+          "ssl" => array(
+            "verify_peer" => false,
+            "verify_peer_name" => false,
+            "allow_self_signed" => true
+          )
         )
-      )
-    );
-
+      );
+    }
+    catch (Exception $e)
+    {
+      return false;
+    }
 
     if ($iEmail > 0) $result = $mail->send();
     else $result = true;
