@@ -209,7 +209,6 @@ class _uho_orm
      */
     public function setFilesDecache($q): void
     {
-
         if (is_string($q) && in_array($q, ['standard', 'medium'])) {
             $this->filesDecache_style = $q;
             $q = 1;
@@ -1769,49 +1768,58 @@ class _uho_orm
                     case "file":
                     case "audio":
                     case "video":
+                        
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
+                        {                            
+                            $data[$k][$v2['field']] = null;
+                        }
+                        else
+                        {
+                            // {"type":"original","field":"filename"}
+                            if (@is_array($v2['filename']))
+                            {
+                                switch ($v2['filename']['type']) {
+                                    case "original":
+                                        $v2['filename'] = $v[$v2['filename']['field']];
+                                        break;
+                                }
+                            }
+                            
+                            if (!@$v2['filename']) {
+                                $v2['filename'] = '%uid%.%extension%';
+                            } elseif (!strpos($v2['filename'], '.') && @$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] .= '.' . $v2['extension'];
 
-                        // {"type":"original","field":"filename"}
-                        if (@is_array($v2['filename'])) {
-                            switch ($v2['filename']['type']) {
-                                case "original":
-                                    $v2['filename'] = $v[$v2['filename']['field']];
-                                    break;
+                            foreach ($v as $k3 => $v3)
+                                if (is_string($v3))
+                                    $v2['filename'] = str_replace('%' . $k3 . '%', $v3, $v2['filename']);
+
+                            $v2['filename'] = $this->getTwigFromHtml($v2['filename'], $v);
+                            $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
+                            if (isset($v2['extension_field'])) $v2['extension'] = $v[$v2['extension_field']];
+
+                            if (@$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] = str_replace("%extension%", $v2['extension'], $v2['filename']);
+
+                            if (!empty($v2['filename'])) $v2['filename_bare'] = explode('.', $v2['filename']);
+                            if (!empty($v2['filename_bare']) && is_array($v2['filename_bare'])) {
+                                array_pop($v2['filename_bare']);
+                                $v2['filename_bare'] = implode('.', $v2['filename_bare']);
+                            }
+
+                            $src = $v2['folder'] . '/' . $v2['filename']; //.$v2['extension'];
+
+                            if (!empty($src)) {
+
+                                $this->fileAddTime($src);
+                                @$data[$k][$v2['field']] = ['src' => $src];
+                            }
+
+                            if (@$v2['images']) {
+                                $poster = $v2['folder'] . '/' . $v2['images'][1]['folder'] . '/' . $v2['filename_bare'] . '.jpg';
+                                $this->fileAddTime($poster);
+                                if ($poster) $data[$k][$v2['field']]['poster'] = $poster;
                             }
                         }
-                        if (!@$v2['filename']) {
-                            $v2['filename'] = '%uid%.%extension%';
-                        } elseif (!strpos($v2['filename'], '.') && @$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] .= '.' . $v2['extension'];
-
-                        foreach ($v as $k3 => $v3)
-                            if (is_string($v3))
-                                $v2['filename'] = str_replace('%' . $k3 . '%', $v3, $v2['filename']);
-
-                        $v2['filename'] = $this->getTwigFromHtml($v2['filename'], $v);
-                        $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
-                        if (isset($v2['extension_field'])) $v2['extension'] = $v[$v2['extension_field']];
-
-                        if (@$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] = str_replace("%extension%", $v2['extension'], $v2['filename']);
-
-                        if (!empty($v2['filename'])) $v2['filename_bare'] = explode('.', $v2['filename']);
-                        if (!empty($v2['filename_bare']) && is_array($v2['filename_bare'])) {
-                            array_pop($v2['filename_bare']);
-                            $v2['filename_bare'] = implode('.', $v2['filename_bare']);
-                        }
-
-                        $src = $v2['folder'] . '/' . $v2['filename']; //.$v2['extension'];
-
-                        if (!empty($src)) {
-
-                            $this->fileAddTime($src);
-                            @$data[$k][$v2['field']] = ['src' => $src];
-                        }
-
-                        if (@$v2['images']) {
-                            $poster = $v2['folder'] . '/' . $v2['images'][1]['folder'] . '/' . $v2['filename_bare'] . '.jpg';
-                            $this->fileAddTime($poster);
-                            if ($poster) $data[$k][$v2['field']]['poster'] = $poster;
-                        }
-
+                        
                         break;
 
                     case "image_media":
