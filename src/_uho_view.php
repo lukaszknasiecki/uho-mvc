@@ -7,7 +7,6 @@ namespace Huncwot\UhoFramework;
  * TWIG templates as base template system
  */
 
-
 class _uho_view
 {
     /**
@@ -105,7 +104,7 @@ class _uho_view
     public function renderSVG($html)
     {
         $svgs = [];
-        $max=1000;
+        $max = 1000;
         while ($max && $i = strpos($html, '[[svg::')) {
 
             $max--;
@@ -346,6 +345,7 @@ class _uho_view
             $this->twig->addFilter($twig_filter_shuffle);
 
             $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+
             $this->extendTwig($this->twig);
         }
 
@@ -395,6 +395,8 @@ class _uho_view
         $globalDir = $path . '/Global';
 
         $twig->addExtension(new \Twig\Extension\StringLoaderExtension());
+
+
 
         // filters
         if (is_dir($filterDir)) {

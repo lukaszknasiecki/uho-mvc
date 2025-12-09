@@ -124,7 +124,8 @@ class _uho_model
         $this->orm = new _uho_orm($this, $this->sql, $this->lang, @$params['keys']);
 
         if (isset($params['languages'])) $this->orm->setLangs($params['languages']);
-        if (!$this->uploadServer) {
+        if (!$this->uploadServer)
+        {
             if (isset($params['files_decache']) && $params['files_decache']) $this->orm->setFilesDecache($params['files_decache']);
             elseif (isset($params['files_decache']) && $params['files_decache'] === false);
             else $this->orm->setFilesDecache(true);

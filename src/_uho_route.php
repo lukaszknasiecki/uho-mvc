@@ -666,13 +666,13 @@ class _uho_route
                     $v = '';
                     break;
                 case "url_now":
-
-                    $getNew = @$val['get'];
+                    
+                    $getNew = empty($v['get']) ? null: $v['get'];
 
                     if (!$getNew) $getNew = [];
                     if (!empty($val['setlang'])) $getNew['setlang'] = 'true';
 
-                    if ($getNew) $v = $this->getUrlNow(false, '[all]', $getNew, @$v['get_remove'], $val['lang']);
+                    if ($getNew) $v = $this->getUrlNow(false, '[all]', $getNew, @$v['get_remove'], @$val['lang']);
                     else $v = $this->getUrlNow(false, null, null, null, @$val['lang']);
 
                     $v = rtrim($v, '/');

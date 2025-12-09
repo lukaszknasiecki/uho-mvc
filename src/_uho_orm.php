@@ -19,7 +19,7 @@ class _uho_orm
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
     private $halt_on_error = true;
-    private $temp_public_folder='/temp';
+    private $temp_public_folder = '/temp';
     /**
      * indicates if for elements_double fields we should
      * use integer is only one value is set
@@ -356,24 +356,20 @@ class _uho_orm
                     break;
 
                 case "datetime":
-                    
-                    if (!empty($full['settings']['format']))
-                    switch ($full['settings']['format'])
-                    {
-                        case "ISO8601":
-                        case "UTC":
-                            try
-                            {
-                                $dt = new \DateTime($v0, new \DateTimeZone('UTC'));
-                                $v0 = $dt->format('Y-m-d\TH:i:s\Z');
-                            
-                            } catch (\Exception $e) 
-                            {
-                                $v0=null;
-                            }
 
-                            break;
-                    }
+                    if (!empty($full['settings']['format']))
+                        switch ($full['settings']['format']) {
+                            case "ISO8601":
+                            case "UTC":
+                                try {
+                                    $dt = new \DateTime($v0, new \DateTimeZone('UTC'));
+                                    $v0 = $dt->format('Y-m-d\TH:i:s\Z');
+                                } catch (\Exception $e) {
+                                    $v0 = null;
+                                }
+
+                                break;
+                        }
                     break;
                 case "table":
 
@@ -522,7 +518,7 @@ class _uho_orm
 
                             case "elements":
                             case "checkboxes":
-                                
+
                                 $iDigits = 8;
                                 if (@$field['output'] == '4digits') $iDigits = 4;
                                 if (@$field['output'] == '6digits') $iDigits = 6;
@@ -875,7 +871,7 @@ class _uho_orm
 
 
         // 
-        if (isset($this->altTables[$model['table']])) {
+        if (isset($model['table']) && !empty($this->altTables[$model['table']])) {
             $model['table'] = $this->altTables[$model['table']];
         }
 
@@ -899,7 +895,7 @@ class _uho_orm
 
         // setting langs  ------------------------------------------------------------
         if ($lang && $model && $this->langs) {
-            
+
             $f = [];
             foreach ($model['fields'] as $k => $v)
                 if (isset($v['field']) && strpos($v['field'], ':lang'))
@@ -932,11 +928,10 @@ class _uho_orm
                 switch ($v['type']) {
 
                     case "checkboxes":
-                        if (isset($v['settings']['output']) && isset($v['options']))
-                        {
-                            foreach ($v['options'] as $k2=>$v2)                                
-                                if ($v['settings']['output']=='value')
-                                        $model['fields'][$k]['options'][$k2]=$v2['value'];
+                        if (isset($v['settings']['output']) && isset($v['options'])) {
+                            foreach ($v['options'] as $k2 => $v2)
+                                if ($v['settings']['output'] == 'value')
+                                    $model['fields'][$k]['options'][$k2] = $v2['value'];
                         }
 
                         break;
@@ -967,6 +962,24 @@ class _uho_orm
                         foreach ($model['fields'][$k]['images'] as $k5 => $v5)
                             if (!isset($v5['id'])) $model['fields'][$k]['images'][$k5]['id'] = $v5['folder'];
 
+                        // migrating depreceated properties to settings
+                        $v = $model['fields'][$k];
+                        if (empty($v['settings'])) $v['settings'] = [];
+                        if (isset($v['filename'])) {
+                            $v['settings']['filename'] = $v['filename'];
+                            unset($v['filename']);
+                        }
+                        if (isset($v['folder'])) {
+                            $v['settings']['folder'] = $v['folder'];
+                            unset($v['folder']);
+                        }
+                        if (isset($v['folder_preview'])) {
+                            $v['settings']['folder_preview'] = $v['folder_preview'];
+                            unset($v['folder_preview']);
+                        }
+                        $model['fields'][$k] = $v;
+
+
                         break;
 
                     case "video":
@@ -979,6 +992,23 @@ class _uho_orm
 
                         if (@$v['images'] && ($v['images'][0]['width'] || $v['images'][0]['height']))
                             array_unshift($model['fields'][$k]['images'], ['folder' => 'original', 'label' => 'Original']);
+
+                        // migrating depreceated properties to settings
+                        $v = $model['fields'][$k];
+                        if (empty($v['settings'])) $v['settings'] = [];
+                        if (isset($v['filename'])) {
+                            $v['settings']['filename'] = $v['filename'];
+                            unset($v['filename']);
+                        }
+                        if (isset($v['folder'])) {
+                            $v['settings']['folder'] = $v['folder'];
+                            unset($v['folder']);
+                        }
+                        if (isset($v['extension'])) {
+                            $v['settings']['extension'] = $v['extension'];
+                            unset($v['extension']);
+                        }
+                        $model['fields'][$k] = $v;
 
                         break;
 
@@ -997,6 +1027,43 @@ class _uho_orm
         if ($uid && !_uho_fx::array_filter($model['fields'], 'field', 'uid')) {
             $model['fields'][] = ['type' => 'uid', 'field' => 'uid', 'list' => 'read'];
         }
+
+        // depreceated fields reformatting
+
+        if (isset($model['fields']) && is_array($model['fields']))
+            foreach ($model['fields'] as $k => $v) {
+                // list
+                if (isset($v['list']) && $v['list'] === true)
+                    $model['fields'][$k]['list'] = 'show';
+                if (in_array($v['type'], ['file', 'audio', 'video', 'image'])) {
+                    if (empty($v['settings'])) $v['settings'] = [];
+                    if (isset($v['folder'])) {
+                        $v['settings']['folder'] = $v['folder'];
+                        unset($v['folder']);
+                    }
+                    if (isset($v['folder_audio'])) {
+                        $v['settings']['folder_audio'] = $v['folder_audio'];
+                        unset($v['folder_audio']);
+                    }
+                    if (isset($v['folder_video'])) {
+                        $v['settings']['folder_video'] = $v['folder_video'];
+                        unset($v['folder_video']);
+                    }
+                    if (isset($v['extension'])) {
+                        $v['settings']['extension'] = $v['extension'];
+                        unset($v['extension']);
+                    }
+                    if (isset($v['extensions'])) {
+                        $v['settings']['extensions'] = $v['extensions'];
+                        unset($v['extensions']);
+                    }
+                    if (isset($v['extension_field'])) {
+                        $v['settings']['extension_field'] = $v['extension_field'];
+                        unset($v['extension_field']);
+                    }
+                    $model['fields'][$k] = $v;
+                }
+            }
 
         // reposition ------------------------------------------------------------
 
@@ -1036,8 +1103,7 @@ class _uho_orm
                 $model_schema = $this->getJsonModelSchema($v['source']['model']);
                 if (isset($model_schema['model']))
                     foreach ($model_schema['model'] as $k2 => $v2)
-                        if (!isset($v['source'][$k2]))
-                        {
+                        if (!isset($v['source'][$k2])) {
                             $schema['fields'][$k]['source'][$k2] = $v2;
                         }
             }
@@ -1046,8 +1112,7 @@ class _uho_orm
 
         foreach ($schema['fields'] as $k => $v)
             // source --> options
-            if (@$v['source'] && !@$v['options'] && @$v['input'] != 'search')
-            {
+            if (@$v['source'] && !@$v['options'] && @$v['input'] != 'search') {
                 $prefix = '';
                 // many models -> lets' get first for a start
                 /*if ($v['source']['models'])
@@ -1068,21 +1133,23 @@ class _uho_orm
                 if (isset($v['source']['order'])) $order = 'ORDER BY ' . $v['source']['order'];
                 else $order = '';
 
-                if ($v['source']['model'])
-                {
+                if ($v['source']['model']) {
                     if (!empty($v['source']['model_fields'])) $params0 = ['fields' => $v['source']['model_fields']];
                     else $params0 = [];
-                    
+
                     $t = $this->getJsonModel(
                         $v['source']['model'],
-                        $filters, false, null, null, 
-                        $params0);
+                        $filters,
+                        false,
+                        null,
+                        null,
+                        $params0
+                    );
                 } else {
                     $t = $this->query('SELECT id AS value,' . implode(',', $v['source']['fields']) . ' FROM ' . $v['source']['table'] . ' ' . $order);
                 }
 
-                foreach ($t as $kk => $vv)
-                {
+                foreach ($t as $kk => $vv) {
                     if (!@$v['source']['label']) $v['source']['label'] = '{{label}}';
                     $label = $this->getTwigFromHtml($v['source']['label'], $vv);
                     if (!isset($vv['value'])) $vv['value'] = $vv['id'];
@@ -1099,8 +1166,7 @@ class _uho_orm
                 $schema['fields'][$k]['options'] = $t;
             }
             // source --> by options
-            elseif (in_array($v['type'], ['select', 'checkboxes']) && empty($v['source']) && empty($v['options']))
-            {
+            elseif (in_array($v['type'], ['select', 'checkboxes']) && empty($v['source']) && empty($v['options'])) {
                 $query = 'SHOW FIELDS FROM ' . $schema['table'] . ' LIKE "' . $v['field'] . '"';
                 $t = $this->query($query, true);
                 if ($t && $t['Type'] && substr($t['Type'], 0, 4) == 'enum') {
@@ -1111,19 +1177,15 @@ class _uho_orm
                 }
             }
             // options
-            elseif (isset($v['options']) && $v['options'])
-            {
-                
+            elseif (isset($v['options']) && $v['options']) {
+
                 foreach ($v['options'] as $kk => $vv)
-                    if (is_string($vv))
-                    {
-                        if (isset($v['settings']['output']) && $v['settings']['output']=='id')
+                    if (is_string($vv)) {
+                        if (isset($v['settings']['output']) && $v['settings']['output'] == 'id')
                             $schema['fields'][$k]['options'][$kk] = $vv;
                         else
                             $schema['fields'][$k]['options'][$kk] = ['value' => $vv, 'label' => $vv];
-                        
                     }
-                
             }
 
         return $schema;
@@ -1312,14 +1374,13 @@ class _uho_orm
             foreach ($model['fields'] as $v) {
                 if (isset($v['container']));
                 elseif (in_array(@$v['field'], $fields));
-                elseif ($fields_to_read && !in_array($v['field'], $fields_to_read));
+                elseif ($fields_to_read && isset($v['field']) && !in_array($v['field'], $fields_to_read));
                 elseif ($v['type'] == 'model') array_push($fields_models, $v);
                 elseif (isset($v['outside']['model'])) array_push($fields_models, ['model' => $v['outside']]);
                 elseif (isset($v['external']));
                 elseif (in_array($v['type'], ['file', 'image', 'video', 'audio', 'media', 'virtual', 'plugin'])) array_push($fields_auto, $v);
                 elseif (isset($v['field_output'])) array_push($fields, $v['field'] . ' AS ' . $v['field_output']);
-                elseif (!empty($v['field']))
-                {
+                elseif (!empty($v['field'])) {
                     array_push($fields, $v['field']);
                     if ($v['type'] == 'image_media') array_push($fields_auto, $v);
                 }
@@ -1440,7 +1501,7 @@ class _uho_orm
                 }
             }
 
-            
+
 
 
             foreach ($model['fields'] as $k2 => $v2) {
@@ -1499,14 +1560,11 @@ class _uho_orm
                     if (!empty($v2['source']['model_fields'])) $params0 = ['fields' => $v2['source']['model_fields']];
                     else $params0 = [];
                     $data[$k][$v2['field']] = $this->getJsonModel($v2['source']['model'], ['id' => $f4], false, null, null, $params0);
-                } elseif ($v2['type'] == 'checkboxes' && isset($v2['options']))
-                {
+                } elseif ($v2['type'] == 'checkboxes' && isset($v2['options'])) {
                     $val1 = explode(',', $data[$k][$v2['field']]);
-                    if (isset($v2['settings']['output']) && $v2['settings']['output']=='value')
-                    {
+                    if (isset($v2['settings']['output']) && $v2['settings']['output'] == 'value') {
                         $val2 = $val1;
-                    } else
-                    {
+                    } else {
                         $val2 = [];
                         foreach ($v2['options'] as $v3)
                             if (in_array($v3['value'], $val1)) $val2[] = ['label' => $v3['label'], 'id' => $v3['value']];
@@ -1768,44 +1826,42 @@ class _uho_orm
                     case "file":
                     case "audio":
                     case "video":
-                        
-                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
-                        {                            
+
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']])) {
                             $data[$k][$v2['field']] = null;
-                        }
-                        else
-                        {
+                        } else {
                             // {"type":"original","field":"filename"}
-                            if (@is_array($v2['filename']))
-                            {
-                                switch ($v2['filename']['type']) {
+                            if (@is_array($v2['settings']['filename'])) {
+                                switch ($v2['settings']['filename']['type']) {
                                     case "original":
-                                        $v2['filename'] = $v[$v2['filename']['field']];
+                                        $v2['settings']['filename'] = $v[$v2['settings']['filename']['field']];
                                         break;
                                 }
                             }
-                            
-                            if (!@$v2['filename']) {
-                                $v2['filename'] = '%uid%.%extension%';
-                            } elseif (!strpos($v2['filename'], '.') && @$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] .= '.' . $v2['extension'];
+
+                            if (!@$v2['settings']['filename']) {
+                                $v2['settings']['filename'] = '%uid%.%extension%';
+                            } elseif (!strpos($v2['settings']['filename'], '.') && @$v2['settings']['extension'] && !is_array($v2['settings']['extension']))
+                                $v2['settings']['filename'] .= '.' . $v2['settings']['extension'];
 
                             foreach ($v as $k3 => $v3)
                                 if (is_string($v3))
-                                    $v2['filename'] = str_replace('%' . $k3 . '%', $v3, $v2['filename']);
+                                    $v2['settings']['filename'] = str_replace('%' . $k3 . '%', $v3, $v2['settings']['filename']);
 
-                            $v2['filename'] = $this->getTwigFromHtml($v2['filename'], $v);
-                            $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
-                            if (isset($v2['extension_field'])) $v2['extension'] = $v[$v2['extension_field']];
+                            $v2['settings']['filename'] = $this->getTwigFromHtml($v2['settings']['filename'], $v);
+                            $v2['settings']['folder'] = $this->getTwigFromHtml($v2['settings']['folder'], $v);
+                            if (isset($v2['settings']['extension_field'])) $v2['settings']['extension'] = $v[$v2['settings']['extension_field']];
 
-                            if (@$v2['extension'] && !is_array($v2['extension'])) $v2['filename'] = str_replace("%extension%", $v2['extension'], $v2['filename']);
+                            if (@$v2['settings']['extension'] && !is_array($v2['settings']['extension']))
+                                $v2['settings']['filename'] = str_replace("%extension%", $v2['settings']['extension'], $v2['settings']['filename']);
 
-                            if (!empty($v2['filename'])) $v2['filename_bare'] = explode('.', $v2['filename']);
-                            if (!empty($v2['filename_bare']) && is_array($v2['filename_bare'])) {
-                                array_pop($v2['filename_bare']);
-                                $v2['filename_bare'] = implode('.', $v2['filename_bare']);
+                            if (!empty($v2['settings']['filename'])) $v2['settings']['filename_bare'] = explode('.', $v2['settings']['filename']);
+                            if (!empty($v2['settings']['filename_bare']) && is_array($v2['settings']['filename_bare'])) {
+                                array_pop($v2['settings']['filename_bare']);
+                                $v2['settings']['filename_bare'] = implode('.', $v2['settings']['filename_bare']);
                             }
 
-                            $src = $v2['folder'] . '/' . $v2['filename']; //.$v2['extension'];
+                            $src = $v2['settings']['folder'] . '/' . $v2['settings']['filename']; //.$v2['extension'];
 
                             if (!empty($src)) {
 
@@ -1814,24 +1870,22 @@ class _uho_orm
                             }
 
                             if (@$v2['images']) {
-                                $poster = $v2['folder'] . '/' . $v2['images'][1]['folder'] . '/' . $v2['filename_bare'] . '.jpg';
+                                $poster = $v2['settings']['folder'] . '/' . $v2['images'][1]['folder'] . '/' . $v2['settings']['filename_bare'] . '.jpg';
                                 $this->fileAddTime($poster);
                                 if ($poster) $data[$k][$v2['field']]['poster'] = $poster;
                             }
                         }
-                        
+
                         break;
 
                     case "image_media":
                     case "image":
-       
+
                         $m = array();
 
-                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
-                        {                            
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']])) {
                             $data[$k][$v2['field']] = null;
-                        } else
-                        {
+                        } else {
 
                             foreach ($v2['images'] as $k4 => $v4)
                                 if (@$v4['retina'] === true)
@@ -1847,14 +1901,12 @@ class _uho_orm
                                 }
 
                             $extension = 'jpg';
-                            if (@$v2['extension_field']) $extension = $v[$v2['extension_field']];
-                            elseif (@$v2['extensions'] && count($v2['extensions']) == 1)
-                                $extension = $v2['extensions'][0];
-                            if ($v2['folder'])
-                            {
-                                $v2['folder'] = $this->updateTemplate($v2['folder'], $v);
-                                $v2['folder'] = $this->getTwigFromHtml($v2['folder'], $v);
-                            }
+
+                            if (@$v2['settings']['extension_field']) $extension = $v[$v2['settings']['extension_field']];
+                            elseif (@$v2['settings']['extensions'] && count($v2['settings']['extensions']) == 1)
+                                $extension = $v2['settings']['extensions'][0];
+
+                            $v2['settings']['folder'] = $this->updateTemplate($v2['settings']['folder'], $v);
 
                             /*
                                 optional: add image sizes
@@ -1868,30 +1920,25 @@ class _uho_orm
                             /*
                                 update filename patterns
                             */
-                                
+
 
                             foreach ($v2['images'] as $v4) {
 
-                                if (isset($v4['filename']))
-                                {
-                                    $filename0 = $this->updateTemplate($v4['filename'], $v, true);                                    
-                                }
-                                elseif (isset($v2['filename']))
-                                {
-                                    $filename0 = $this->updateTemplate($v2['filename'], $v,true);
-                                    
-                                }
-                                else $filename0 = $this->updateTemplate('%uid%', $v);
+                                if (isset($v4['filename'])) {
+                                    $filename0 = $this->updateTemplate($v4['filename'], $v, true);
+                                } elseif (isset($v2['filename'])) {
+                                    $filename0 = $this->updateTemplate($v2['filename'], $v, true);
+                                } else $filename0 = $this->updateTemplate('%uid%', $v);
 
-                                
+
 
 
                                 if (@$v4['id']) $image_id = $v4['id'];
                                 else $image_id = $v4['folder'];
 
-                                $m[$image_id] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
+                                $m[$image_id] = $v2['settings']['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
                                 $m[$image_id] = str_replace('//', '/', $m[$image_id]);
-                                
+
 
                                 /*
                                     optional - add image size
@@ -1906,7 +1953,7 @@ class _uho_orm
                                     $this->fileAddTime($m[$image_id]);
                                 }
 
-                                
+
 
                                 if ($sizes) {
                                     $m[$image_id] = ['src' => $m[$image_id]];
@@ -1919,7 +1966,7 @@ class _uho_orm
 
                                 // webp
                                 if (isset($v2['settings']['webp']) && $image_id != 'original') {
-                                    $m[$image_id . '_webp'] = $v2['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.webp';
+                                    $m[$image_id . '_webp'] = $v2['settings']['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.webp';
                                     if (isset($v4['size']))
                                         $this->imageAddSize($m[$image_id . '_webp']);
                                     else $this->fileAddTime($m[$image_id . '_webp']);
@@ -1933,7 +1980,7 @@ class _uho_orm
                                     }
                                 }
                             }
-                            
+
                             $data[$k][$v2['field']] = $m;
                         }
 
@@ -1960,12 +2007,11 @@ class _uho_orm
 
                         $media_model = isset($v2['source']['model']) ? $v2['source']['model'] : null;
 
-                        if (!$media_model) exit('no source model defined for: ' . $name.'::'.$v2['field']);
+                        if (!$media_model) exit('no source model defined for: ' . $name . '::' . $v2['field']);
 
                         $media = $this->getJsonModel($media_model, ['model' => $model_name . @$v2['media']['suffix'], 'model_id' => $v['id']], false, 'model_id_order');
 
-                        foreach ($media as $k5 => $v5)
-                        {
+                        foreach ($media as $k5 => $v5) {
                             unset($media[$k5]['date']);
                             unset($media[$k5]['model']);
                             unset($media[$k5]['model_id']);
@@ -1986,7 +2032,7 @@ class _uho_orm
                             }
                         }
 
-                        
+
                         $data[$k][$v2['field']] = $media;
 
                         break;
@@ -2013,7 +2059,7 @@ class _uho_orm
 
         foreach ($data as $k => $v)
             foreach ($model['fields'] as $v2)
-                if (!$fields_to_read || ($v2['field'] && in_array($v2['field'], $fields_to_read))) {
+                if (!$fields_to_read || (!empty($v2['field']) && in_array($v2['field'], $fields_to_read))) {
                     switch ($v2['type']) {
                         case "template":
                             if ($v2['field_output'])
@@ -2131,25 +2177,25 @@ class _uho_orm
                     case "elements":
 
                         $iDigits = 8;
-                        if (isset($field['output'])) {
-                            if ($field['output'] == '4digits') $iDigits = 4;
-                            if ($field['output'] == '6digits') $iDigits = 6;
-                            if ($field['output'] == '8digits') $iDigits = 8;
-                            if ($field['output'] == 'string') $iDigits = 0;
+                        if (!empty($field['settings']['output'])) {
+                            if ($field['settings']['output'] == '4digits') $iDigits = 4;
+                            if ($field['settings']['output'] == '6digits') $iDigits = 6;
+                            if ($field['settings']['output'] == '8digits') $iDigits = 8;
+                            if ($field['settings']['output'] == 'string') $iDigits = 0;
                         }
 
                         if (is_array($v)) {
                             foreach ($v as $k2 => $v2)
-                            if ($iDigits)
-                                $v[$k2] = _uho_fx::dozeruj($v2, $iDigits);
+                                if ($iDigits)
+                                    $v[$k2] = _uho_fx::dozeruj($v2, $iDigits);
                             $v = implode(',', $v);
                         }
 
                         break;
 
                     case 'boolean':
-                        
-                        if ($v===true || $v === 'on' || $v === 1 || $v === '1') $v = 1;
+
+                        if ($v === true || $v === 'on' || $v === 1 || $v === '1') $v = 1;
                         else $v = 0;
                         break;
                     case "float":
@@ -2259,8 +2305,8 @@ class _uho_orm
                         case 'elements':
                         case 'checkboxes':
                             $iDigits = 8;
-                            if (@$v['output'] == 'string') $iDigits = 0;
-                            elseif (isset($v['output'])) $iDigits = trim($v['output'], 'digits');
+                            if (!empty($v['settings']['output']) && $v['settings']['output'] == 'string') $iDigits = 0;
+                            elseif (!empty($v['settings']['output'])) $iDigits = trim($v['settings']['output'], 'digits');
                             if (is_array($val)) {
                                 foreach ($val as $kk => $vv)
                                     $val[$kk] = _uho_fx::dozeruj($vv, $iDigits);
@@ -2368,7 +2414,7 @@ class _uho_orm
      */
     public function postJsonModel($model, $data, $multiple = false): bool|int
     {
-        
+
         $model = $this->getJsonModelSchema($model, true);
         if (!$model) return false;
 
@@ -2392,7 +2438,7 @@ class _uho_orm
 
             if ($data) {
                 $query = 'INSERT INTO ' . $model['table'] . ' SET ' . $data;
-                
+
                 $r = $this->queryOut($query);
                 if (!$r) $this->errors[] = 'postJsonModel:: ' . $query;
                 else {
@@ -2846,14 +2892,14 @@ class _uho_orm
     }
 
     /**
-     * Validates model schema
+     * Validates model schema - simplified version
      *
      * @param array $schema
      *
      * @return (bool|string[])[]
      *
-     * @psalm-return array{result: bool, errors?: list{string,...}}
      */
+
     public function schemaValidate($schema): array
     {
         $types = ['plugin', 'virtual'];
@@ -3028,6 +3074,7 @@ class _uho_orm
                 case "checkboxes":
                 case "elements":
                     $type = 'varchar(512)';
+                    if (!empty($v['settings']['length'])) $type = 'varchar(' . $v['settings']['length'] . ')';
                     break;
                 case "order":
                     $type = 'int(11)';
@@ -3049,10 +3096,8 @@ class _uho_orm
                     $type = 'int(11)';
 
                     if (!empty($v['settings']['length'])) {
-                        $type = 'varchar('.$v['settings']['length'].')';
-                    }
-
-                    elseif (!empty($v['source']['model'])) {
+                        $type = 'varchar(' . $v['settings']['length'] . ')';
+                    } elseif (!empty($v['source']['model'])) {
 
                         $source_model = $this->getJsonModelSchema($v['source']['model']);
 
@@ -3081,7 +3126,7 @@ class _uho_orm
 
                     $length = empty($v['settings']['length']) ? 256 : $v['settings']['length'];
                     if (!empty($v['settings']['static_length'])) $type = 'char(' . $length . ')';
-                        else $type = 'varchar(' . $length . ')';
+                    else $type = 'varchar(' . $length . ')';
                     break;
             }
 
@@ -3224,7 +3269,7 @@ class _uho_orm
     {
         $fields = [];
         foreach ($schema['fields'] as $field)
-            if (strpos($field['field'], ':lang') !== false) {
+            if (!empty($field['field']) && strpos($field['field'], ':lang') !== false) {
                 $field_name = explode(':lang', $field['field'])[0];
                 foreach ($this->langs as $lang) {
                     $new_field = $field;
@@ -3236,6 +3281,12 @@ class _uho_orm
         $schema['fields'] = $fields;
         return $schema;
     }
+
+    /*
+        Utility function to check if SQL tables align to defined schemas
+        And if not - to update/create those tables
+    */
+
 
     public function creator(array $schema, $options, $recursive = false, $update_languages = true): array
     {
@@ -3279,6 +3330,166 @@ class _uho_orm
         return ['actions' => $actions, 'messages' => $messages, 'additional' => $additional_results];
     }
 
+    public function validateSchemaField(array $field): array
+    {
+
+        $types = [
+            "boolean" => [],
+            "date" => [],
+            "datetime" => [],
+            "float" => [],
+            "integer" => [],
+            "uid" => [],
+            "checkboxes" => [],
+            "elements" => [],
+            "file" => ['field' => false],
+            "html" => [],
+            "image" => ['field' => false],
+            "json" => [],
+            "media" => ['field' => false],
+            "plugin" => [],
+            "order" => [],
+            "string" => [],
+            "select" => [],
+            "text" => [],
+            "table" => [],
+            "video" => ['field' => false]
+        ];
+
+        $properties = [
+            // orm
+            'captions' => ['type' => 'array'],
+            'field' => ['type' => 'string'],
+            'hash' => ['type' => 'string'],
+            'images' => ['type' => 'array'],
+            'type' => ['type' => 'string'],
+            'options' => ['type' => 'array'],
+            'settings' => ['type' => 'array'],
+            'source' => ['type' => 'array'],
+
+            'filters' => ['type' => 'array'],
+            "null" => ['type' => 'boolean'],
+            // cms
+            'cms' => [
+                'type' => 'array',
+                'keys' => [
+                    'auto' => ['type' => 'array'],
+                    'default' => ['type' => 'string'],
+                    'edit' => ['type' => 'boolean'],
+                    'header' => ['type' => 'string'],
+                    'help' => ['type' => ['string', 'array']],
+                    'hidden' => ['type' => 'boolean'],
+                    'hr' => ['type' => 'boolean'],
+                    'label' => ['type' => 'string'],
+                    'label_PL' => ['type' => 'string'],
+                    'label_EN' => ['type' => 'string'],
+                    'list' => ['type' => ['string', 'array']],
+                    'on_demand' => ['type' => 'boolean'],
+                    'position_before' => ['type' => 'string'],  //tbd
+                    'position_after' => ['type' => 'string'],     //tbd
+                    'required' => ['type' => 'boolean'],
+                    'tab' => ['type' => 'string'],
+                    'tab_EN' => ['type' => 'string'],
+                    'tab_PL' => ['type' => 'string'],
+                    'toggle_fields' => ['type' => 'array'],
+                    'search' => ['type' => ['boolean', 'string']]
+                ]
+            ],
+
+
+            'label' => ['type' => 'string'],
+            'label_PL' => ['type' => 'string'],
+            'label_EN' => ['type' => 'string'],
+            'list' => ['type' => ['string', 'array']]
+
+
+        ];
+
+        if (!isset($types[$field['type']])) {
+            $response = ['errors' => ['Field type invalid: ' . $field['type']]];
+            return $response;
+        }
+
+        foreach ($field as $property => $value) {
+            if (isset($properties[$property])) {
+                $expected_type = $properties[$property]['type'];
+                if (!is_array($expected_type)) $expected_type = [$expected_type];
+                $actual_type = gettype($field[$property]);
+                if (!in_array($actual_type, $expected_type)) {
+                    $response = ['errors' => ['Field property [' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type]];
+                    return $response;
+                }
+            } else return ['errors' => ['Property [' . $property . '] unknown']];
+        }
+
+        return ['errors' => []];
+    }
+
+    /**
+     * Validates basic schema structure
+     *
+     * @param array $schema
+     * @return array
+     */
+
+    public function validateSchema(array $schema, bool $stict=false): array
+    {
+        $errors = [];
+
+        $properties=[
+            'buttons_edit' => ['type' => ['array']],
+            'buttons_page' => ['type' => ['array']],
+            'data' => ['type' => ['array']],
+            'disable'=> ['type' => ['array']],
+            'fields' => ['type' => 'array'],
+            'filters' => ['type' => ['array']],
+            'label' => ['type' => ['string', 'array']],
+            'layout' => ['type' => ['array']],
+            'help' => ['type' => ['string']],
+            'helper_models' => ['type' => ['array']],
+            'model' => ['type' => ['array']],
+            'model_name' => ['type' => ['string']],
+            'order' => ['type' => ['array']],
+            'page_update' => ['type' => ['string']],
+            'table' => ['type' => 'string','required' => true],
+            'url' => ['type' => ['string', 'array']]
+        ];
+
+        foreach ($properties as $property => $rules) {
+            if (!empty($rules['required']) && !isset($schema[$property])) {
+                $errors[] = 'Missing required property [' . $property . '].';
+            } elseif (isset($schema[$property]))
+        {
+                $expected_type = $rules['type'];
+                if (!is_array($expected_type)) $expected_type = [$expected_type];
+                $actual_type = gettype($schema[$property]);
+                if (!in_array($actual_type, $expected_type)) {
+                    $errors[] = 'Property [' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type . '.';
+                }
+            }
+        }
+
+        foreach ($schema as $property => $value) {
+            if (!isset($properties[$property])) {
+                $errors[] = 'Property [' . $property . '] unknown.';
+            }
+        }
+
+        
+        if (!empty($schema['fields']) && is_array($schema['fields']))
+        {
+            foreach ($schema['fields'] as $k => $v) { {
+                    $name = isset($v['field']) ? $v['field'] : 'nr ' . ($k + 1);
+                    $response = $this->validateSchemaField($v);
+                    if ($response['errors'])
+                        $errors[] = 'Schema field [' . $name . '] is invalid --> ' . implode(', ', $response['errors']);
+                }
+            }
+        }
+
+        return ['errors' => $errors];
+    }
+
     /**
      * @return never
      */
@@ -3293,12 +3504,10 @@ class _uho_orm
         $this->sql->setHaltOnError($halt);
     }
 
-    public function convertBase64($image,$allowed_extensions)
+    public function convertBase64($image, $allowed_extensions)
     {
-        if ($image && is_string($image))
-        {
-            if (preg_match('/^data:image\/(\w+);base64,/', $image, $type))
-            {
+        if ($image && is_string($image)) {
+            if (preg_match('/^data:image\/(\w+);base64,/', $image, $type)) {
                 $image = substr($image, strpos($image, ',') + 1);
                 $type = strtolower($type[1]);
                 if (in_array($type, $allowed_extensions))  return base64_decode($image);
@@ -3309,20 +3518,20 @@ class _uho_orm
 
     private function getTempFilename()
     {
-        $filename=$this->temp_public_folder.'/'.uniqid();
-        $filename=$_SERVER['DOCUMENT_ROOT'].$filename;
+        $filename = $this->temp_public_folder . '/' . uniqid();
+        $filename = $_SERVER['DOCUMENT_ROOT'] . $filename;
         return $filename;
     }
 
     public function setTempPublicFolder($folder)
     {
-        $this->temp_public_folder=$folder;
+        $this->temp_public_folder = $folder;
     }
 
-    private function copy ($src,$dest,$remove_src=false)
+    private function copy($src, $dest, $remove_src = false)
     {
-        $dest=$_SERVER['DOCUMENT_ROOT'].$dest;
-        copy($src,$dest);
+        $dest = $_SERVER['DOCUMENT_ROOT'] . $dest;
+        copy($src, $dest);
         if ($remove_src) unlink($src);
     }
 
@@ -3330,40 +3539,39 @@ class _uho_orm
         Upload image to the model
     */
 
-    public function uploadImage($schema,$record,$field_name,$image)
+    public function uploadImage($schema, $record, $field_name, $image)
     {
-        
-        $root=$_SERVER['DOCUMENT_ROOT'];
-        $field=_uho_fx::array_filter($schema['fields'],'field',$field_name,['first'=>true]);
+
+        $root = $_SERVER['DOCUMENT_ROOT'];
+        $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
 
         /* create original image */
 
-        $extension='jpg';
-        $filename=str_replace($field['filename'],'%uid%',$record['uid']).'.'.$extension;
-        $original=array_shift($field['images']);
-        $original_filename=$field['folder'].'/'.$original['folder'].'/'.$filename;
+        $extension = 'jpg';
+        $filename = str_replace($field['filename'], '%uid%', $record['uid']) . '.' . $extension;
+        $original = array_shift($field['images']);
+        $original_filename = $field['folder'] . '/' . $original['folder'] . '/' . $filename;
 
         $temp_filename = $this->getTempFilename(true);
         if (!file_put_contents($temp_filename, $image)) {
             return false;
         }
 
-        $this->copy($temp_filename,$original_filename,true);
+        $this->copy($temp_filename, $original_filename, true);
 
         /* resize */
-        
-        foreach ($field['images'] as $v)
-        {
+
+        foreach ($field['images'] as $v) {
             _uho_thumb::convert(
                 $filename,
-                $root.$original_filename,
-                $root.$field['folder'].'/'.$v['folder'].'/'.$filename,
-                $v);
+                $root . $original_filename,
+                $root . $field['folder'] . '/' . $v['folder'] . '/' . $filename,
+                $v
+            );
         }
-        
-        return true;
 
+        return true;
     }
 
 
@@ -3371,20 +3579,18 @@ class _uho_orm
         Add base64 image to the model
     */
 
-    public function addImage($model_name,$record_id,$field_name,$image)
+    public function addImage($model_name, $record_id, $field_name, $image)
     {
 
-        $image=$this->convertBase64($image,['jpg', 'jpeg', 'png', 'gif', 'webp']);
-        $schema=$this->getSchema($model_name);
-        if ($image) $record=$this->getJsonModel($model_name,['id'=>$record_id],true); else $record=null;
+        $image = $this->convertBase64($image, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+        $schema = $this->getSchema($model_name);
+        if ($image) $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
+        else $record = null;
 
-        if ($schema && $record && isset($record[$field_name]))
-        {
-            return $this->uploadImage($schema,$record,$field_name,$image);
+        if ($schema && $record && isset($record[$field_name])) {
+            return $this->uploadImage($schema, $record, $field_name, $image);
         }
-        
+
         return false;
     }
-
-
 }

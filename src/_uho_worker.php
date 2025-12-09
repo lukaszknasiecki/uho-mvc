@@ -15,7 +15,11 @@ class _uho_worker
      * this class is started
      */
     private $start = null;
-    private $orm;
+
+    /*
+        * Instance of _uho_orm class
+        */
+    private _uho_orm $orm;
 
     /**
      * Constructor
@@ -23,7 +27,7 @@ class _uho_worker
      * @return null
      */
 
-    function __construct($orm)
+    function __construct(_uho_orm $orm)
     {
         $this->orm = $orm;
         $this->start = $this->microtime_float();

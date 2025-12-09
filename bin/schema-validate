@@ -1,0 +1,77 @@
+#!/usr/bin/env php
+<?php
+
+echo "UHO-MVC validator...\n\n";
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Huncwot\UhoFramework\_uho_orm;
+
+$path_original = $path = $argv[1] ?? __DIR__ . '/../../..';
+$path .= '/application/models/';
+
+$schemas = @json_decode(file_get_contents($path . '/schemas.json'), true);
+
+if ($schemas) {
+    $path .= 'json/';
+} else {
+    $files = glob($path_original . '/*.json');
+    $path = $path_original.'/';
+    
+    if ($files) {
+        foreach ($files as $k => $file) {
+            $files[$k] = explode('.', basename($file))[0];
+        }
+        $schemas = ['schemas' => $files];
+    }
+}
+
+if (!$schemas)
+    {
+        echo 'Error: cannot read ' . $path . '/schemas.json, either no jsons found in ' . $path_original . " or invalid format.\n";
+        exit(1);
+    }
+
+
+//$settings = ['create' => 'alert', 'update' => 'alert'];
+
+$orm = new _uho_orm(null, null, null, null, true);
+$orm->addRootPath($path);
+
+$i = 0;
+$e = 0;
+$err = [];
+$valid = 0;
+
+foreach ($schemas as $section => $list)
+    foreach ($list as $schema) {
+        $i++;
+
+        if (is_array($schema)) {
+            if (!empty($schema['schema']) && !empty($schema['sql'])) {
+                $model = $schema['schema'];
+                $settings['create_sql'] = $schema['sql'];
+            } else {
+                $err[] = 'Invalid schema object (schema/sql) definition in schemas.json in section [' . $section . ']';
+                $model = null;
+            }
+        } else $model = $schema;
+
+        if ($model) {
+            $schema = $orm->getSchema($model, null, ['return_error' => true]);
+            if (@$schema['result'] === false) $err[] = 'Schema definition not found: ' . $model;
+            else {
+                $response = $orm->validateSchema($schema);
+                if ($response['errors']) {
+                    $err[] = '*** Error in [' . $model . '] ::: ' . implode(', ', $response['errors']);
+                } else $valid++;
+            }
+        }
+    }
+if ($err)
+    foreach ($err as $error)
+        echo "$error\n";
+
+echo "Schemas (" . count($err) . ") invalid.\n";
+echo "Schemas (" . $valid . ") valid.\n";
+exit(0);
