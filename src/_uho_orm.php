@@ -3330,7 +3330,27 @@ class _uho_orm
         return ['actions' => $actions, 'messages' => $messages, 'additional' => $additional_results];
     }
 
-    public function validateSchemaField(array $field): array
+    public function validateSchemaObject($object,$schema)
+    {
+        $errors=[];
+        foreach ($object as $property => $value)
+        {
+            if (isset($schema['properties'][$property]))
+            {
+                $expected_type = $schema['properties'][$property]['type'];
+                if (!is_array($expected_type)) $expected_type = [$expected_type];
+                $actual_type = gettype($value);
+                if (!in_array($actual_type, $expected_type)) 
+                    $errors[] = 'Invalid property format [' . $property . '], expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type;
+            } else $errors[]='Invalid property ['.$property.']';
+        }
+
+        if ($errors) return['errors'=>$errors];
+            else return['errors'=>null];
+        
+    }
+
+    public function validateSchemaField(array $field, bool $strict): array
     {
 
         $types = [
@@ -3364,22 +3384,39 @@ class _uho_orm
             'images' => ['type' => 'array'],
             'type' => ['type' => 'string'],
             'options' => ['type' => 'array'],
-            'settings' => ['type' => 'array'],
+            'settings' => [
+                'type' => 'object',
+                'properties'=>
+                [                    
+                    'extension' => ['type' => 'string'],
+                    'filename' => ['type' => 'string'],
+                    'folder' => ['type' => 'string'],
+                    'folder_preview' => ['type' => 'string'],
+                    'header' => ['type' => 'array'],
+                    'length' => ['type' => 'integer'],
+                    'media' => ['type' => 'string'],
+                    'media_field' => ['type' => 'string'],
+                    'webp' => ['type' => 'boolean']
+                ]
+            ],
             'source' => ['type' => 'array'],
 
             'filters' => ['type' => 'array'],
             "null" => ['type' => 'boolean'],
             // cms
             'cms' => [
-                'type' => 'array',
-                'keys' => [
+                'type' => 'object',
+                'properties' => [
                     'auto' => ['type' => 'array'],
+                    'case' => ['type' => 'boolean'],
+                    'code' => ['type' => 'boolean'],
                     'default' => ['type' => 'string'],
                     'edit' => ['type' => 'boolean'],
                     'header' => ['type' => 'string'],
                     'help' => ['type' => ['string', 'array']],
                     'hidden' => ['type' => 'boolean'],
                     'hr' => ['type' => 'boolean'],
+                    'max' => ['type' => 'integer'],
                     'label' => ['type' => 'string'],
                     'label_PL' => ['type' => 'string'],
                     'label_EN' => ['type' => 'string'],
@@ -3388,11 +3425,16 @@ class _uho_orm
                     'position_before' => ['type' => 'string'],  //tbd
                     'position_after' => ['type' => 'string'],     //tbd
                     'required' => ['type' => 'boolean'],
+                    'rows' => ['type' => 'integer'],
+                    'small' => ['type' => 'boolean'],
                     'tab' => ['type' => 'string'],
                     'tab_EN' => ['type' => 'string'],
                     'tab_PL' => ['type' => 'string'],
                     'toggle_fields' => ['type' => 'array'],
-                    'search' => ['type' => ['boolean', 'string']]
+                    'search' => ['type' => ['boolean', 'string']],
+                    'tall' => ['type' => 'boolean'],
+                    'wide' => ['type' => 'boolean'],
+                    'width' => ['type' => 'integer']
                 ]
             ],
 
@@ -3405,17 +3447,33 @@ class _uho_orm
 
         ];
 
+        if ($strict)
+        {
+            unset($properties['list']);
+            unset($properties['label']);
+            unset($properties['label_EN']);
+            unset($properties['label_PL']);
+        }
+
         if (!isset($types[$field['type']])) {
             $response = ['errors' => ['Field type invalid: ' . $field['type']]];
             return $response;
         }
 
-        foreach ($field as $property => $value) {
-            if (isset($properties[$property])) {
+        foreach ($field as $property => $value)
+        {
+            if (isset($properties[$property]))
+            {
                 $expected_type = $properties[$property]['type'];
                 if (!is_array($expected_type)) $expected_type = [$expected_type];
                 $actual_type = gettype($field[$property]);
-                if (!in_array($actual_type, $expected_type)) {
+
+                if ($expected_type==['object'] && $actual_type=='array')
+                {
+                    $response=$this->validateSchemaObject($value,$properties[$property]);
+                    if ($response['errors']) return $response;
+                }
+                elseif (!in_array($actual_type, $expected_type)) {
                     $response = ['errors' => ['Field property [' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type]];
                     return $response;
                 }
@@ -3432,7 +3490,7 @@ class _uho_orm
      * @return array
      */
 
-    public function validateSchema(array $schema, bool $stict=false): array
+    public function validateSchema(array $schema, bool $strict=false): array
     {
         $errors = [];
 
@@ -3480,7 +3538,7 @@ class _uho_orm
         {
             foreach ($schema['fields'] as $k => $v) { {
                     $name = isset($v['field']) ? $v['field'] : 'nr ' . ($k + 1);
-                    $response = $this->validateSchemaField($v);
+                    $response = $this->validateSchemaField($v,$strict);
                     if ($response['errors'])
                         $errors[] = 'Schema field [' . $name . '] is invalid --> ' . implode(', ', $response['errors']);
                 }
