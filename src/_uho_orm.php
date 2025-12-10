@@ -3390,19 +3390,22 @@ class _uho_orm
                 [                    
                     'extension' => ['type' => 'string'],
                     'filename' => ['type' => 'string'],
+                    'hashable'=>['type' => 'boolean'],
                     'folder' => ['type' => 'string'],
                     'folder_preview' => ['type' => 'string'],
                     'header' => ['type' => 'array'],
                     'length' => ['type' => 'integer'],
+                    "long" => ['type' => 'boolean'],
                     'media' => ['type' => 'string'],
                     'media_field' => ['type' => 'string'],
+                    "null" => ['type' => 'boolean'],
+                    'plugin' => ['type' => 'string'],
                     'webp' => ['type' => 'boolean']
                 ]
             ],
             'source' => ['type' => 'array'],
-
             'filters' => ['type' => 'array'],
-            "null" => ['type' => 'boolean'],
+            
             // cms
             'cms' => [
                 'type' => 'object',
@@ -3427,6 +3430,7 @@ class _uho_orm
                     'required' => ['type' => 'boolean'],
                     'rows' => ['type' => 'integer'],
                     'small' => ['type' => 'boolean'],
+                    'style' => ['type' => 'string'],
                     'tab' => ['type' => 'string'],
                     'tab_EN' => ['type' => 'string'],
                     'tab_PL' => ['type' => 'string'],
