@@ -3601,9 +3601,9 @@ class _uho_orm
         Upload image to the model
     */
 
-    public function uploadImage($schema, $record, $field_name, $image)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename=null)
     {
-
+        
         $root = $_SERVER['DOCUMENT_ROOT'];
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
@@ -3627,9 +3627,12 @@ class _uho_orm
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 
-        $temp_filename = $this->getTempFilename(true);
-        if (!file_put_contents($temp_filename, $image)) {
-            return false;
+        if ($image)
+        {
+            $temp_filename = $this->getTempFilename(true);
+            if (!file_put_contents($temp_filename, $image)) {
+                return false;
+            }
         }
 
         $this->copy($temp_filename, $original_filename, true);
@@ -3671,6 +3674,23 @@ class _uho_orm
 
         if ($schema && $record && isset($record[$field_name])) {
             return $this->uploadImage($schema, $record, $field_name, $image);
+        }
+
+        return false;
+    }
+
+    /*
+        Add src image to the model
+    */
+
+    public function addImageSrc($model_name, $record_id, $field_name, $filename)
+    {
+
+        $schema = $this->getSchema($model_name);
+        $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
+
+        if ($schema && $record && isset($record[$field_name])) {
+            return $this->uploadImage($schema, $record, $field_name, null,$filename);
         }
 
         return false;
