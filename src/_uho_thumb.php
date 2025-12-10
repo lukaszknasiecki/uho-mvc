@@ -281,6 +281,9 @@ class _uho_thumb
             array_push($file2webp, 'webp');
             $file2webp = implode('.', $file2webp);
         }
+
+        $resize_type=null;
+
         //----------------------------------------------------------------------------------------------
         // 1. copy
 
@@ -294,9 +297,12 @@ class _uho_thumb
         ) {
 
             if ($copyOnly) {
+                $resize_type='copy';
                 $r = @copy($file1, $file2);
             } else {
                 $r = @move_uploaded_file($file1, $file2);
+                $r = @copy($file1, $file2);
+                $resize_type='copy-move';
             }
 
             if ($webp && $pic) {
@@ -312,17 +318,22 @@ class _uho_thumb
                     array_push($comments, '[OK] Obrazek (' . $source_filename . ') jest w docelowym rozmiarze - został przekopiowany (' . $nr . ',' . $file2 . ')');
                 }
             } else {
-                array_push($errors, '[ERROR 34] PROBABLY NO FOLDER ACCESS (' . $file1 . ' [' . $width . 'x' . $height . '] -> ' . $file2 . ').');
+                array_push($errors, '[ERROR 34::'.$resize_type.'] PROBABLY NO FOLDER ACCESS (' . $file1 . ' [' . $width . 'x' . $height . '] -> ' . $file2 . ').');
             }
         }
         //----------------------------------------------------------------------------------------------------
         // 2. crop
 
-        elseif (!isset($v['cut']) || $v['cut'] == 0 || $v['cut'] == 1 || !$goodratio) {
-            if ($predefined_crop) {
+        elseif (!isset($v['cut']) || $v['cut'] == 0 || $v['cut'] == 1 || !$goodratio)
+        {
+            if ($predefined_crop)
+            {
+                $resize_type='predefined-crop';
             } elseif // ------------------------------
             // by ratio
-            (!$goodratio) {
+            (!$goodratio)
+            {
+                $resize_type='crop-no-good-ratio';
                 $x1 = 0;
                 $y1 = 0;
                 $xx1 = $v['width'];
@@ -349,7 +360,9 @@ class _uho_thumb
             }
             // ------------------------------
             // no cropping
-            elseif (!isset($v['cut']) || $v['cut'] == 0) {
+            elseif (!isset($v['cut']) || $v['cut'] == 0)
+            {
+                $resize_type='no-cropping';
                 $x1 = 0;
                 $y1 = 0;
                 $xx1 = $width;
@@ -389,6 +402,7 @@ class _uho_thumb
 
             // cropping classic
             else {
+                $resize_type='crop-classic';
                 // -------------------------------------------------
                 // vertical area cut
                 if (($v['width'] / $width) > ($v['height'] / $height)) {

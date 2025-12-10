@@ -3608,12 +3608,24 @@ class _uho_orm
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
 
+        /* retina? */
+        $retina=[];
+        foreach ($field['images'] as $v)            
+        if (!empty($v['retina']))
+        {
+            if (isset($v['width'])) $v['width']=$v['width']*2;
+            if (isset($v['height'])) $v['height']=$v['height']*2;
+            $v['folder'].='_x2';            
+            $retina[]=$v;
+        }
+        if ($retina) $field['images']=array_merge($field['images'],$retina);
+
         /* create original image */
 
         $extension = 'jpg';
-        $filename = str_replace($field['filename'], '%uid%', $record['uid']) . '.' . $extension;
+        $filename = str_replace($field['settings']['filename'], '%uid%', $record['uid']) . '.' . $extension;
         $original = array_shift($field['images']);
-        $original_filename = $field['folder'] . '/' . $original['folder'] . '/' . $filename;
+        $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 
         $temp_filename = $this->getTempFilename(true);
         if (!file_put_contents($temp_filename, $image)) {
@@ -3624,16 +3636,24 @@ class _uho_orm
 
         /* resize */
 
-        foreach ($field['images'] as $v) {
-            _uho_thumb::convert(
+        $result=true;
+
+        foreach ($field['images'] as $v)
+        {
+            if (isset($v['crop'])) $v['cut']=$v['crop'];
+            $v['enlarge']=true;
+            $dest=$root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+            $r=_uho_thumb::convert(
                 $filename,
                 $root . $original_filename,
-                $root . $field['folder'] . '/' . $v['folder'] . '/' . $filename,
+                $dest,
                 $v
             );
+            if (!$r['result']) $result=false;
+                
         }
 
-        return true;
+        return $result;
     }
 
 
