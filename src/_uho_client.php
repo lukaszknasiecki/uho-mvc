@@ -1611,8 +1611,12 @@ class _uho_client
       $user = $this->orm->getJsonModel($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
     }
 
-    if ($user) $result = $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
-    else $result = false;
+    if ($user)
+    {
+      $result = $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
+      $result=['result'=>true,'user'=>$user['id']];
+    }
+    else $result = ['result'=>false];
 
     return $result;
   }
