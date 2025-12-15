@@ -3330,24 +3330,21 @@ class _uho_orm
         return ['actions' => $actions, 'messages' => $messages, 'additional' => $additional_results];
     }
 
-    public function validateSchemaObject($object,$schema)
+    public function validateSchemaObject($object, $schema)
     {
-        $errors=[];
-        foreach ($object as $property => $value)
-        {
-            if (isset($schema['properties'][$property]))
-            {
+        $errors = [];
+        foreach ($object as $property => $value) {
+            if (isset($schema['properties'][$property])) {
                 $expected_type = $schema['properties'][$property]['type'];
                 if (!is_array($expected_type)) $expected_type = [$expected_type];
                 $actual_type = gettype($value);
-                if (!in_array($actual_type, $expected_type)) 
+                if (!in_array($actual_type, $expected_type))
                     $errors[] = 'Invalid property format [' . $property . '], expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type;
-            } else $errors[]='Invalid property ['.$property.']';
+            } else $errors[] = 'Invalid property [' . $property . ']';
         }
 
-        if ($errors) return['errors'=>$errors];
-            else return['errors'=>null];
-        
+        if ($errors) return ['errors' => $errors];
+        else return ['errors' => null];
     }
 
     public function validateSchemaField(array $field, bool $strict): array
@@ -3386,11 +3383,11 @@ class _uho_orm
             'options' => ['type' => 'array'],
             'settings' => [
                 'type' => 'object',
-                'properties'=>
-                [                    
+                'properties' =>
+                [
                     'extension' => ['type' => 'string'],
                     'filename' => ['type' => 'string'],
-                    'hashable'=>['type' => 'boolean'],
+                    'hashable' => ['type' => 'boolean'],
                     'folder' => ['type' => 'string'],
                     'folder_preview' => ['type' => 'string'],
                     'header' => ['type' => 'array'],
@@ -3405,7 +3402,7 @@ class _uho_orm
             ],
             'source' => ['type' => 'array'],
             'filters' => ['type' => 'array'],
-            
+
             // cms
             'cms' => [
                 'type' => 'object',
@@ -3451,8 +3448,7 @@ class _uho_orm
 
         ];
 
-        if ($strict)
-        {
+        if ($strict) {
             unset($properties['list']);
             unset($properties['label']);
             unset($properties['label_EN']);
@@ -3464,20 +3460,16 @@ class _uho_orm
             return $response;
         }
 
-        foreach ($field as $property => $value)
-        {
-            if (isset($properties[$property]))
-            {
+        foreach ($field as $property => $value) {
+            if (isset($properties[$property])) {
                 $expected_type = $properties[$property]['type'];
                 if (!is_array($expected_type)) $expected_type = [$expected_type];
                 $actual_type = gettype($field[$property]);
 
-                if ($expected_type==['object'] && $actual_type=='array')
-                {
-                    $response=$this->validateSchemaObject($value,$properties[$property]);
+                if ($expected_type == ['object'] && $actual_type == 'array') {
+                    $response = $this->validateSchemaObject($value, $properties[$property]);
                     if ($response['errors']) return $response;
-                }
-                elseif (!in_array($actual_type, $expected_type)) {
+                } elseif (!in_array($actual_type, $expected_type)) {
                     $response = ['errors' => ['Field property [' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type]];
                     return $response;
                 }
@@ -3494,15 +3486,15 @@ class _uho_orm
      * @return array
      */
 
-    public function validateSchema(array $schema, bool $strict=false): array
+    public function validateSchema(array $schema, bool $strict = false): array
     {
         $errors = [];
 
-        $properties=[
+        $properties = [
             'buttons_edit' => ['type' => ['array']],
             'buttons_page' => ['type' => ['array']],
             'data' => ['type' => ['array']],
-            'disable'=> ['type' => ['array']],
+            'disable' => ['type' => ['array']],
             'fields' => ['type' => 'array'],
             'filters' => ['type' => ['array']],
             'label' => ['type' => ['string', 'array']],
@@ -3513,15 +3505,14 @@ class _uho_orm
             'model_name' => ['type' => ['string']],
             'order' => ['type' => ['array']],
             'page_update' => ['type' => ['string']],
-            'table' => ['type' => 'string','required' => true],
+            'table' => ['type' => 'string', 'required' => true],
             'url' => ['type' => ['string', 'array']]
         ];
 
         foreach ($properties as $property => $rules) {
             if (!empty($rules['required']) && !isset($schema[$property])) {
                 $errors[] = 'Missing required property [' . $property . '].';
-            } elseif (isset($schema[$property]))
-        {
+            } elseif (isset($schema[$property])) {
                 $expected_type = $rules['type'];
                 if (!is_array($expected_type)) $expected_type = [$expected_type];
                 $actual_type = gettype($schema[$property]);
@@ -3537,12 +3528,11 @@ class _uho_orm
             }
         }
 
-        
-        if (!empty($schema['fields']) && is_array($schema['fields']))
-        {
+
+        if (!empty($schema['fields']) && is_array($schema['fields'])) {
             foreach ($schema['fields'] as $k => $v) { {
                     $name = isset($v['field']) ? $v['field'] : 'nr ' . ($k + 1);
-                    $response = $this->validateSchemaField($v,$strict);
+                    $response = $this->validateSchemaField($v, $strict);
                     if ($response['errors'])
                         $errors[] = 'Schema field [' . $name . '] is invalid --> ' . implode(', ', $response['errors']);
                 }
@@ -3601,24 +3591,23 @@ class _uho_orm
         Upload image to the model
     */
 
-    public function uploadImage($schema, $record, $field_name, $image, $temp_filename=null)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
     {
-        
+
         $root = $_SERVER['DOCUMENT_ROOT'];
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
 
         /* retina? */
-        $retina=[];
-        foreach ($field['images'] as $v)            
-        if (!empty($v['retina']))
-        {
-            if (isset($v['width'])) $v['width']=$v['width']*2;
-            if (isset($v['height'])) $v['height']=$v['height']*2;
-            $v['folder'].='_x2';            
-            $retina[]=$v;
-        }
-        if ($retina) $field['images']=array_merge($field['images'],$retina);
+        $retina = [];
+        foreach ($field['images'] as $v)
+            if (!empty($v['retina'])) {
+                if (isset($v['width'])) $v['width'] = $v['width'] * 2;
+                if (isset($v['height'])) $v['height'] = $v['height'] * 2;
+                $v['folder'] .= '_x2';
+                $retina[] = $v;
+            }
+        if ($retina) $field['images'] = array_merge($field['images'], $retina);
 
         /* create original image */
 
@@ -3627,8 +3616,7 @@ class _uho_orm
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 
-        if ($image)
-        {
+        if ($image) {
             $temp_filename = $this->getTempFilename(true);
             if (!file_put_contents($temp_filename, $image)) {
                 return false;
@@ -3639,25 +3627,46 @@ class _uho_orm
 
         /* resize */
 
-        $result=true;
+        $result = true;
 
-        foreach ($field['images'] as $v)
-        {
-            if (isset($v['crop'])) $v['cut']=$v['crop'];
-            $v['enlarge']=true;
-            $dest=$root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
-            $r=_uho_thumb::convert(
+        foreach ($field['images'] as $v) {
+            if (isset($v['crop'])) $v['cut'] = $v['crop'];
+            $v['enlarge'] = true;
+            $dest = $root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+            $r = _uho_thumb::convert(
                 $filename,
                 $root . $original_filename,
                 $dest,
                 $v
             );
-            if (!$r['result']) $result=false;
-                
+            if (!$r['result']) $result = false;
         }
 
         return $result;
     }
+
+    /*
+        Remove image from the model
+    */
+
+    public function removeImage($model_name, $record_id, $field_name)
+    {        
+        $result = false;
+        $schema = $this->getSchema($model_name);
+        $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
+        $s3 = $this->getS3();
+        if (isset($record[$field_name])) {
+            $result = true;            
+            foreach ($record[$field_name] as $image) {
+                $image=$this->fileRemoveTime($image);
+                if ($s3) $s3->unlink($image);
+                else unlink($_SERVER['DOCUMENT_ROOT'] . $image);
+            }
+        }
+
+        return $result;;
+    }
+
 
 
     /*
@@ -3690,7 +3699,7 @@ class _uho_orm
         $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
 
         if ($schema && $record && isset($record[$field_name])) {
-            return $this->uploadImage($schema, $record, $field_name, null,$filename);
+            return $this->uploadImage($schema, $record, $field_name, null, $filename);
         }
 
         return false;
