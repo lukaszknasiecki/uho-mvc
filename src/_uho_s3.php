@@ -414,7 +414,6 @@ class _uho_s3
         $destination = $this->clear_filename($destination);
         
         $this->cacheClear($destination);
-
         $destination = $this->createS3Key($destination);
 
         try {

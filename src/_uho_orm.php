@@ -3582,9 +3582,28 @@ class _uho_orm
 
     private function copy($src, $dest, $remove_src = false)
     {
-        $dest = $_SERVER['DOCUMENT_ROOT'] . $dest;
-        copy($src, $dest);
-        if ($remove_src) unlink($src);
+        if ($this->getS3())
+        {
+            $s3=$this->getS3();
+            if (substr($src,0,4)=='http')
+            {
+                // s3 cannot get source stream from another s3
+                $temp_filename=$this->getTempFilename(true);
+                copy($src,$temp_filename);
+                $s3->copy($temp_filename,$dest);
+                unlink($temp_filename);
+            } else
+            {
+                $s3->copy($src,$dest);
+            }     
+            
+        } else
+        {
+            $dest = $_SERVER['DOCUMENT_ROOT'] . $dest;
+            copy($src, $dest);            
+        }
+
+        if ($remove_src) @unlink($src);
     }
 
     /*
@@ -3593,7 +3612,7 @@ class _uho_orm
 
     public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
     {
-
+        
         $root = $_SERVER['DOCUMENT_ROOT'];
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
@@ -3615,15 +3634,16 @@ class _uho_orm
         $filename = str_replace($field['settings']['filename'], '%uid%', $record['uid']) . '.' . $extension;
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
-
-        if ($image) {
+        
+        if ($image && !$temp_filename) {            
             $temp_filename = $this->getTempFilename(true);
             if (!file_put_contents($temp_filename, $image)) {
                 return false;
             }
         }
-
-        $this->copy($temp_filename, $original_filename, true);
+        
+        $temp_original_filename=$temp_filename;
+        $this->copy($temp_filename, $original_filename); // no-remove
 
         /* resize */
 
@@ -3632,14 +3652,30 @@ class _uho_orm
         foreach ($field['images'] as $v) {
             if (isset($v['crop'])) $v['cut'] = $v['crop'];
             $v['enlarge'] = true;
-            $dest = $root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+
+            if ($this->getS3())
+            {
+                $src=$temp_original_filename;
+                $dest = $this->getTempFilename(true);
+                $dest_s3=$field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+            } else
+            {
+                $src=$root . $original_filename;
+                $dest = $root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+            }
+
             $r = _uho_thumb::convert(
                 $filename,
-                $root . $original_filename,
+                $src,
                 $dest,
                 $v
             );
+
             if (!$r['result']) $result = false;
+                elseif ($this->getS3())
+                {
+                    $this->copy($dest,$dest_s3);
+                }
         }
 
         return $result;
@@ -3694,12 +3730,20 @@ class _uho_orm
 
     public function addImageSrc($model_name, $record_id, $field_name, $filename)
     {
+        if ($this->getS3() && substr($filename,0,4)=='http')
+        {
+            $temp_filename=$this->getTempFilename(true);
+            copy($filename,$temp_filename);
+            $filename=$temp_filename;
+        } else $temp_filename=null;
 
         $schema = $this->getSchema($model_name);
         $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
 
         if ($schema && $record && isset($record[$field_name])) {
-            return $this->uploadImage($schema, $record, $field_name, null, $filename);
+            $response=$this->uploadImage($schema, $record, $field_name, null, $filename);
+            if ($temp_filename) unlink($temp_filename);
+            return $response;
         }
 
         return false;
