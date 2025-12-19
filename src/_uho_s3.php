@@ -236,7 +236,6 @@ class _uho_s3
         $filename = str_replace($root, '', $filename);
         $filename = str_replace($this->cfg['host'] . '/', '', $filename);
         if ($this->path_skip) $filename = str_replace($this->path_skip, '', $filename);
-
         return $filename;
     }
 
@@ -508,7 +507,7 @@ class _uho_s3
     public function unlink($filename): bool
     {
         $filename = $this->clear_filename($filename);
-        $key = $this->createS3Key($filename);
+        $key = $this->createS3Key($filename,false);
 
         $result = false;
         if ($filename)
@@ -517,7 +516,6 @@ class _uho_s3
                     'Bucket' => $this->cfg['bucket'],
                     'Key' => $key
                 ]);
-
                 $this->cacheClear($filename);
                 $result = true;
             } catch (AwsException $e) {
@@ -833,9 +831,9 @@ class _uho_s3
         $this->folder = $value;
     }
 
-    private function createS3Key(string $destination)
+    private function createS3Key(string $destination, $add_folder=true)
     {
-        if ($this->folder) $destination = $this->folder . '/' . $destination;
+        if ($this->folder && $add_folder)  $destination = $this->folder . '/' . $destination;
         return $destination;
     }
 }
