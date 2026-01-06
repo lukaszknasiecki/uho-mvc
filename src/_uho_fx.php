@@ -4,6 +4,73 @@ namespace Huncwot\UhoFramework;
 
 /**
  * This class provides a set of static utility functions
+ *
+ * Available Functions:
+ *
+ * Array Operations:
+ * - array_change_keys($array, $new_key, $value) - Change array keys by using field value
+ * - array_extract($array, $key, $flip) - Extract values by key from array
+ * - array_fill_key(&$array, $key, $value) - Fill array with key/value pair by reference
+ * - array_filter($array, $key, $value, $params) - Filter array by key:value pair
+ * - array_inject($array, $index, $element) - Inject element into array at index
+ * - array_multi_fill($array, $key, $value) - Fill array with key:value pair
+ * - array_multisort($data, $field, $style, $lang, $sort) - Sort 2D array by specific field
+ * - array_remove_keys($array, $keys_to_remove) - Remove keys from array (multidimensional)
+ * - arrayReplace($array, $replace, $a1, $a2) - Replace array values with patterns
+ *
+ * Date/Time:
+ * - convertSingleDate($date, $lang, $return_field) - Convert date to multiple formats
+ * - getDate($date1, $date2, $lang, $format) - Convert single or double dates to multiple formats
+ * - sqlNow() - Get current timestamp in MySQL format
+ * - sqlToday() - Get current date in MySQL format
+ *
+ * Encryption:
+ * - decrypt($string, $keys, $extra_key) - Decrypt string
+ * - encrypt($string, $keys, $extra_key) - Encrypt string
+ * - encrypt_decrypt($action, $string, $keys, $extra_key) - Encrypt or decrypt string
+ *
+ * File Operations:
+ * - file_exists($filename, $skip_query) - Check if file exists (with server path)
+ * - filesize($filename, $readable, $skip_query) - Get file size
+ * - getimagesize($filename) - Get image size (with server path)
+ * - image_decache($image) - Remove cache parameters from image path
+ * - image_ratio($filename) - Get image aspect ratio
+ * - loadCsv($filename, $delimiter) - Load CSV as array of objects
+ * - remote_file_exists($filename, $skip_query) - Check if remote file exists
+ * - saveCsv($filename, $data, $delimiter) - Save array to CSV file
+ *
+ * HTTP/CURL:
+ * - curl($method, $url, $data, $params) - CURL utility for REST operations
+ * - fileCurl($url, $params, $data, $return_error) - Load file via CURL
+ *
+ * Request/Response:
+ * - getGet($param, $default) - Get specific GET parameter from REQUEST_URI
+ * - getGetArray() - Parse and return GET array from REQUEST_URI
+ * - isAjax() - Check if request is Ajax
+ * - sanitize_input($input, $keys) - Sanitize input data based on type specifications
+ * - secureGet($GetVar) - Sanitize GET variable
+ * - securePost($PostVar) - Sanitize POST variable
+ *
+ * String Operations:
+ * - charsetNormalize($string, $filler) - Normalize charset for URLs
+ * - dozeruj($s, $ile) - Add leading zeros to string
+ * - excludeTagsFromText($html, $start, $end) - Extract content between tags
+ * - fillPattern($array, $params) - Fill patterns with values
+ * - headDescription($text, $isHtml, $length, $firstParagraph, $enters) - Create og:description format
+ * - mb_trim($string, $trim, $charset) - Multibyte trim function
+ * - quotes($value, $lang) - Convert quotes to language-specific format
+ * - removeLocalChars($string, $additional) - Remove local/special characters
+ * - rtrim($s, $char) - Trim right side with specific character
+ * - szewce($value, $numbers) - Remove orphans (Polish typography)
+ * - trim($string, $trim) - Enhanced trim function
+ *
+ * Utilities:
+ * - convertSpreadsheet($items) - Convert spreadsheet data to array of objects
+ * - dec2dms($latitude, $longitude) - Convert decimal coordinates to DMS format
+ * - halt($message) - Exit script with message
+ * - microtime_float() - Get current microtime as float
+ * - resolveRoute($queryString, $routing) - Resolve request path to handler class
+ * - utilsNumberDeclinationPL($number) - Get Polish number declination type
  */
 
 class _uho_fx
@@ -11,7 +78,9 @@ class _uho_fx
     private static $initialized = false;
 
     /**
-     * Class constructor
+     * Initialize the class (called once)
+     *
+     * @return void
      */
     private static function initialize(): void
     {
@@ -23,10 +92,10 @@ class _uho_fx
 
 
     /**
-     * Returns trus is Ajax request found
-     * @return boolean
+     * Check if the current request is an Ajax request
+     *
+     * @return bool True if Ajax request detected, false otherwise
      */
-
     public static function isAjax()
     {
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -35,52 +104,52 @@ class _uho_fx
     }
 
     /**
-     * Returns current timestamp in mySQL format
-     * @return string
+     * Get current timestamp in MySQL format (Y-m-d H:i:s)
+     *
+     * @return string Current timestamp in MySQL format
      */
-
     public static function sqlNow()
     {
         return date('Y-m-d H:i:s');
     }
 
     /**
-     * Returns current date in mySQL format
-     * @return string
+     * Get current date in MySQL format (Y-m-d)
+     *
+     * @return string Current date in MySQL format
      */
-
     public static function sqlToday()
     {
         return date('Y-m-d');
     }
 
     /**
-     * Returns secured POST var
-     * @param string $PostVar
-     * @return string
+     * Sanitize and return a POST variable
+     *
+     * @param string $PostVar The POST variable name
+     * @return string Sanitized POST value
      */
-
     public static function securePost($PostVar)
     {
         return addslashes(htmlspecialchars(stripslashes(strip_tags($_POST[$PostVar]))));
     }
 
     /**
-     * Returns secured GET var
-     * @param string $GetVar
-     * @return string
+     * Sanitize and return a GET variable
+     *
+     * @param string $GetVar The GET variable value to sanitize
+     * @return string Sanitized GET value
      */
-
     public static function secureGet($GetVar)
     {
         return addslashes($GetVar);
     }
 
     /**
-     * Returns secured GET array
-     * @return array
+     * Parse and return GET parameters array from REQUEST_URI
+     *
+     * @return array Associative array of GET parameters
      */
-
     public static function getGetArray()
     {
         if (isset($_SERVER["REQUEST_URI"]))
@@ -93,12 +162,12 @@ class _uho_fx
     }
 
     /**
-     * Returns secured GET var field using REQUEST_URI
-     * @param string $param field name
-     * @param string $default returns if no value found in GET
-     * @return string
+     * Get a specific GET parameter from REQUEST_URI
+     *
+     * @param string $param Field name to retrieve
+     * @param string $default Default value if parameter not found
+     * @return string Sanitized GET parameter value or default
      */
-
     public static function getGet($param, $default = '')
     {
         if (isset($_SERVER['REQUEST_URI']))
@@ -111,14 +180,20 @@ class _uho_fx
     }
 
     /**
-     * Sanitizes input data based on specified keys and their types
+     * Sanitize input data based on specified keys and their types
+     *
+     * Supported types: string, enum, email, date, array, array_int, point, bbox,
+     * boolean, url, int, integer, any
+     *
+     * @param array $input Input data to sanitize
+     * @param array $keys Array mapping field names to their expected types
+     * @return array Sanitized output array
      */
     public static function sanitize_input(array $input, array $keys)
     {
         $output = [];
 
-        foreach ($keys  as $k => $v)
-        {
+        foreach ($keys  as $k => $v) {
             if (is_array($v) && isset($input[$k])) {
                 $output[$k] = [];
                 foreach ($input[$k] as $kk => $vv)
@@ -133,11 +208,11 @@ class _uho_fx
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
                     case "email":
-                        
+
                         $sanitized_a = filter_var($input[$k], FILTER_SANITIZE_EMAIL);
                         if (filter_var($sanitized_a, FILTER_VALIDATE_EMAIL))
-                            $output[$k]=$sanitized_a;
-                        
+                            $output[$k] = $sanitized_a;
+
                         break;
                     case "date":
                         $pattern = "/^\d{4}-\d{2}-\d{2}$/"; // YYYY-MM-DD
@@ -192,14 +267,16 @@ class _uho_fx
     }
 
     /**
-     * Util function replacing array values
-     * @param array $array
-     * @param array $replace string to please
-     * @param string $a1 prefix
-     * @param string $a2 suffix
-     * @return array
+     * Replace array values using pattern matching
+     *
+     * Replaces occurrences of {prefix}{key}{suffix} with corresponding values
+     *
+     * @param array|string $array Array or string to process
+     * @param array $replace Associative array of replacements (key => value)
+     * @param string $a1 Prefix for pattern matching
+     * @param string $a2 Suffix for pattern matching
+     * @return array|string Array or string with replaced values
      */
-
     public static function arrayReplace($array, $replace, $a1, $a2)
     {
         if (is_array($array) && is_array($replace)) {
@@ -222,12 +299,12 @@ class _uho_fx
     }
 
     /**
-     * Adds leading zeros to string
-     * @param int $s
-     * @param string $ile number of chars in number
-     * @return string
+     * Add leading zeros to a string or number
+     *
+     * @param int|string $s Value to pad with zeros
+     * @param int $ile Desired total length
+     * @return string Zero-padded string
      */
-
     public static function dozeruj($s, $ile)
     {
         if (!is_string($s) && !is_numeric($s)) return '';
@@ -240,15 +317,17 @@ class _uho_fx
     }
 
     /**
-     * Converts string to og:tg:description format
-     * @param string $text text to be converted
-     * @param boolean $isHtml
-     * @param int $length
-     * @param boolean $firstParagraph
-     * @param boolean $enters
-     * @return string
+     * Convert text to og:description/meta description format
+     *
+     * Creates a clean, truncated description suitable for meta tags and social media
+     *
+     * @param string $text Text to convert
+     * @param bool $isHtml Whether the input is HTML
+     * @param int $length Maximum length of output
+     * @param bool $firstParagraph Extract only first paragraph if HTML
+     * @param bool $enters Remove line breaks
+     * @return string Formatted description text
      */
-
     public static function headDescription($text, $isHtml = false, $length = 255, $firstParagraph = true, $enters = true)
     {
         if ($isHtml && $firstParagraph) {
@@ -265,9 +344,8 @@ class _uho_fx
             $text = str_replace(chr(13) . chr(10), ' ', $text);
 
         // longer than length? let's get sentences
-        $text=trim($text);
-        if (strlen($text) > $length)
-        {
+        $text = trim($text);
+        if (strlen($text) > $length) {
             $sentences = explode('. ', $text);
             $text = '';
             $i = 0;
@@ -293,14 +371,18 @@ class _uho_fx
     }
 
     /**
-     * Filters array by elements with specified key:value pair
-     * @param array $array
-     * @param string $key
-     * @param string $value
-     * @param array $params
-     * @return array
+     * Filter array by elements with specified key:value pair
+     *
+     * Supported params: 'first' (return first match only), 'returnField' (return specific field),
+     * 'keys' (return keys only), 'search' (use strpos search), 'strict' (strict comparison),
+     * 'case' (case sensitivity)
+     *
+     * @param array $array Array to filter
+     * @param string $key Key to search for
+     * @param mixed $value Value to match (null to check key existence)
+     * @param array|null $params Additional filtering parameters
+     * @return array|mixed Filtered array or single value if 'first' param used
      */
-
     public static function array_filter($array, $key, $value = null, $params = null)
     {
         $firstOnly = (@$params['first'] ? true : false);
@@ -356,13 +438,13 @@ class _uho_fx
     }
 
     /**
-     * Fills array with key:value pair
-     * @param array $array
-     * @param string $key
-     * @param string $value
-     * @return array
+     * Fill all elements in array with the same key:value pair
+     *
+     * @param array $array Array to fill
+     * @param string $key Key to add to each element
+     * @param mixed $value Value to set for the key
+     * @return array Modified array with added key:value pairs
      */
-
     public static function array_multi_fill($array, $key, $value)
     {
         if (is_array($array)) {
@@ -375,15 +457,15 @@ class _uho_fx
 
 
     /**
-     * Sorts 2-dimensional array by specific field
-     * @param array $data
-     * @param string $field
-     * @param string $style use SORT_NUMERIC for strings/numbers
-     * @param string $lang
-     * @param string $sort, SORT_NUMERIC 
-     * @return array
+     * Sort 2-dimensional array by a specific field
+     *
+     * @param array $data Array to sort
+     * @param string $field Field name to sort by
+     * @param int $style Sort style (SORT_ASC or SORT_DESC)
+     * @param string $lang Language for locale-specific sorting (e.g., 'pl')
+     * @param int $sort Sort type (SORT_LOCALE_STRING, SORT_NUMERIC, etc.)
+     * @return array Sorted array
      */
-
     public static function array_multisort($data, $field, $style = SORT_ASC, $lang = "", $sort = SORT_LOCALE_STRING)
     {
         $surname = array();
@@ -419,13 +501,16 @@ class _uho_fx
     }
 
     /**
-     * Swaps array keys, [ ['value':1,'label':'label'], ['value':2,'label':'label'] -> [ 1: 'label', 2:'label', ... ]
-     * @param array $array
-     * @param string $new_key
-     * @param string $value
-     * @return array
+     * Change array keys by using a field value as the new key
+     *
+     * Example: [['value'=>1, 'label'=>'A'], ['value'=>2, 'label'=>'B']]
+     *       -> [1 => 'A', 2 => 'B'] (or [1 => ['value'=>1, 'label'=>'A'], ...])
+     *
+     * @param array $array Source array
+     * @param string $new_key Field to use as new key
+     * @param string|null $value Field to use as value (null to keep entire element)
+     * @return array Array with changed keys
      */
-
     public static function array_change_keys($array, $new_key, $value = null)
     {
         $result = [];
@@ -438,54 +523,49 @@ class _uho_fx
     }
 
     /**
-     * Remove values by key from the array,multidimensional too
-     * i.e. $items = _uho_fx::array_remove_keys($items,['id','uid','slug','image'=>['original']]);
-     * @param array $array
-     * @param string $keys
-     * @return array
+     * Remove specified keys from array (works with multidimensional arrays)
+     *
+     * Example: array_remove_keys($items, ['id', 'uid', 'slug', 'image' => ['original']])
+     *
+     * @param array $array Source array
+     * @param array $keys_to_remove Keys to remove (can be nested)
+     * @return array Array with specified keys removed
      */
-    
     public static function array_remove_keys(array $array, array $keys_to_remove): array
     {
-        if (is_array($array))
-        {
+        if (is_array($array)) {
             // array
-            if (array_values($array)==$array)
-            {
-                foreach ($array as $key=>$v)
+            if (array_values($array) == $array) {
+                foreach ($array as $key => $v)
                     foreach ($keys_to_remove as $key_r => $key_to_remove)
-                    if (is_array($key_to_remove))
-                    {
-                        $array[$key][$key_r] = _uho_fx::array_remove_keys($array[$key][$key_r], $key_to_remove);
-
-                    } else
-                    {
-                        if (isset($array[$key][$key_to_remove]))
+                        if (is_array($key_to_remove)) {
+                            $array[$key][$key_r] = _uho_fx::array_remove_keys($array[$key][$key_r], $key_to_remove);
+                        } else {
+                            if (isset($array[$key][$key_to_remove]))
                                 unset($array[$key][$key_to_remove]);;
-                    }
+                        }
             } else
             // object
             {
                 foreach ($keys_to_remove as $key_r => $key_to_remove)
-                    if (is_array($key_to_remove))
-                    {
+                    if (is_array($key_to_remove)) {
                         $array[$key_r] = _uho_fx::array_remove_keys($array[$key_r], $key_to_remove);
-                    }
-                    else
+                    } else
                     if (isset($array[$key_to_remove]))
-                            unset($array[$key_to_remove]);
-            }  
+                        unset($array[$key_to_remove]);
+            }
         }
         return $array;
     }
 
     /**
-     * Extracts values by key from the array
-     * @param array $array
-     * @param string $key
-     * @return array
+     * Extract values for a specific key from array elements
+     *
+     * @param array $array Source array
+     * @param string $key Key to extract from each element
+     * @param bool $flip If true, use extracted values as keys with value 1
+     * @return array Array of extracted values
      */
-
     public static function array_extract($array, $key, $flip = false)
     {
         $r = [];
@@ -499,12 +579,14 @@ class _uho_fx
     }
 
     /**
-     * Fills array with patterns [ '%label%','label %1%'] with { 'label'=>'value'} and $params [1=>'value','2=>...']
-     * @param array $array
-     * @param array $params
-     * @return array
+     * Fill patterns in array with values
+     *
+     * Replaces patterns like '%label%' or '%1%' with values from params
+     *
+     * @param array|string $array Array or string containing patterns
+     * @param array $params Array with 'keys' and/or 'numbers' for replacement values
+     * @return array|string Array or string with patterns replaced
      */
-
     public static function fillPattern($array, $params)
     {
         if (!is_array($array)) {
@@ -525,11 +607,13 @@ class _uho_fx
     }
 
     /**
-     * Decaches image path
-     * @param string $image
-     * @return string
+     * Remove cache parameters from image path
+     *
+     * Removes query strings and cache busting suffixes (___) from image paths
+     *
+     * @param string $image Image path with potential cache parameters
+     * @return string Clean image path
      */
-
     public static function image_decache($image)
     {
         if (is_string($image)) {
@@ -546,12 +630,12 @@ class _uho_fx
     }
 
     /**
-     * Chceck if file exists adding full server path
-     * @param string $filename
-     * @param boolean $skip_query
-     * @return boolean
+     * Check if file exists (adds full server path)
+     *
+     * @param string $filename File path relative to document root
+     * @param bool $skip_query Remove query parameters before checking
+     * @return bool True if file exists, false otherwise
      */
-
     public static function file_exists($filename, $skip_query = false): bool
     {
         if ($skip_query) {
@@ -560,6 +644,13 @@ class _uho_fx
         return file_exists(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $filename);
     }
 
+    /**
+     * Check if remote file exists via HTTP headers
+     *
+     * @param string $filename Remote file URL
+     * @param bool $skip_query Remove query parameters before checking
+     * @return bool True if file returns HTTP 200, false otherwise
+     */
     public static function remote_file_exists($filename, $skip_query = false): bool
     {
         if ($skip_query) {
@@ -571,12 +662,10 @@ class _uho_fx
     }
 
     /**
-     * Gets image size adding full server path
+     * Get image size (adds full server path)
      *
-     * @param string $filename
-     *
-     * @return (int|string)[]|false
-     *
+     * @param string $filename Image path relative to document root
+     * @return array|false Array with image dimensions and info, or false on failure
      * @psalm-return array{0: int, 1: int, 2: int, 3: string, mime: string, channels?: 3|4, bits?: int}|false
      */
     public static function getimagesize(string $filename): array|false
@@ -585,11 +674,10 @@ class _uho_fx
     }
 
     /**
-     * Gets image ratio
+     * Get image aspect ratio (width/height)
      *
-     * @param string $filename
-     *
-     * @return float|int|null
+     * @param string $filename Image path relative to document root
+     * @return float|int|null Aspect ratio or null if image not found
      */
     public static function image_ratio($filename): int|float|null
     {
@@ -601,13 +689,12 @@ class _uho_fx
     }
 
     /**
-     * Gets image filesize
+     * Get file size (adds full server path)
      *
-     * @param string $filename
-     * @param boolean readable
-     * @param boolean skip_query
-     *
-     * @return false|int|string
+     * @param string $filename File path relative to document root
+     * @param bool $readable Return human-readable format (KB/MB)
+     * @param bool $skip_query Remove query parameters before checking
+     * @return int|string|false File size in bytes, formatted string, or false on failure
      */
     public static function filesize($filename, $readable = false, $skip_query = true): int|string|false
     {
@@ -624,12 +711,12 @@ class _uho_fx
     }
 
     /**
-     * Trim right side of the string with given char
-     * @param string $s
-     * @param string $char
-     * @return string
+     * Trim right side of string with specific character/string
+     *
+     * @param string $s String to trim
+     * @param string $char Character or string to remove from the end
+     * @return string Trimmed string
      */
-
     public static function rtrim($s, $char)
     {
         if (substr($s, strlen($s) - strlen($char)) == $char)
@@ -638,12 +725,12 @@ class _uho_fx
     }
 
     /**
-     * convert strftime to dateformat
-     * @param string $format
-     * @param string $d
-     * @return string
+     * Convert strftime format to date format (legacy fallback)
+     *
+     * @param string $format strftime format code
+     * @param string $d Date string
+     * @return string Formatted date
      */
-
     private static function strftime_old($format, $d)
     {
         $ff = ['%A' => 'l', '%B' => 'F', '%b' => 'M'];
@@ -654,11 +741,13 @@ class _uho_fx
 
 
     /**
-     * @param null|string $lang
+     * Convert strftime format to date format with locale support
      *
+     * @param string $format strftime format code ('%A', '%B', '%b')
+     * @param string $d Date string
+     * @param string|null $lang Language code for locale-specific formatting
+     * @return string|false Formatted date or false on failure
      * @psalm-param '%A'|'%B'|'%b' $format
-     *
-     * @return false|string
      */
     private static function strftime(string $format, string $d, string|null $lang = null): string|false
     {
@@ -685,13 +774,15 @@ class _uho_fx
 
 
     /**
-     * convert single date to multiple formats
-     * @param string $date
-     * @param string $lang
-     * @param string $return_field
-     * @return array
+     * Convert single date to multiple format variations
+     *
+     * Returns array with various date formats (sql, short, long, time variants, etc.)
+     *
+     * @param string $date Date string in SQL format (Y-m-d H:i:s)
+     * @param string $lang Language code ('pl', 'en', etc.)
+     * @param string|false $return_field Specific field to return, or false for full array
+     * @return array|string Array of formatted dates or specific field value
      */
-
     public static function convertSingleDate($date, $lang = 'pl', $return_field = false)
     {
         $monthsPL1 = explode(';', 'styczeń;luty;marzec;kwiecień;maj;czerwiec;lipiec;sierpień;wrzesień;październik;listopad;grudzień');
@@ -821,14 +912,16 @@ class _uho_fx
     }
 
     /**
-     * Convert double dates (from-to) to multiple formats
-     * @param string $date1
-     * @param string $date2
-     * @param string $lang
-     * @param string $format
-     * @return array
+     * Convert single or double dates (date ranges) to multiple format variations
+     *
+     * Handles both single dates and date ranges (from-to) with smart formatting
+     *
+     * @param string $date1 First/main date in SQL format
+     * @param string|null $date2 End date for ranges (optional)
+     * @param string $lang Language code ('pl', 'en', etc.)
+     * @param string|null $format Specific format to return, or null for full array
+     * @return array|string Array of formatted dates or specific format value
      */
-
     public static function getDate($date1, $date2 = null, $lang = 'pl', $format = null)
     {
         $years_same = (substr($date1, 0, 4) == substr($date2, 0, 4));
@@ -944,12 +1037,14 @@ class _uho_fx
     }
 
     /**
-     * remove szewce (polish verb) from string
-     * @param string $value
-     * @param boolean $numbers
-     * @return string
+     * Remove orphans from text (Polish typography - non-breaking spaces)
+     *
+     * Prevents single-letter words from appearing at line ends
+     *
+     * @param string $value Text to process
+     * @param bool $numbers Apply to numbers as well
+     * @return string Text with orphans removed
      */
-
     public static function szewce($value, $numbers = false)
     {
         if (!$value) return $value;
@@ -982,14 +1077,14 @@ class _uho_fx
     }
 
     /**
-     * Encrypt / Decrypt function
-     * @param string $action
-     * @param string $string
-     * @param array $keys
-     * @param string $extra_key
-     * @return string
+     * Encrypt or decrypt a string using AES-256-CBC
+     *
+     * @param string $action Action to perform: 'encrypt' or 'decrypt'
+     * @param string $string String to encrypt/decrypt
+     * @param array $keys Array with encryption keys [0] => key, [1] => iv
+     * @param string|null $extra_key Optional additional key for encryption
+     * @return string|false Encrypted/decrypted string or false on failure
      */
-
     public static function encrypt_decrypt($action, $string, $keys, $extra_key = null)
     {
         if (!$string) return $string;
@@ -1014,37 +1109,39 @@ class _uho_fx
     }
 
     /**
-     * Encrypt function
-     * @param string $string
-     * @param array $keys
-     * @param string $extra_key
-     * @return string
+     * Encrypt a string using AES-256-CBC
+     *
+     * @param string $string String to encrypt
+     * @param array $keys Array with encryption keys [0] => key, [1] => iv
+     * @param string|null $extra_key Optional additional key for encryption
+     * @return string|false Encrypted string or false on failure
      */
-
     public static function encrypt($string, $keys, $extra_key = null)
     {
         return _uho_fx::encrypt_decrypt('encrypt', $string, $keys, $extra_key);
     }
 
     /**
-     * Decrypt function
-     * @param string $string
-     * @param array $keys
-     * @param string $extra_key
-     * @return string
+     * Decrypt a string using AES-256-CBC
+     *
+     * @param string $string String to decrypt
+     * @param array $keys Array with encryption keys [0] => key, [1] => iv
+     * @param string|null $extra_key Optional additional key for decryption
+     * @return string|false Decrypted string or false on failure
      */
-
     public static function decrypt($string, $keys, $extra_key = null)
     {
         return _uho_fx::encrypt_decrypt('decrypt', $string, $keys, $extra_key);
     }
 
     /**
-     * Returns declination type for numbers in Polish
-     * @param int $number
-     * @return int
+     * Get Polish number declination type (1, 2, or 3)
+     *
+     * Used for proper plural forms in Polish language
+     *
+     * @param int $number Number to check
+     * @return int Declination type: 1 (singular), 2 (few), 3 (many)
      */
-
     public static function utilsNumberDeclinationPL($number)
     {
         if ($number == 1) {
@@ -1058,12 +1155,12 @@ class _uho_fx
     }
 
     /**
-     * Convert quotes
-     * @param string $value
-     * @param string $lang
-     * @return string
+     * Convert quotes to language-specific typographic quotes
+     *
+     * @param string $value Text with quotes
+     * @param string $lang Language code ('pl', etc.)
+     * @return string Text with converted quotes
      */
-
     public static function quotes($value, $lang = 'pl')
     {
         if ($lang == 'pl') {
@@ -1075,12 +1172,14 @@ class _uho_fx
 
 
     /**
-     * Remove Local chars
-     * @param string $string
-     * @param boolean $additional
-     * @return string
+     * Remove local/special characters and convert to ASCII
+     *
+     * Converts accented characters to their ASCII equivalents
+     *
+     * @param string $string String with special characters
+     * @param bool $additional Apply additional processing (lowercase, trim, strip tags)
+     * @return string String with ASCII characters only
      */
-
     public static function removeLocalChars($string, $additional = false)
     {
 
@@ -1237,12 +1336,14 @@ class _uho_fx
 
 
     /**
-     * Normalize charset
-     * @param string $string
-     * @param string $filler
-     * @return string
+     * Normalize string for URLs and slugs
+     *
+     * Converts to lowercase, removes special chars, replaces spaces with filler
+     *
+     * @param string $string String to normalize
+     * @param string $filler Character to replace spaces (default: '-')
+     * @return string URL-safe normalized string
      */
-
     public static function charsetNormalize($string, $filler = '-')
     {
 
@@ -1288,15 +1389,12 @@ class _uho_fx
     }
 
     /**
-     * Removes Tags from Text
+     * Extract content between delimiter tags from text
      *
-     * @param string $html
-     * @param string $start
-     * @param string $end
-     *
-     * @return string[]
-     *
-     * @psalm-return list{0?: string,...}
+     * @param string $html Text containing delimited sections
+     * @param string $start Start delimiter (default: '%')
+     * @param string $end End delimiter (default: '%')
+     * @return array Array of extracted text segments
      */
     public static function excludeTagsFromText($html, $start = '%', $end = '%'): array
     {
@@ -1313,10 +1411,9 @@ class _uho_fx
     }
 
     /**
-     * Halts everything
+     * Halt script execution with a message
      *
-     * @param string $message
-     *
+     * @param string $message Message to display before exit
      * @return never
      */
     public static function halt($message)
@@ -1325,12 +1422,14 @@ class _uho_fx
     }
 
     /**
-     * Load file via Curl
-     * @param string $url
-     * @param array $params
-     * @return string
+     * Load file via CURL with various options
+     *
+     * @param string $url URL to fetch
+     * @param array|null $params CURL options (timeout, headers, post, put, delete, etc.)
+     * @param mixed $data Data to send with request
+     * @param bool $return_error Whether to return error information
+     * @return string|array Response data or error array
      */
-
     public static function fileCurl($url, $params = null, $data = null, $return_error = false)
     {
         if (!$params || !is_array($params)) $params = [];
@@ -1394,14 +1493,14 @@ class _uho_fx
     }
 
     /**
-     * Curl Util
-     * @param string $method='GET|POST|PUT|DELETE'
-     * @param string $url
-     * @param array|string $data
-     * @param array $params
-     * @return string
+     * CURL utility for REST API operations
+     *
+     * @param string $method HTTP method: 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'
+     * @param string $url URL to request
+     * @param array|string $data Request data
+     * @param array $params Additional CURL options (timeout, headers, etc.)
+     * @return array Result array with 'result', 'data', 'code', and optionally 'error'
      */
-
     public static function curl($method = 'GET', $url = '', $data = [], $params = [])
     {
 
@@ -1417,12 +1516,11 @@ class _uho_fx
         if (isset($params['content-type']))   $header[] = 'content-type: ' . $params['content-type'];
         if (isset($params['authorization'])) $header[] = 'Authorization: ' . $params['authorization'];
         if (isset($params['bearer'])) $header[] = 'Authorization: Bearer ' . $params['bearer'];
-        
-        if (isset($params['verify_host']) && $params['verify_host'] === false)
-        {
+
+        if (isset($params['verify_host']) && $params['verify_host'] === false) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        }        
+        }
 
         if ($header) curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
@@ -1451,26 +1549,26 @@ class _uho_fx
         }
 
         $data = curl_exec($ch);
-        $code=curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if (!$data) {
-            return ['result' => false, 'error' => curl_error($ch),'code'=>$code];
+            return ['result' => false, 'error' => curl_error($ch), 'code' => $code];
         } else {
             if (isset($params['accept']) && $params['accept'] == 'application/json')
                 $data = @json_decode($data, true);
         }
 
-        return ['result' => true, 'data' => $data,'code'=>$code];
+        return ['result' => true, 'data' => $data, 'code' => $code];
     }
 
     /**
-     * Updates PHP's trim function so it actually works
-     * @param string $string
-     * @param array $trim
-     * @return string
+     * Enhanced trim function for specific strings (not just characters)
+     *
+     * @param string $string String to trim
+     * @param string $trim String to remove from both ends
+     * @return string Trimmed string
      */
-
     public static function trim($string, $trim)
     {
         $max = 100;
@@ -1488,12 +1586,13 @@ class _uho_fx
     }
 
     /**
-     * Updates PHP's trim function so it actually works
-     * @param string $string
-     * @param array $trim
-     * @return string
+     * Multibyte-safe enhanced trim function for specific strings
+     *
+     * @param string $string String to trim
+     * @param string $trim String to remove from both ends
+     * @param string $charset Character encoding (default: 'UTF-8')
+     * @return string Trimmed string
      */
-
     public static function mb_trim($string, $trim, $charset = 'UTF-8')
     {
         $max = 100;
@@ -1515,13 +1614,13 @@ class _uho_fx
         return $string;
     }
     /**
-     * Insject element to an array
-     * @param array $array
-     * @param int $index
-     * @param string $element
-     * @return array
+     * Inject an element into an array at a specific index
+     *
+     * @param array $array Source array
+     * @param int $index Position to insert element
+     * @param mixed $element Element to insert
+     * @return array Array with injected element
      */
-
     public static function array_inject($array, $index, $element)
     {
         $pre = array_slice($array, 0, $index);
@@ -1531,11 +1630,12 @@ class _uho_fx
     }
 
     /**
-     * Fills array with key/value pair
+     * Fill array elements with key/value pair (by reference)
      *
-     * @param array $array
-     * @param string $key
-     * @param string $value
+     * @param array $array Array to modify (passed by reference)
+     * @param string|array $key Key to add (can be array for nested keys)
+     * @param mixed $value Value to set
+     * @return void
      */
     public static function array_fill_key(&$array, $key, $value): void
     {
@@ -1547,13 +1647,13 @@ class _uho_fx
     }
 
     /**
-     * Load CSV as an object
+     * Load CSV file as an array of associative arrays
      *
-     * @param string $filename
+     * First row is used as keys, subsequent rows as values
      *
-     * @return null|string[][]
-     *
-     * @psalm-return list{0?: array<string, string>,...}|null
+     * @param string $filename Path to CSV file
+     * @param string $delimiter CSV delimiter (default: ';')
+     * @return array|null Array of rows as associative arrays, or null on failure
      */
     public static function loadCsv($filename, $delimiter = ';'): array|null
     {
@@ -1581,11 +1681,13 @@ class _uho_fx
     }
 
     /**
-     * Load CSV as an object
-     * @param string $filename
-     * @return array
+     * Save array data to CSV file
+     *
+     * @param string $filename Path to CSV file
+     * @param array $data Array of rows to save
+     * @param string $delimiter CSV delimiter (default: ';')
+     * @return void
      */
-
     public static function saveCsv($filename, $data, $delimiter = ';')
     {
         $file_to_read = @fopen($filename, 'w');
@@ -1596,6 +1698,13 @@ class _uho_fx
         fclose($file_to_read);
     }
 
+    /**
+     * Convert decimal coordinates to Degrees Minutes Seconds (DMS) format
+     *
+     * @param float $latitude Latitude in decimal format
+     * @param float $longitude Longitude in decimal format
+     * @return string Coordinates in DMS format
+     */
     public static function dec2dms($latitude, $longitude): string
     {
         $latitudeDirection = $latitude < 0 ? 'S' : 'N';
@@ -1627,24 +1736,16 @@ class _uho_fx
         );
     }
 
-    /*
-        Converts Spreadsheet (i.e. from Excel)
-        Where first row are headers, and data starts from the 2nd row
-
-        ID  First_Name     Last_name
-        1   Joe            Doe
-        2   Jane           Smith
-
-        Returns
-        [
-            ['id'=>1,'First_name'=>'Joe','Last_name'=>'Doe],
-            ['id'=>2,'First_name'=>'Jane','Last_name'=>'Smith]
-        ]
-    */
     /**
-     * @return array[]
+     * Convert spreadsheet data (first row as headers) to array of objects
      *
-     * @psalm-return list<non-empty-array>
+     * Example input:
+     *   [['ID', 'First_Name', 'Last_name'], [1, 'Joe', 'Doe'], [2, 'Jane', 'Smith']]
+     * Example output:
+     *   [['ID'=>1, 'First_Name'=>'Joe', 'Last_name'=>'Doe'], ['ID'=>2, 'First_Name'=>'Jane', 'Last_name'=>'Smith']]
+     *
+     * @param array $items Spreadsheet data with headers in first row
+     * @return array Array of associative arrays
      */
     public static function convertSpreadsheet($items): array
     {
@@ -1665,13 +1766,14 @@ class _uho_fx
     }
 
     /**
-     * Resolve a request path to a handler class and extracted params.
+     * Resolve request path to handler class and extract route parameters
+     *
+     * Matches URL patterns with placeholders like "/projects/{id}/download"
      *
      * @param string $queryString Raw request URI (e.g., "/projects/123/download?x=1")
-     * @param array<string,string> $routing Map of "pattern" => "class"
-     * @return array{class:string, params:array<string,string>}|null
+     * @param array $routing Map of "pattern" => "class" (e.g., "/projects/{id}" => "ProjectHandler")
+     * @return array|null Array with 'class' and 'params' keys, or null if no match
      */
-
     public static function resolveRoute(string $queryString, array $routing): ?array
     {
         $path = parse_url($queryString, PHP_URL_PATH) ?? '';
@@ -1679,8 +1781,7 @@ class _uho_fx
 
         $best = null;
 
-        foreach ($routing as $pattern => $class)
-        {
+        foreach ($routing as $pattern => $class) {
             $normPattern = trim($pattern, '/');
             $segments    = $normPattern === '' ? [] : explode('/', $normPattern);
             $literalCount = 0;
@@ -1729,5 +1830,16 @@ class _uho_fx
         }
 
         return $best ? ['class' => $best['class'], 'params' => $best['params']] : null;
+    }
+
+    /**
+     * Get current microtime as float
+     *
+     * @return float Current microtime as float value
+     */
+    public static function microtime_float()
+    {
+        list($usec, $sec) = explode(" ", microtime());
+        return ((float)$usec + (float)$sec);
     }
 }
