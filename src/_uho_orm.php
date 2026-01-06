@@ -127,6 +127,11 @@ class _uho_orm
         $this->root_paths = [];
     }
 
+    public function getRootPaths()
+    {
+        return $this->root_paths;
+    }
+
     /**
      * Adds a root path
      */
@@ -160,14 +165,18 @@ class _uho_orm
     {
 
         $loaded = false;
+        $tried=[];
 
         if (!strpos($filename, '.json')) $filename .= '.json';
+
         foreach ($this->root_paths as $v)
             if (!isset($m)) {
                 $load = $_SERVER['DOCUMENT_ROOT'] . $v . $filename;
+                $tried[]=$load;
                 $m = @file_get_contents($load);
                 if (!$m) {
                     $load =  $v . $filename;
+                    $tried[]=$load;
                     $m = @file_get_contents($load);
                 }
 
@@ -176,8 +185,9 @@ class _uho_orm
                 else unset($m);
                 if (isset($m) && !isset($json)) exit('_uho_orm::JSON parsing error: ' . $v . $filename);
             }
+
         if (!isset($json) && $loaded) $this->errors[] = 'JSON corrupted: ' . $filename;
-        elseif (!isset($json)) $this->errors[] = 'JSON not found:loadJson: ' . $filename;
+        elseif (!isset($json)) $this->errors[] = 'JSON not found:loadJson: ' . implode(', ',$tried);
         if (isset($json)) return $json;
     }
 
@@ -862,7 +872,9 @@ class _uho_orm
             $model = $this->loadJson($filename);
 
             if ($model && !isset($model['model_name'])) $model['model_name'] = $name;
-            $message = '_uho_orm::JSON not found: ' . $filename . ' @ ' . implode(', ', $this->root_paths);
+
+            $message = '_uho_orm::JSON schema not found: ' . $filename . ' @ ' . implode(', ', $this->root_paths).' ::: '.implode(', ',$this->errors);
+
             if (!$model && (!$this->halt_on_error || isset($params['return_error'])))
                 return ['result' => false, 'message' => $message];
             if (!$model && $this->debug) $this->halt($message);
@@ -1112,7 +1124,7 @@ class _uho_orm
 
         foreach ($schema['fields'] as $k => $v)
             // source --> options
-            if (@$v['source'] && !@$v['options'] && @$v['input'] != 'search') {
+            if (@$v['source'] && !@$v['options'] && @$v['cms']['input'] != 'search') {
                 $prefix = '';
                 // many models -> lets' get first for a start
                 /*if ($v['source']['models'])
@@ -3165,7 +3177,6 @@ class _uho_orm
     {
         $sql_schema = $this->getSchemaSQL($schema);
 
-
         $charset = 'utf8mb4';
         $collate = 'utf8mb4_general_ci';
 
@@ -3197,7 +3208,7 @@ class _uho_orm
     public function updateTable($schema, $action)
     {
         $sql_schema = $this->getSchemaSQL($schema);
-
+        
         $columns = $this->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
 
         /*
@@ -3391,6 +3402,7 @@ class _uho_orm
                     'folder' => ['type' => 'string'],
                     'folder_preview' => ['type' => 'string'],
                     'header' => ['type' => 'array'],
+                    'layout' => ['type' => 'array'],
                     'length' => ['type' => 'integer'],
                     "long" => ['type' => 'boolean'],
                     'media' => ['type' => 'string'],
@@ -3416,11 +3428,13 @@ class _uho_orm
                     'help' => ['type' => ['string', 'array']],
                     'hidden' => ['type' => 'boolean'],
                     'hr' => ['type' => 'boolean'],
+                    'input' => ['type' => ['string']],
                     'max' => ['type' => 'integer'],
                     'label' => ['type' => 'string'],
                     'label_PL' => ['type' => 'string'],
                     'label_EN' => ['type' => 'string'],
                     'list' => ['type' => ['string', 'array']],
+                    'layout' => ['type' => 'array'],
                     'on_demand' => ['type' => 'boolean'],
                     'position_before' => ['type' => 'string'],  //tbd
                     'position_after' => ['type' => 'string'],     //tbd

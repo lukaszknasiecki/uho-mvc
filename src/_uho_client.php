@@ -608,7 +608,6 @@ class _uho_client
    *
    * @return array user's data
    *
-   * @psalm-param array<array-key|mixed, 0|array{0?: 'confirmed', type?: 'sql', value?: string}|mixed|string> $params
    */
   public function getClient(array $params, $skip_provider = false, $skip_pass_check = false)
   {
@@ -1147,7 +1146,6 @@ class _uho_client
    *
    * @param string $action action to add to the logs
    *
-   * @psalm-param 0|1|null $result
    */
   public function logsAdd($action, int|null $result = null): void
   {
@@ -1666,7 +1664,6 @@ class _uho_client
    *
    * @return string|string[] returns encrypted string/query
    *
-   * @psalm-return array{type: 'sql', value: string}|string
    */
   private function encodePassword($pass, $filter = false, $salt = null): array|string
   {
@@ -2068,7 +2065,6 @@ class _uho_client
    *
    * @return bool|true[] returns ['result'=>true] if went well
    *
-   * @psalm-return array{result: true, mailing: true}|bool
    */
   public function newsletterAdd($email, $mailing = false, $url = null, $list = null): array|bool
   {
@@ -2199,7 +2195,6 @@ class _uho_client
    *
    * @return (bool|mixed)[]
    *
-   * @psalm-return array{result: bool, message?: mixed}
    */
   private function newsletterGetResponseAddDataToList($api_key, $list_token, $email): array
   {
@@ -2229,7 +2224,6 @@ class _uho_client
    *
    * @return (bool|mixed|string)[]
    *
-   * @psalm-return array{result: bool, message?: 'System error', key_confirm?: mixed|string}
    */
   public function newsletterStandardAddData($email): array
   {
@@ -2307,7 +2301,6 @@ class _uho_client
    *
    * @return array|null
    *
-   * @psalm-return list<mixed>|null
    */
   public function favouritesGet($type)
   {
@@ -2389,7 +2382,6 @@ class _uho_client
    * @param int $days_agree number of max days before expiration
    * @param string $mailing_url url to avoid expiration
    *
-   * @psalm-return int<0, max>
    */
   public function gdpr_extension_mailing($days_agree, $mailing_url): int
   {
@@ -2467,7 +2459,6 @@ class _uho_client
    *
    * @return (false|string)[]|null user's data
    *
-   * @psalm-return array{result: false, message: 'oAuth.epuap not found'}|null
    */
   public function loginEpuapStart($type, $sso_return_url, $debug = false)
   {

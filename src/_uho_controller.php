@@ -59,10 +59,13 @@ class _uho_controller
 
     public function __construct(array $cfg, object $model, object $view, object $router)
     {
+        
         $this->cfg = $cfg;
         $this->model = $model;
+        
         if (isset($cfg['s3'])) $this->model->setS3($cfg['s3']);
         if (isset($this->model)) $this->model->csrf_token_create(@$this->application_params['application_domain']);
+        
         $this->view = $view;
         $this->route = $router;
     }

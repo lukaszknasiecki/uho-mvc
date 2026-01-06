@@ -531,7 +531,7 @@ class _uho_model
      * @param array $s3
      */
     public function setS3($s3): void
-    {
+    {        
         if (isset($s3['host'])) {
             $host = $s3['host'] . '/';
             if (!empty($s3['folder']) && $s3['folder'] != 'folder') $host .= $s3['folder'] . '/';
