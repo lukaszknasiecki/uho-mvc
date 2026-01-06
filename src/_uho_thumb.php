@@ -74,7 +74,7 @@ class _uho_thumb
      *
      * @psalm-return array{result: bool, errors: string}|false
      */
-    public static function fileMagicBytesCheck($filename, $file): array|false
+    public static function fileMagicBytesCheck($filename, $file): array
     {
         if ($filename) {
             $ext = explode('.', strtolower($filename));
@@ -83,17 +83,28 @@ class _uho_thumb
             $result = false;
         $errors = '';
 
-        $bytes = array('jpeg' => 'FF D8', 'jpg' => 'FF D8', 'gif' => '47 49 46 38', 'png' => '89 50 4E 47 0D 0A 1A 0A', 'webp' => '52 49 46 46');
+        $bytes = array('jpeg' => 'FF D8', 'jpg' => 'FF D8', 'gif' => '47 49 46 38', 'png' => '89 50 4E 47 0D 0A 1A 0A');
 
         $handle = @fopen($file, "r");
-        if (!$handle) return false;
+        if (!$handle) return ['result' => false, 'errors' => 'Cannot open source file (' . $file . ')'];
 
-        // read file beginning
-        if (!$handle) {
-            $errors = 'Cannot read source file (' . $file . ')';
-        } else {
-            $contents = fread($handle, 10);
+        // read file beginning (need at least 12 bytes for WebP validation)
 
+        $contents = fread($handle, 12);
+        fclose($handle);
+
+        // Check WebP format separately (requires checking both RIFF header and WEBP signature)
+        if (strlen($contents) >= 12) {
+            $riffHeader = bin2hex(substr($contents, 0, 4));
+            $webpSignature = bin2hex(substr($contents, 8, 4));
+
+            if (strtoupper($riffHeader) === '52494646' && strtoupper($webpSignature) === '57454250') {
+                $result = true;
+            }
+        }
+
+        // Check other formats if not already validated
+        if (empty($result)) {
             foreach ($bytes as $v) {
                 if (empty($result)) {
                     $b = explode(' ', $v);
@@ -106,10 +117,12 @@ class _uho_thumb
                     }
                 }
             }
-            if (!$result) {
-                $errors = 'Wrong file structure for ' . $filename;
-            }
         }
+
+        if (!$result) {
+            $errors = 'Wrong file structure for ' . $filename;
+        }
+
 
         return array('result' => $result, 'errors' => $errors);
     }
@@ -165,7 +178,7 @@ class _uho_thumb
 
         $dir2 = dirname($file2);
         if (!file_exists($dir2)) {
-            array_push($comments, 'Utworzono folder:' . $dir2);
+            array_push($comments, 'Folder created:' . $dir2);
             mkdir($dir2, 0755, true);
         }
 
@@ -282,7 +295,7 @@ class _uho_thumb
             $file2webp = implode('.', $file2webp);
         }
 
-        $resize_type=null;
+        $resize_type = null;
 
         //----------------------------------------------------------------------------------------------
         // 1. copy
@@ -297,12 +310,12 @@ class _uho_thumb
         ) {
 
             if ($copyOnly) {
-                $resize_type='copy';
+                $resize_type = 'copy';
                 $r = @copy($file1, $file2);
             } else {
                 $r = @move_uploaded_file($file1, $file2);
                 $r = @copy($file1, $file2);
-                $resize_type='copy-move';
+                $resize_type = 'copy-move';
             }
 
             if ($webp && $pic) {
@@ -313,27 +326,21 @@ class _uho_thumb
             }
 
             if ($r) {
-                _uho_thumb::applyPostFilters($file2, @$v['mask']);
-                if (defined("developer") && developer == 1) {
-                    array_push($comments, '[OK] Obrazek (' . $source_filename . ') jest w docelowym rozmiarze - został przekopiowany (' . $nr . ',' . $file2 . ')');
-                }
+                array_push($comments, '[OK] Image (' . $source_filename . ') has already proper size, copy only (' . $nr . ',' . $file2 . ')');
             } else {
-                array_push($errors, '[ERROR 34::'.$resize_type.'] PROBABLY NO FOLDER ACCESS (' . $file1 . ' [' . $width . 'x' . $height . '] -> ' . $file2 . ').');
+                array_push($errors, '[ERROR 34::' . $resize_type . '] PROBABLY NO FOLDER ACCESS (' . $file1 . ' [' . $width . 'x' . $height . '] -> ' . $file2 . ').');
             }
         }
         //----------------------------------------------------------------------------------------------------
         // 2. crop
 
-        elseif (!isset($v['cut']) || $v['cut'] == 0 || $v['cut'] == 1 || !$goodratio)
-        {
-            if ($predefined_crop)
-            {
-                $resize_type='predefined-crop';
+        elseif (!isset($v['cut']) || $v['cut'] == 0 || $v['cut'] == 1 || !$goodratio) {
+            if ($predefined_crop) {
+                $resize_type = 'predefined-crop';
             } elseif // ------------------------------
             // by ratio
-            (!$goodratio)
-            {
-                $resize_type='crop-no-good-ratio';
+            (!$goodratio) {
+                $resize_type = 'crop-no-good-ratio';
                 $x1 = 0;
                 $y1 = 0;
                 $xx1 = $v['width'];
@@ -360,9 +367,8 @@ class _uho_thumb
             }
             // ------------------------------
             // no cropping
-            elseif (!isset($v['cut']) || $v['cut'] == 0)
-            {
-                $resize_type='no-cropping';
+            elseif (!isset($v['cut']) || $v['cut'] == 0) {
+                $resize_type = 'no-cropping';
                 $x1 = 0;
                 $y1 = 0;
                 $xx1 = $width;
@@ -402,7 +408,7 @@ class _uho_thumb
 
             // cropping classic
             else {
-                $resize_type='crop-classic';
+                $resize_type = 'crop-classic';
                 // -------------------------------------------------
                 // vertical area cut
                 if (($v['width'] / $width) > ($v['height'] / $height)) {
@@ -590,6 +596,7 @@ class _uho_thumb
                 PhpThumb shows some warings
                 That's to remove them
             */
+
             $ini_errors = ini_get('display_errors');
             ini_set('display_errors', 0);
 
@@ -606,8 +613,6 @@ class _uho_thumb
                 // success
                 {
 
-                    _uho_thumb::applyPostFilters($file2, @$v['mask']);
-
                     if ($webp) {
                         @unlink($file2webp);
                         $phpThumb1->config_output_format = 'webp';
@@ -623,22 +628,12 @@ class _uho_thumb
             } else {
                 if (!function_exists('imageantialias')) _uho_thumb::addError($errors, 2);
                 elseif (!is_uploaded_file($file1)) {
-                    //print_r($phpThumb1->debugmessages);
-                    _uho_thumb::addError($errors, 1); //,$phpThumb1->debugmessages);
-
-
-
+                    _uho_thumb::addError($errors, 1);
                 }
             }
 
             if ($ini_errors !== false) ini_set('display_errors', $ini_errors);
         }
-
-
-
-        //if ($test) {
-        //    exit('x!'.implode('<br>', $comments).implode('<br>', $errors));
-        //}
 
 
         if ($errors) {
@@ -647,44 +642,5 @@ class _uho_thumb
             $result = true;
         }
         return (array('result' => $result, 'webp' => @$file2webp, 'comments' => $comments, 'errors' => $errors));
-    }
-
-    /**
-     * Applies post-filters to resized image
-     *
-     * @param string $file2
-     * @param object $mask
-     */
-    private static function applyPostFilters($file2, $mask): void
-    {
-
-        $size = @getimagesize($file2);
-        if ($size && $mask)
-            switch ($mask['type']) {
-
-                case "blend":
-
-                    $resizedxx = intval($size[0]);
-                    $resizedyy = intval($size[1]);
-
-                    $command = '/usr/local/bin/convert ' . $file2 . ' ' . $_SERVER['DOCUMENT_ROOT'] . $mask['image'] . ' -resize ' . $resizedxx . 'x' . $resizedyy . '\!  -compose ' . $mask['blend'] . ' -composite ' . $file2;
-                    exec($command);
-
-                    break;
-
-                case "merge":
-                    $png = @imagecreatefrompng($_SERVER['DOCUMENT_ROOT'] . $mask['image']);
-                    $jpg = @imagecreatefromjpeg($file2);
-
-                    $out = imagecreatetruecolor(imagesx($png), imagesy($png));
-                    $color = imagecolorallocate($out, 255, 255, 255);
-                    imagefilledrectangle($out, 0, 0, imagesx($out), imagesy($out), $color);
-
-                    imagecopyresampled($out, $jpg, $mask['x'], $mask['y'], 0, 0, imagesx($jpg), imagesy($jpg), imagesx($jpg), imagesy($jpg));
-                    imagecopyresampled($out, $png, 0, 0, 0, 0, imagesx($png), imagesy($png), imagesx($png), imagesy($png));
-                    imagejpeg($out, $file2, 90);
-
-                    break;
-            }
     }
 }

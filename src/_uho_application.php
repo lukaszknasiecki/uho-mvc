@@ -8,7 +8,6 @@ use Huncwot\UhoFramework\_uho_controller;
 use Huncwot\UhoFramework\_uho_model;
 use Huncwot\UhoFramework\_uho_orm;
 use Huncwot\UhoFramework\_uho_route;
-use Huncwot\UhoFramework\_uho_view;
 use Huncwot\UhoFramework\_uho_mysqli;
 
 
@@ -179,8 +178,8 @@ class _uho_application
             $lang_model = null;
         }
         
-        $this->view = new $view_class($app_class, $app_path . "views", "application/views", $root_path);
-        $this->view->debug = $development;
+        $this->view = new $view_class($root_path,'/application/views/');
+        $this->view->setDebug($development);
 
         $this->cms = new $model_class(
             $this->sql,

@@ -21,7 +21,7 @@ class _uho_controller
      */
     public $model;
     /**
-     * instancw of _uho_view
+     * instance of _uho_view
      */
     public $view;
     /**

@@ -1837,7 +1837,7 @@ class _uho_fx
      *
      * @return float Current microtime as float value
      */
-    public static function microtime_float()
+    public static function microtime_float() : float
     {
         list($usec, $sec) = explode(" ", microtime());
         return ((float)$usec + (float)$sec);
