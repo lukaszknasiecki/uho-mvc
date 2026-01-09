@@ -132,4 +132,109 @@ class _uho_rest
         }
         return null;
     }
+
+    /*
+    Validate Required Parameters
+  */
+
+    public static function validateRequiredInput($data = null, $required = [])
+    {
+        foreach ($required as $k => $v)
+            if (empty($data[$v])) return false;
+        return true;
+    }
+
+    /*
+    Sanitize Input Paramaters
+  */
+
+    public static function sanitizeInput($data = null, array $allowed = [])
+    {
+        $result = [];
+
+        // filter by allowed keys
+        foreach ($allowed as $key => $v)
+            if (!empty($data[$key])) $result[$key] = $data[$key];
+
+        // sanitize
+        return _uho_fx::sanitize_input($result, $allowed);
+    }
+
+
+
+    /*
+    Input validation - Method and Data
+
+    [
+                'method' => ['value' => [method], 'supported' => ['GET','POST']],
+                'sanitize' =>
+                [
+                    [
+                        'value' => [array],
+                        'supported' =>
+                        [
+                            'label' => 'string'
+                            'email' => 'email'
+                        ],
+                        'required'=>
+                        [
+                            'email'
+                        ]
+                    ]
+                ]
+            ]
+
+  */
+
+
+    public static function validateRequest(array $data)
+    {
+
+        // validate request method
+        if (isset($data['method']) && !_uho_rest::validateHttpRequestMethod($data['method']['value'], $data['method']['supported']))
+            return ['header' => 405, 'error' => 'Invalid method'];
+
+        // sanitize request data
+
+        if (!empty($data['sanitize'])) {
+            foreach ($data['sanitize'] as $k => $v) {
+                $data['sanitize'][$k]['value'] = _uho_rest::sanitizeInput($v['value'], $v['supported']);
+                // required
+                if (!empty($v['required'])) {
+                    $val = isset($data['sanitize'][$k]['value']) ? $data['sanitize'][$k]['value'] : null;
+                    if (!_uho_rest::validateRequiredInput($val, $v['required']))
+                        return ['header' => 401, 'error' => 'Missing required params'];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /*
+    Helper: Google Captcha
+  */
+
+    public static function captcha($captcha)
+    {
+        if (!$captcha) return ['header' => 400, 'message' => 'Captcha missing'];
+        $secret = $this->getApiKey('google_recaptcha', 'private');
+        if (!$secret) return ['header' => 500, 'message' => 'Captcha key fot found'];
+
+        $data = array(
+            'secret' => $secret,
+            'response' => $captcha
+        );
+
+        $verify = curl_init();
+        curl_setopt($verify, CURLOPT_URL, "https://www.google.com/recaptcha/api/siteverify");
+        curl_setopt($verify, CURLOPT_POST, true);
+        curl_setopt($verify, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($verify, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($verify, CURLOPT_RETURNTRANSFER, true);
+        $jsonresponse = curl_exec($verify);
+        $responseKeys = json_decode($jsonresponse, true);
+        if (intval($responseKeys["success"]) == 1) return true;
+        else return ['header' => 400, 'message' => 'Captcha invalid'];
+    }
 }

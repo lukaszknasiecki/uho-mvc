@@ -898,7 +898,7 @@ class _uho_orm
         }
 
         // setting field defaults ------------------------------------------------------------
-        if ($model && is_array($model['fields']))
+        if ($model && isset($model['fields']) && is_array($model['fields']))
             foreach ($model['fields'] as $k => $v)
                 if (!isset($v['type'])) {
                     if ($v['field'] == 'id') $model['fields'][$k]['type'] = 'integer';
@@ -2079,6 +2079,7 @@ class _uho_orm
 
                             break;
                         case "json":
+                        case "blocks":
 
                             if (strpos(@$v2['field'], ':lang')) {
                                 $v3 = explode(':', $v2['field']);
@@ -2312,6 +2313,7 @@ class _uho_orm
                             $val = intval($val);
                             break;
                         case 'json':
+                        case 'blocks':    
                             $val = json_encode($val);
                             break;
                         case 'elements':
@@ -3080,6 +3082,9 @@ class _uho_orm
                 case "integer":
                     $type = 'int(11)';
                     break;
+                case "blocks":
+                    $type = 'json';
+                    break;
                 case "uid":
                     $type = 'varchar(13)';
                     break;
@@ -3175,6 +3180,7 @@ class _uho_orm
      */
     public function createTable($schema, $sql)
     {
+        $performed_action=null;
         $sql_schema = $this->getSchemaSQL($schema);
 
         $charset = 'utf8mb4';
@@ -3199,6 +3205,9 @@ class _uho_orm
 
         foreach ($queries as $v)
             if (!$this->queryOut($v)) exit('SQL ERROR: <pre>' . $this->getLastError() . '</pre>');
+
+        $performed_action='table_create';
+        return['action'=>$performed_action];
     }
 
 
@@ -3207,8 +3216,9 @@ class _uho_orm
      */
     public function updateTable($schema, $action)
     {
-        $sql_schema = $this->getSchemaSQL($schema);
+
         
+        $sql_schema = $this->getSchemaSQL($schema);        
         $columns = $this->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
 
         /*
@@ -3240,8 +3250,10 @@ class _uho_orm
         }
 
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
+        $performed_action=null;
 
-        if ($update || $add) {
+        if ($update || $add)
+        {
             if ($action == 'alert') {
                 $html = '<h3>Schema for [<code>' . $schema['table'] . '</code>] needs to be updated.</h3><ul>';
                 foreach ($add as $v)
@@ -3256,18 +3268,22 @@ class _uho_orm
 
             if ($action == 'auto') {
                 foreach ($update as $v) {
+                    $performed_action='table_update';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` CHANGE `' . $v['Field'] . '` `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL';
                     if (!$this->queryOut($query)) $this->halt('SQL error: ' . $query);
                 }
 
                 foreach ($add as $v) {
+                    $performed_action='table_create';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` ADD `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL';
                     if (!$this->queryOut($query)) $this->halt('SQL error: ' . $query);
                 }
             }
         }
+
+        return['action'=>$performed_action];
     }
 
     /*
@@ -3311,13 +3327,15 @@ class _uho_orm
         if (!$exists) {
             if (isset($options) && !empty($options['create'])) {
                 $sql = isset($options['create_sql']) ? $options['create_sql'] : null;
-                $this->createTable($schema, $sql);
+                $response=$this->createTable($schema, $sql);
                 $messages[] = 'Table has been created';
+                if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_create';
         } else {
             if (isset($options) && !empty($options['update'])) {
-                $this->updateTable($schema, $options['update']);
+                $response=$this->updateTable($schema, $options['update']);
                 $messages[] = 'Table has been updated';
+                if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_update';
         }
 
@@ -3338,7 +3356,11 @@ class _uho_orm
         }
 
 
-        return ['actions' => $actions, 'messages' => $messages, 'additional' => $additional_results];
+        return [
+                    'actions' => $actions,
+                    'messages' => $messages,
+                    'additional' => $additional_results
+                ];
     }
 
     public function validateSchemaObject($object, $schema)

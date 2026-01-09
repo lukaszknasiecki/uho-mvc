@@ -1,13 +1,42 @@
 #!/usr/bin/env php
 <?php
 
-echo "UHO-MVC validator...\n\n";
+echo "UHO-MVC builder...\n\n";
+$_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 
 require __DIR__ . '/../vendor/autoload.php';
 
 use Huncwot\UhoFramework\_uho_orm;
+use Huncwot\UhoFramework\_uho_load_env;
+use Huncwot\UhoFramework\_uho_mysqli;
 
-$path_original = $path = $argv[1] ?? __DIR__ . '/../../..';
+function validate_env()
+{
+
+}
+
+/*
+    Env read
+*/
+$env_path = $argv[1];
+if (!$env_path || !file_exists($env_path)) exit('Env file not found');
+
+$env_loader = new _uho_load_env($env_path);
+$env_loader->load();
+
+$required=['SQL_HOST', 'SQL_BASE', 'SQL_USER', 'SQL_PASS'];
+
+foreach ($required as $req) {
+    if (!getenv($req)) {
+        exit("Error: required env variable missing: $req\n");
+    }
+}
+
+/*
+    Schemas read
+*/
+
+$path_original = $path = $argv[2] ?? __DIR__ . '/../../..';
 $path .= '/application/models/';
 $path = rtrim($path, '/');
 
@@ -33,19 +62,23 @@ if (!$schemas)
         exit(1);
     }
 
+$sql = new _uho_mysqli();
+$sql->init(
+    getenv('SQL_HOST'),
+    getenv('SQL_USER'),
+    getenv('SQL_PASS'),
+    getenv('SQL_BASE')
+);
 
-//$settings = ['create' => 'alert', 'update' => 'alert'];
-
-$orm = new _uho_orm(null, null, null, null, true);
-
-$_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
-
+$orm = new _uho_orm(null, $sql, null, null, true);
 $orm->addRootPath($path);
 
 $i = 0;
 $e = 0;
 $err = [];
-$valid = 0;
+$created = 0;
+$updated = 0;
+$settings = ['create' => 'auto', 'update' => 'alert'];
 
 foreach ($schemas as $section => $list)
     foreach ($list as $schema) {
@@ -63,20 +96,38 @@ foreach ($schemas as $section => $list)
 
         if ($model)
         {
+            /*
+                Validation
+            */
             $schema = $orm->getSchema($model, null, ['return_error' => true]);
             if (@$schema['result'] === false) $err[] = 'Schema definition not found: ' . $model;
             else {
                 $response = $orm->validateSchema($schema);
                 if ($response['errors']) {
                     $err[] = '*** Error in [' . $model . '] ::: ' . implode(', ', $response['errors']);
-                } else $valid++;
+                } else
+                /*
+                    Create / Update
+                */
+                {
+                    $response=$orm->creator($schema, $settings);
+                    if (in_array('table_update', $response['actions'])) $updated++;
+                    if (in_array('table_create', $response['actions'])) $created++;
+                    
+
+
+                }
             }
         }
     }
+
+
+
 if ($err)
     foreach ($err as $error)
         echo "$error\n";
 
-echo "Schemas (" . count($err) . ") invalid.\n";
-echo "Schemas (" . $valid . ") valid.\n";
+echo "Schemas (\e[31m" . count($err) . "\e[0m) invalid.\n";
+echo "Schemas (\e[33m" . $created . "\e[0m) created.\n";
+echo "Schemas (\e[32m" . $updated . "\e[0m) updated.\n";
 exit(0);
