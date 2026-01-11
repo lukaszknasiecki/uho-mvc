@@ -750,136 +750,9 @@ class _uho_client
     }
   }
 
-  /**
-   * Facebook login
-   * @param string $accessToken token from FB API
-   * @return boolean returns true if successfull
-   */
-  /*
-  public function loginFacebook($accessToken)
-  {
-
-    // token derived from JS popup login
-    // params --> additional data to update
-
-    if (!$this->oAuth['facebook']) return ['result' => false, 'Facebook oAuth config missing'];
-
-    $fb = new \Facebook\Facebook(
-      array(
-        'app_id'  => $this->oAuth['facebook'][0],
-        'app_secret' => $this->oAuth['facebook'][1]
-      )
-    );
-
-
-    if (!$accessToken) {
-      $helper = $fb->getRedirectLoginHelper();
-      // TOKEN
-      try {
-        $accessToken = $helper->getAccessToken();
-      } catch (\Facebook\Exceptions\FacebookResponseException $e) {
-        // When Graph returns an error
-        echo 'Graph returned an error: ' . $e->getMessage();
-        exit;
-      } catch (\Facebook\Exceptions\FacebookSDKException $e) {
-        // When validation fails or other local issues
-        echo 'Facebook SDK returned an error: ' . $e->getMessage();
-        exit;
-      }
-
-      if (!isset($accessToken)) {
-        if ($helper->getError()) {
-          header('HTTP/1.0 401 Unauthorized');
-          echo "Error: " . $helper->getError() . "\n";
-          echo "Error Code: " . $helper->getErrorCode() . "\n";
-          echo "Error Reason: " . $helper->getErrorReason() . "\n";
-          echo "Error Description: " . $helper->getErrorDescription() . "\n";
-        } else {
-          header('HTTP/1.0 400 Bad Request');
-          echo 'Bad request';
-          exit();
-        }
-        exit;
-      }
-    }
-
-
-    try {
-      $oAuth2Client = $fb->getOAuth2Client();
-      $tokenMetadata = $oAuth2Client->debugToken($accessToken);
-      $tokenMetadata->validateAppId($this->oAuth['facebook'][0]);
-      $tokenMetadata->validateExpiration();
-    } catch (\Facebook\Exceptions\FacebookResponseException $e) {
-      echo 'Graph returned an error: ' . $e->getMessage();
-      exit;
-    } catch (\Facebook\Exceptions\FacebookSDKException $e) {
-      echo 'Facebook SDK returned an error: ' . $e->getMessage();
-      exit;
-    }
-
-    try {
-      // Returns a `Facebook\FacebookResponse` object
-      $response = $fb->get('/me?fields=id,first_name,last_name,email', $accessToken);
-    } catch (\Facebook\Exceptions\FacebookResponseException $e) {
-      exit('Graph returned an error: ' . $e->getMessage());
-    } catch (\Facebook\Exceptions\FacebookSDKException $e) {
-      exit('Facebook SDK returned an error: ' . $e->getMessage());
-    }
-
-    $facebook_user_profile = $response->getGraphUser();  // id, name, email
-
-    if ($facebook_user_profile) {
-      $data = array();
-      $data['name'] = $facebook_user_profile['first_name'];
-      $data['surname'] = $facebook_user_profile['last_name'];
-      $data['email'] = $facebook_user_profile['email'];
-      $data['facebook_id'] = $facebook_user_profile['id'];
-      $data['image'] = 'https://graph.facebook.com/' . $data['facebook_id'] . '/picture?type=large';
-      $data['status'] = 'confirmed';
-      $result = $this->register($data);
-    } else $result = false;
-
-
-    if ($result) {
-
-      $result = $this->login(null, null, ['facebook_id' => $facebook_user_profile['id']]);
-    }
-
-
-    return ($result);
-  }
-*/
-
-  /**
-   * Facebook Oauth Section
-   * 
-   * loginFacebookClient    --> creates Facebook Client
-   * loginFacebookInit      --> shows Facebook Oauth Popup
-   * loginFacebook          --> registers / logins user
-   */
-
-  private function loginFacebookClient()
-  {
-
-    $client = new \Facebook\Facebook([
-      'app_id' => $this->oAuth['facebook']['client_id'],
-      'app_secret' => $this->oAuth['facebook']['client_secret'],
-      'default_graph_version' => 'v19.0'
-    ]);
-
-
-    return $client;
-  }
 
   public function loginFacebookInit()
   {
-    /*
-    $client = $this->loginFacebookClient();
-    $helper = $client->getRedirectLoginHelper();
-
-    $permissions = ['email', 'public_profile'];
-    $authUrl = $helper->getLoginUrl($this->oAuth['facebook']['redirect_uri'], $permissions);*/
-
     $redirectUri = "https://www.facebook.com/v23.0/dialog/oauth?" . http_build_query([
       'client_id' => $this->oAuth['facebook']['client_id'],
       'response_type' => 'code',
@@ -1247,44 +1120,6 @@ class _uho_client
         @unlink($destination . $v['folder'] . '/' . $uid . '.jpg');
     }
   }
-
-  /**
-   * Sets user's permissions GDPR expiration date
-   * @param string $token user's unque token
-   * @param string $date expiration date
-   * @return boolean returns true if succeed
-   */
-  /*
-  public function setGdprExpirationDate($date, $token = null)
-  {
-    $result = false;
-    if ($token) {
-      $user = $this->getUserToken($token);
-      if ($user) {
-        $data = ['id' => $user['user'], 'gdpr_expiration_date' => $date];
-        $result = $this->orm->putJsonModel($this->clientModel, $data);
-        $this->setUserTokenUsed($token);
-      }
-    } elseif ($this->isLogged()) {
-      $data = ['id' => $this->getClientId(), 'gdpr_expiration_date' => $date];
-      $result = $this->orm->putJsonModel($this->clientModel, $data);
-    }
-    return $result;
-  }
-  */
-
-  /*
-  public function getGdprExpirationDate($token)
-  {
-    $result = null;
-    $user = $this->getUserToken($token, 0);
-    if (!$user) $user = $this->getUserToken($token, 1);
-    if ($user) {
-      $result = $this->orm->getJsonModel($this->clientModel, ['id' => $user['user']], true);
-      if ($result) $result = $result['gdpr_expiration_date'];
-    }
-    return $result;
-  }*/
 
   /**
    * Creates new user
@@ -1912,16 +1747,6 @@ class _uho_client
         return $token;
       }
     }
-  }
-
-  /**
-   * Marks user token as used so it's not used again
-   *
-   * @param string $token token value
-   */
-  private function setUserTokenUsed($token): void
-  {
-    $this->orm->putJsonModel($this->tokenModel, ['used' => 1], ['value' => $token]);
   }
 
   /**

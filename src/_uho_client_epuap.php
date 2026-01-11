@@ -5,6 +5,16 @@ namespace Huncwot\UhoFramework;
 /**
  * This is the class to connect with
  * LOGIV.GOV.PL (also known as EPuap)
+ * 
+ * Requires $params array with access data:
+ * 'type' - environment type,  prod|symulator                        
+ * 'debug' - true|false, outputs comments
+ * 'temp_folder' - folder to store temporary processing files
+ * 'sso_return_url' - authorizes return URL
+ * 'issuer' - name of issuer of the key
+ * 'p12_sig_path' - path to P12 access key
+ * 'p12_sig_pass' - P12 key password
+ * 'java_sign_xml' - path to JAR sigining file: uho_epuap_xml_sig.jar, you can find it in /bin folder
  */
 
 class _uho_client_epuap

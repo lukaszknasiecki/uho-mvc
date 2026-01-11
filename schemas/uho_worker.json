@@ -1,0 +1,42 @@
+{
+    "table": "uho_worker",
+    "order": "date_created",
+    "fields": [
+        {
+            "field": "date_created",
+            "type": "datetime"
+        },
+        {
+            "field": "date_completed",
+            "type": "datetime"
+        },
+        {
+            "field": "action"
+        },
+        {
+            "field": "status",
+            "type": "select",
+            "options": [
+                {
+                    "value": "waiting"
+                },
+                {
+                    "value": "success"
+                },
+                {
+                    "value": "error"
+                },
+                {
+                    "value": "processing"
+                },
+                {
+                    "value": "disabled"
+                }
+            ]
+        },
+        {
+            "field": "message",
+            "type": "text"
+        }
+    ]
+}
