@@ -9,6 +9,109 @@ use Huncwot\UhoFramework\_uho_thumb;
  * This is an ORM class providing model-based communication
  *  with mySQL databases, using JSON composed model structures
  * It also supports image caching including S3 support
+ *
+ * CLASS METHODS INDEX
+ *
+ * Constructor:
+ * - __construct($model, $sql, $lang, $keys, $test = false)
+ *
+ * Global options
+ * - getLanguages()
+ * - setLangs($t): void
+ * - changeLang($lang): void
+ * - setKeys($keys): void
+ * - sqlSafe($s)
+ * Error Handlers
+ * - setDebug($q): void
+ * - setLogErrors($q): void
+ * - printErrors(): void
+ * - getLastError(): string
+ * - setHaltOnError(bool $halt): void
+ * - halt(string $message)
+* Managing schema paths
+ * - removeRootPaths(): void
+ * - getRootPaths()
+ * - addRootPath($path): void
+ * - getLoadJsonPaths()
+ * - loadJson($filename)
+ * Filename caching
+ * - fileAddTime(&$f): void
+ * - setFilesDecache($q): void
+ * - fileRemoveTime($f)
+ * - imageAddSize(&$f): void
+ * SQL queries
+ * - query($query, $single = false, $stripslashes = true, $key = null, $do_field_only = null, $force_sql_cache = false)
+ * - queryOut($query)
+ * - queryMultiOut($query)
+ * - multiQueryOut($query)
+ * Schemas
+ * - getSchema($name, $lang = false, $params = [])
+ * - getJsonModelSchemaWithPageUpdate($name, $lang = false)
+ * - getJsonModelSchema($name, $lang = false, $params = [])
+ * - updateSchemaSources($schema, $record = null, $params = null)
+ * - updateSchemaLanguages($schema)
+ * Rest methods
+ * - getJsonModelUpdateField($field, $v0, $full = null)
+ * - getJsonModelFiltersQuery($model)
+ * - getJsonModel0($name, $p)
+ * - getJsonModelFilters($name, $filters = null, $single = false, $order = null, $limit = null, $count = false, $dataOverwrite = null, $cache = false, $groupBy = null)
+ * - getJsonModelShort($model, $filters, $params)
+ * - getJsonModelDeep($name, $filters = null, $single = false, $settings = null, $params = null, $parents = null)
+ * - get($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
+ * - post($model, $data, $multiple = false)
+ * - delete($model, $filters, $multiple = false): bool
+ * - put($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
+ * - patch($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
+ * - getJsonModel($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
+ * - buildOutputQuery($model, $data, string $join = ','): array|string
+ * - updateOrderBy($query)
+ * - getInsertId()
+ * - truncateModel($model)
+ * - deleteJsonModel($model, $filters, $multiple = false): bool
+ * - postJsonModel($model, $data, $multiple = false): bool|int
+ * - putJsonModel($model, $data, $filters = null, $multiple = false, $externals = true, $params = [])
+ * - imageAddServer(&$f, $server): void
+ * - getTwigFromHtml($html, $data)
+ * - getTwigFromFile($folder, $file, $data)
+ * - filterResults($schema, $data, $filters, $any = false)
+ * - updateRecordSources($schema, $record)
+ * - updateJsonModelSchemaRange($schema, $range)
+ * - updateJsonModelSchemaRanges($schema, $single)
+ * - checkModel($model)
+ * - schemaValidate($schema): array
+ * - sanitizeFields($fields)
+ * - setFolderReplace($source, $destination, $s3 = null): void
+ * - setAltTables($items): void
+ * - setImageSizes($onOff): void
+ * - getSchemaSQL($schema): array
+ * - createTable($schema, $sql)
+ * - updateTable($schema, $action)
+ * - creator(array $schema, $options, $recursive = false, $update_languages = true): array
+ * - validateSchemaObject($object, $schema)
+ * - validateSchemaField(array $field, bool $strict): array
+ * - validateSchema(array $schema, bool $strict = false): array
+ * Image upload
+ * - convertBase64($image, $allowed_extensions)
+ * - setTempPublicFolder($folder)
+ * - uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
+ * - removeImage($model_name, $record_id, $field_name)
+ * - addImage($model_name, $record_id, $field_name, $image)
+ * - addImageSrc($model_name, $record_id, $field_name, $filename)
+ * - getTempFilename()
+ * - updateTemplate($vv, $v, $twig = false)
+ * - checkConnection(string|null $message = null): void
+ * - buildOutputQueryMultiple($model, $data, $output = 'query')
+ * - putExternals($model, $data): void
+ * S3 Bucket Support
+ * - getS3()
+ * - setS3Compress($compress): bool
+ * - setUhoS3($object): void
+ * - s3setCache($cache): void
+ * - s3getCacheFilename()
+ * - s3getCache($force = false): void
+ * - s3get(string $filename)
+ * - copy($src, $dest, $remove_src = false)
+ *
  */
 
 class _uho_orm
@@ -29,7 +132,6 @@ class _uho_orm
      * array of shortcuts of current languages available
      */
     private $langs = [];
-    private $lang = '';
     /**
      * array of root_paths where orm is looking for JSON model files
      */
@@ -63,6 +165,7 @@ class _uho_orm
     private $s3compress = null;
 
     private $sql;
+    private $lang;
     private $lang_add;
     private $keys;
     private $test;
@@ -3420,6 +3523,7 @@ class _uho_orm
                 [
                     'extension' => ['type' => 'string'],
                     'filename' => ['type' => 'string'],
+                    "hash" => ['type' => 'string'],
                     'hashable' => ['type' => 'boolean'],
                     'folder' => ['type' => 'string'],
                     'folder_preview' => ['type' => 'string'],
@@ -3430,7 +3534,7 @@ class _uho_orm
                     'media' => ['type' => 'string'],
                     'media_field' => ['type' => 'string'],
                     "null" => ['type' => 'boolean'],
-                    'plugin' => ['type' => 'string'],
+                    'plugin' => ['type' => 'string'],                    
                     'webp' => ['type' => 'boolean']
                 ]
             ],
@@ -3444,6 +3548,7 @@ class _uho_orm
                     'auto' => ['type' => 'array'],
                     'case' => ['type' => 'boolean'],
                     'code' => ['type' => 'boolean'],
+                    'counter' => ['type' => 'boolean'],
                     'default' => ['type' => 'string'],
                     'edit' => ['type' => 'boolean'],
                     'header' => ['type' => 'string'],
@@ -3470,6 +3575,7 @@ class _uho_orm
                     'toggle_fields' => ['type' => 'array'],
                     'search' => ['type' => ['boolean', 'string']],
                     'tall' => ['type' => 'boolean'],
+                    "unique" => ['type' => 'boolean'],
                     'wide' => ['type' => 'boolean'],
                     'width' => ['type' => 'integer']
                 ]

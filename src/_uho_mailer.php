@@ -10,6 +10,19 @@ use League\OAuth2\Client\Provider\Google;
 /**
  * This is a class dedicated to mailing, works
  *  currently with PHPMailer as its extension
+ *
+ * Available methods:
+
+ * - setOauth($data): void                       - Set OAuth verification (currently supports Google)
+ * - setDebug($debug): void                      - Set debug option (based on PHPMailer debug levels, 3 is most detailed)
+ * - setSMTP($server, $port, $login, $pass): bool - Set SMTP server access credentials
+ * - getSMTP()                                   - Get SMTP configuration array
+ * - addMessage($message): void                  - Add plain text message to the email
+ * - addMessageHtml($message): void              - Add HTML message to the email
+ * - addSubject($subject): void                  - Set subject for the email
+ * - addEmail($email, $remove = false)           - Add single email address (optionally remove previous addresses)
+ * - addEmails($emails, $remove = false)         - Add multiple email addresses (optionally remove previous addresses)
+ * - send()                                      - Send email using previously set SMTP, email, subject and messages
  */
 
 class _uho_mailer
@@ -35,6 +48,11 @@ class _uho_mailer
     if (isset($cfg['oAuth'])) $this->setOauth($cfg['oAuth']);
   }
 
+  /*
+    Set oAuth verification
+    support currently google
+  */
+
   public function setOauth($data): void
   {
     if ($data['provider'] == 'google')
@@ -44,7 +62,6 @@ class _uho_mailer
           'clientSecret' => $data['clientSecret'],
         ]
       );
-
     $this->oAuth = $data;
   }
 
@@ -103,28 +120,6 @@ class _uho_mailer
   }
 
   /**
-   * Set FROM header for the e-mail
-   *
-   * @param string $name
-   * @param string $email
-   */
-  public function setFrom($name, $email): void
-  {
-    $this->from = $name . ' <' . $email . '>';
-  }
-
-  /**
-   * Set REPLY header for the e-mail
-   *
-   * @param string $name
-   * @param string $email
-   */
-  public function setReply($name, $email): void
-  {
-    $this->reply = $name . ' <' . $email . '>';
-  }
-
-  /**
    * Set SUBJECT for the e-mail
    *
    * @param string $subject
@@ -169,7 +164,7 @@ class _uho_mailer
   }
 
   /**
-   * Send-email
+   * Send-email using previousle set SMTP, email, subject and messages
    * @return boolean
    */
 

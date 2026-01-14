@@ -5,6 +5,20 @@ namespace Huncwot\UhoFramework;
 /**
  * This class provides a set of static utility
  * functions for geographical issues
+ *
+ * Available methods:
+ * - geojson2centroid($geojson): array|null - Returns centroid from geojson
+ * - geojson2bbox($geojson) - Returns bbox from geojson
+ * - bbox2geojson($bbox): array - Converts bbox to geojson
+ * - points_distance($lat1, $lon1, $lat2, $lon2, $unit): float - Calculates distance between the points
+ * - points2bbox(array|bool $points): array - Converts list of points to BBOX
+ * - getSquareDistance($p1, $p2) - Returns sq distance between points
+ * - getSquareSegmentDistance($p, $p1, $p2) - Returns segments distance between point
+ * - simplifyRadialDistance($points, $sqTolerance): array - Distance-based simplification
+ * - simplifyDouglasPeucker($points, $sqTolerance): array - Simplification using optimized Douglas-Peucker algorithm with recursion elimination
+ * - simplifyPoints(array $points, int|float $tolerance = 1, bool $highestQuality = false) - Simplify Points
+ * - simplifyGeojson($json) - Simplify Geojson
+ *
  */
 
 class _uho_geo
