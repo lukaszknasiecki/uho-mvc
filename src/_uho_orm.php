@@ -3082,6 +3082,9 @@ class _uho_orm
                 case "boolean":
                     $type = 'tinyint(4)';
                     break;
+                case "float":
+                    $type = 'float';
+                    break;
                 case "text":
                 case "html":
                 case "json":
@@ -3206,6 +3209,7 @@ class _uho_orm
         $the_same = [
             'int' => ['int(11)', 'int(4)'],
             'tinyint' => ['tinyint(4)'],
+            'float' => ['float'],
             'int(11)' => ['int'],
             'int(4)' => ['int'],
             'tinyint(4)' => ['tinyint']
