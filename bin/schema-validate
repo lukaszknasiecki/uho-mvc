@@ -36,7 +36,7 @@ if (!$schemas)
 
 //$settings = ['create' => 'alert', 'update' => 'alert'];
 
-$orm = new _uho_orm(null, null, null, null, true);
+$orm = new _uho_orm(null, null, null, true);
 
 $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 

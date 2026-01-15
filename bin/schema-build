@@ -70,7 +70,7 @@ $sql->init(
     getenv('SQL_BASE')
 );
 
-$orm = new _uho_orm(null, $sql, null, null, true);
+$orm = new _uho_orm($sql, null, null, true);
 $orm->addRootPath($path);
 
 $i = 0;

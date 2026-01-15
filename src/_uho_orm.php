@@ -13,25 +13,21 @@ use Huncwot\UhoFramework\_uho_thumb;
  * CLASS METHODS INDEX
  *
  * Constructor:
- * - __construct($model, $sql, $lang, $keys, $test = false)
+ * - __construct($sql, $lang, $keys, $test = false)
  *
- * Global options
- * - getLanguages()
- * - setLangs($t): void
- * - changeLang($lang): void
+ * Global Options
  * - setKeys($keys): void
- * - sqlSafe($s)
- * Error Handlers
- * - setDebug($q): void
- * - setLogErrors($q): void
- * - printErrors(): void
+ * Language Methods
+ * - getLanguages():array
+ * - setLanguages($t): void
+ * - setLanguage($lang): void
+ * Error Methods
  * - getLastError(): string
- * - setHaltOnError(bool $halt): void
  * - halt(string $message)
-* Managing schema paths
- * - removeRootPaths(): void
+ * Managing schema json paths
  * - getRootPaths()
  * - addRootPath($path): void
+ * - removeRootPaths(): void
  * - getLoadJsonPaths()
  * - loadJson($filename)
  * Filename caching
@@ -40,6 +36,7 @@ use Huncwot\UhoFramework\_uho_thumb;
  * - fileRemoveTime($f)
  * - imageAddSize(&$f): void
  * SQL queries
+ * - sqlSafe($s)
  * - query($query, $single = false, $stripslashes = true, $key = null, $do_field_only = null, $force_sql_cache = false)
  * - queryOut($query)
  * - queryMultiOut($query)
@@ -117,37 +114,33 @@ use Huncwot\UhoFramework\_uho_thumb;
 class _uho_orm
 {
     /**
+     * There is one current language ($lang/$lang_add)
+     * and a list of all available languages ($langs)
+     */
+    private $lang;
+    private $lang_add;
+    private $langs = [];
+    /**
      * indicates if filesDecache should be performed
      */
+    private $addImageSizes = false;
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
-    private $halt_on_error = true;
     private $temp_public_folder = '/temp';
     /**
      * indicates if for elements_double fields we should
      * use integer is only one value is set
      */
     private $elements_double_first_integer = false;
-    /**
-     * array of shortcuts of current languages available
-     */
-    private $langs = [];
+
     /**
      * array of root_paths where orm is looking for JSON model files
      */
     private $root_paths = [];
     /**
-     * indicates if debug is enabled
-     */
-    private $debug;
-    /**
      * array of query errors
      */
     private $errors = [];
-    /**
-     * indicates if we should log_errors
-     */
-    private $log_errors = false;
     /**
      * indicates if there is folder to be replaced
      * for media assets
@@ -165,155 +158,157 @@ class _uho_orm
     private $s3compress = null;
 
     private $sql;
-    private $lang;
-    private $lang_add;
     private $keys;
     private $test;
 
     /**
      * Constructor
-     * @param object $model instance of _uho_model class
-     * @param object $sql instance of _uho_mysqli class
-     * @param string $lang shortcut of current language
-     * @param array $keys pair of encryption keys
      * @return null
      */
 
-    function __construct($model, $sql, $lang, $keys, $test = false)
+    function __construct(_uho_mysqli|null $sql, string|null $lang, array $keys, bool $test = false)
     {
         $this->sql = $sql;
-        $this->lang = $lang;
+
+        /* current language */
+        $this->setLanguage($lang);
+
+        /* keys used for encryption */
         $this->keys = $keys;
+
+        /* skips sanitization if no sql is defined */
         $this->test = $test;
 
+        /* root_paths are folder where model scheams are stored */
         $this->root_paths[] = '/application/models/json/';
-        if ($lang) $this->lang_add = '_' . strtoupper($lang);
     }
 
     /**
-     * Changes current language
-     *
-     * @param string $lang
+     * Sets keys for encryption
      */
-    public function changeLang($lang): void
+    public function setKeys(array $keys): void
+    {
+        $this->keys = $keys;
+    }
+
+    /**
+    *   LANGUAGE METHODS
+    */
+
+    /*
+    *    Returns list of all available languages
+    */
+    public function getLanguages(): array
+    {
+        return $this->langs;
+    }
+
+    /**
+     * Sets list of available languages
+     */
+    public function setLanguages($t): void
+    {
+        $this->langs=[];
+        foreach ($t as $v)
+            $this->langs[] = ['lang' => $v, 'lang_add' => '_' . strtoupper($v)];
+    }
+
+    /*
+      Sets current language
+     */
+    public function setLanguage($lang): void
     {
         $this->lang = $lang;
         if ($lang)
             $this->lang_add = '_' . strtoupper($lang);
     }
 
-    private $addImageSizes = false;
-
     /**
-     * Sets errors log
-     *
-     * @param string $q
-     */
-    public function setLogErrors($q): void
+    *  Returns last sql error
+    */
+    public function getLastError(): string
     {
-        $this->log_errors = $q;
+        $e = $this->errors;
+        if ($e) return ('_uho_orm:: ' . array_pop($e));
+        else return ('No errors found, last query: ' . $this->sql->getLastQueryLog());
     }
 
     /**
-     * Prints errors log
+     *  Stops execution
      */
-    public function printErrors(): void
+    private function halt(string $message)
     {
-        print_r($this->errors);
+        exit('<pre>' . $message . '</pre>');
+    }
+    
+    /**
+     * MANAGEMENT OF SCHEMA JSON PATHS/FOLDERS
+     */
+
+    public function getRootPaths(): array
+    {
+        return $this->root_paths;
     }
 
-    /**
-     * Clear all root paths
-     */
+    public function addRootPath(string $path): void
+    {
+        $this->root_paths[] = $path;
+    }
+
     public function removeRootPaths(): void
     {
         $this->root_paths = [];
     }
 
-    public function getRootPaths()
-    {
-        return $this->root_paths;
-    }
-
     /**
-     * Adds a root path
-     */
-    public function addRootPath($path): void
-    {
-        $this->root_paths[] = $path;
-    }
-
-    /**
-     * Returns all possible Json file paths
-     * @return array
+     * Returns all full Json model paths
      */
 
-    public function getLoadJsonPaths()
+    public function getLoadJsonPaths(): array
     {
         $result = [];
         foreach ($this->root_paths as $v) {
             $result[] = $_SERVER['DOCUMENT_ROOT'] . $v;
         }
-        if (!$result) $result[] = 'No path specified';
         return $result;
     }
 
     /**
      * Loads and parses JSON file
-     * @param string $filename
-     * @return array
+     * searching in root_paths
      */
 
-    public function loadJson($filename)
+    public function loadJson(string $filename): array|null
     {
 
         $loaded = false;
-        $tried=[];
+        $tried = [];
 
         if (!strpos($filename, '.json')) $filename .= '.json';
 
         foreach ($this->root_paths as $v)
             if (!isset($m)) {
                 $load = $_SERVER['DOCUMENT_ROOT'] . $v . $filename;
-                $tried[]=$load;
+                $tried[] = $load;
                 $m = @file_get_contents($load);
                 if (!$m) {
                     $load =  $v . $filename;
-                    $tried[]=$load;
+                    $tried[] = $load;
                     $m = @file_get_contents($load);
                 }
 
                 if ($m) $loaded = true;
                 if ($m) $json = json_decode($m, true);
                 else unset($m);
-                if (isset($m) && !isset($json)) exit('_uho_orm::JSON parsing error: ' . $v . $filename);
+                if (isset($m) && !isset($json)) $this->halt('JSON parsing error: ' . $v . $filename);
             }
 
         if (!isset($json) && $loaded) $this->errors[] = 'JSON corrupted: ' . $filename;
-        elseif (!isset($json)) $this->errors[] = 'JSON not found:loadJson: ' . implode(', ',$tried);
-        if (isset($json)) return $json;
+        elseif (!isset($json)) $this->errors[] = 'JSON not found:loadJson: ' . implode(', ', $tried);
+        if (isset($json)) return $json; else return null;
     }
 
-    /**
-     * Sets keys for encryption
-     *
-     * @param array $keys
-     */
-    public function setKeys($keys): void
-    {
-        $this->keys = $keys;
-    }
 
-    /**
-     * Sets set of available languages
-     *
-     * @param array $t
-     */
-    public function setLangs($t): void
-    {
-        foreach ($t as $v)
-            $this->langs[] = ['lang' => $v, 'lang_add' => '_' . strtoupper($v)];
-    }
 
     /**
      * Sets filedecache variable
@@ -338,18 +333,8 @@ class _uho_orm
     public function sqlSafe($s)
     {
         if (!$this->sql && $this->test) return $s;
-        if (!$this->sql) exit('_uho_orm::sqlSafe::sql-not-defined');
+        if (!$this->sql) $this->halt('sqlSafe::sql-not-defined');
         if ($s && !is_array($s)) return ($this->sql->getBase()->real_escape_string($s));
-    }
-
-    /**
-     * Sets debug
-     *
-     * @param boolean $q
-     */
-    public function setDebug($q): void
-    {
-        $this->debug = $q;
     }
 
     /**
@@ -415,8 +400,7 @@ class _uho_orm
     public function queryOut($query)
     {
         $result = $this->sql->queryOut($query);
-        if (!$result && $this->log_errors)
-            $this->sql->queryOut('INSERT INTO uho_orm_errors SET query="' . $this->sqlSafe($query) . '"');
+        if (!$result) $this->errors[]=$query;
         return $result;
     }
 
@@ -620,7 +604,7 @@ class _uho_orm
 
                     $or = null;
 
-                    if (isset($field['hash']) && !$this->keys) exit('_uho_orm::getJsonModelFiltersQuery::nokeys');
+                    if (isset($field['hash']) && !$this->keys) $this->halt('_uho_orm::getJsonModelFiltersQuery::nokeys');
                     if (isset($field['hash'])) $v = _uho_fx::encrypt($v, $this->keys, $field['hash']);
 
                     if ($field)
@@ -794,7 +778,6 @@ class _uho_orm
             $filename = $name . '.json';
             $model = $this->loadJson($filename);
             if (!$model) {
-                if ($this->debug) exit('_uho_orm::' . $this->getLastError() . ' @ ' . implode(', ', $this->getLoadJsonPaths()));
                 return array();
             }
         }
@@ -804,7 +787,7 @@ class _uho_orm
         }
 
 
-        if (!$model) exit('model corrupted:' . $name);
+        if (!$model) $this->halt('_uho_orm::model corrupted:' . $name);
 
         // filters ==================================================================        
         if (!isset($model['filters'])) $model['filters'] = array();
@@ -826,7 +809,7 @@ class _uho_orm
      */
     private function checkConnection(string|null $message = null): void
     {
-        if (!$this->sql) exit('_uho_orm::No SQL defined::' . $message);
+        if (!$this->sql) $this->halt('_uho_orm::No SQL defined::' . $message);
     }
 
     /**
@@ -899,7 +882,7 @@ class _uho_orm
     public function getJsonModelSchema($name, $lang = false, $params = [])
     {
 
-        if (!$name) exit('_uho_orm::getJsonModelSchema::no model name specified');
+        if (!$name) $this->halt('_uho_orm::getJsonModelSchema::no model name specified');
 
         // return itself if calling with actual schema
         if (is_array($name) && isset($name['table'])) return $name;
@@ -919,7 +902,7 @@ class _uho_orm
                         $position_after = null;
                     }
 
-                    if (is_array($name)) exit('_uho_orm::getJsonModelSchema::model as array');
+                    if (is_array($name)) $this->halt('_uho_orm::getJsonModelSchema::model as array');
 
                     $m = $this->loadJson($name);
 
@@ -966,7 +949,6 @@ class _uho_orm
                     }
                     if ($model && !isset($model['model_name'])) $model['model_name'] = $name;
                 }
-            if (!$model && $this->debug) $this->halt('_uho_orm::JSON not found @ ' . implode(', ', $inital_names));
         }
         // getting just one model
         else {
@@ -976,11 +958,10 @@ class _uho_orm
 
             if ($model && !isset($model['model_name'])) $model['model_name'] = $name;
 
-            $message = '_uho_orm::JSON schema not found: ' . $filename . ' @ ' . implode(', ', $this->root_paths).' ::: '.implode(', ',$this->errors);
+            $message = '_uho_orm::JSON schema not found: ' . $filename . ' @ ' . implode(', ', $this->root_paths) . ' ::: ' . implode(', ', $this->errors);
 
-            if (!$model && (!$this->halt_on_error || isset($params['return_error'])))
+            if (!$model && isset($params['return_error']))
                 return ['result' => false, 'message' => $message];
-            if (!$model && $this->debug) $this->halt($message);
         }
 
 
@@ -1029,7 +1010,7 @@ class _uho_orm
             foreach ($model['fields'] as $k2 => $v2)
                 if (isset($v2['include'])) {
                     $v3 = $this->loadJson($v2['include']);
-                    if (!$v3) exit('_uho_orm::loadJson::' . $v2['include']);
+                    if (!$v3) $this->halt('_uho_orm::loadJson::' . $v2['include']);
 
                     $model['fields'][$k2] = array_merge($v2, $v3);
                     unset($model['fields'][$k2]['include']);
@@ -1406,7 +1387,7 @@ class _uho_orm
     {
 
         if (!$name) {
-            exit('_uho_orm::getJsonModel::no-model-name');
+            $this->halt('_uho_orm::getJsonModel::no-model-name');
         }
         if (is_array($name)) $name_string = $name['model_name'];
         else $name_string = $name;
@@ -1446,7 +1427,7 @@ class _uho_orm
 
 
         $model = $this->updateJsonModelSchemaRanges($model, $single);
-        if (!$model) exit('_uho_orm::JSON model corrupted - ' . $name);
+        if (!$model) $this->halt('_uho_orm::JSON model corrupted - ' . $name);
 
         // filters ==================================================================        
         if (isset($params['skip_filters'])) $model['filters'] = array();
@@ -1534,8 +1515,7 @@ class _uho_orm
         if (isset($model['table']))
             $query = 'SELECT ' . implode(',', $this->sanitizeFields($fields_read)) . ' FROM ' . $model['table'] . ' ' . $model['filters'];
         else {
-            if ($this->halt_on_error) exit('_uho_orm::getJsonModel->table not found [' . @$name . ']');
-            else return false;
+            $this->halt('_uho_orm::getJsonModel->table not found [' . @$name . ']');
         }
 
 
@@ -1668,7 +1648,6 @@ class _uho_orm
                         else $v3 = $v3[0];
                         if (isset($v2['output']) && $v2['output'] == 'string') $f4[$k3] = $v3;
                         else $f4[$k3] = intval($v3);
-                        //if (!is_numeric($v3)) exit('_uho_orm::internal error getjsonmodel value:::'.$v[$v2['field']]);
 
                     }
 
@@ -1736,7 +1715,7 @@ class _uho_orm
                             $v2['source']['data'] = $model['fields'][$k2]['source']['data'] = $v4;
                         } else {
 
-                            if (!$v2['source']['fields']) exit('_uho_model::error No source fields for ' . $v2['field']);
+                            if (!$v2['source']['fields']) $this->halt('_uho_model::error No source fields for ' . $v2['field']);
                             $query = 'SELECT id,' . implode(',', $v2['source']['fields']) . ' FROM ' . $v2['source']['table'];
 
                             $v2['source']['data'] = $model['fields'][$k2]['source']['data'] = $this->query($query, false, null, 'id');
@@ -2122,7 +2101,7 @@ class _uho_orm
 
                         $media_model = isset($v2['source']['model']) ? $v2['source']['model'] : null;
 
-                        if (!$media_model) exit('no source model defined for: ' . $name . '::' . $v2['field']);
+                        if (!$media_model) $this->halt('no source model defined for: ' . $name . '::' . $v2['field']);
 
                         $media = $this->getJsonModel($media_model, ['model' => $model_name . @$v2['media']['suffix'], 'model_id' => $v['id']], false, 'model_id_order');
 
@@ -2416,7 +2395,7 @@ class _uho_orm
                             $val = intval($val);
                             break;
                         case 'json':
-                        case 'blocks':    
+                        case 'blocks':
                             $val = json_encode($val);
                             break;
                         case 'elements':
@@ -2716,12 +2695,7 @@ class _uho_orm
             return false;
         }
     }
-    public function getLastError(): string
-    {
-        $e = $this->errors;
-        if ($e) return ('_uho_orm:: ' . array_pop($e));
-        else return ('No errors found, last query: ' . $this->sql->getLastQueryLog());
-    }
+
 
     /**
      * Puts fields to external models
@@ -3156,10 +3130,6 @@ class _uho_orm
         $this->addImageSizes = $onOff;
     }
 
-    public function getLanguages()
-    {
-        return $this->langs;
-    }
 
     // Table Creators
 
@@ -3283,7 +3253,7 @@ class _uho_orm
      */
     public function createTable($schema, $sql)
     {
-        $performed_action=null;
+        $performed_action = null;
         $sql_schema = $this->getSchemaSQL($schema);
 
         $charset = 'utf8mb4';
@@ -3307,10 +3277,10 @@ class _uho_orm
         }
 
         foreach ($queries as $v)
-            if (!$this->queryOut($v)) exit('SQL ERROR: <pre>' . $this->getLastError() . '</pre>');
+            if (!$this->queryOut($v)) $this->halt('SQL ERROR: <pre>' . $this->getLastError() . '</pre>');
 
-        $performed_action='table_create';
-        return['action'=>$performed_action];
+        $performed_action = 'table_create';
+        return ['action' => $performed_action];
     }
 
 
@@ -3320,8 +3290,8 @@ class _uho_orm
     public function updateTable($schema, $action)
     {
 
-        
-        $sql_schema = $this->getSchemaSQL($schema);        
+
+        $sql_schema = $this->getSchemaSQL($schema);
         $columns = $this->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
 
         /*
@@ -3353,10 +3323,9 @@ class _uho_orm
         }
 
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
-        $performed_action=null;
+        $performed_action = null;
 
-        if ($update || $add)
-        {
+        if ($update || $add) {
             if ($action == 'alert') {
                 $html = '<h3>Schema for [<code>' . $schema['table'] . '</code>] needs to be updated.</h3><ul>';
                 foreach ($add as $v)
@@ -3371,14 +3340,14 @@ class _uho_orm
 
             if ($action == 'auto') {
                 foreach ($update as $v) {
-                    $performed_action='table_update';
+                    $performed_action = 'table_update';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` CHANGE `' . $v['Field'] . '` `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL';
                     if (!$this->queryOut($query)) $this->halt('SQL error: ' . $query);
                 }
 
                 foreach ($add as $v) {
-                    $performed_action='table_create';
+                    $performed_action = 'table_create';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` ADD `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL';
                     if (!$this->queryOut($query)) $this->halt('SQL error: ' . $query);
@@ -3386,7 +3355,7 @@ class _uho_orm
             }
         }
 
-        return['action'=>$performed_action];
+        return ['action' => $performed_action];
     }
 
     /*
@@ -3430,13 +3399,13 @@ class _uho_orm
         if (!$exists) {
             if (isset($options) && !empty($options['create'])) {
                 $sql = isset($options['create_sql']) ? $options['create_sql'] : null;
-                $response=$this->createTable($schema, $sql);
+                $response = $this->createTable($schema, $sql);
                 $messages[] = 'Table has been created';
                 if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_create';
         } else {
             if (isset($options) && !empty($options['update'])) {
-                $response=$this->updateTable($schema, $options['update']);
+                $response = $this->updateTable($schema, $options['update']);
                 $messages[] = 'Table has been updated';
                 if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_update';
@@ -3460,10 +3429,10 @@ class _uho_orm
 
 
         return [
-                    'actions' => $actions,
-                    'messages' => $messages,
-                    'additional' => $additional_results
-                ];
+            'actions' => $actions,
+            'messages' => $messages,
+            'additional' => $additional_results
+        ];
     }
 
     public function validateSchemaObject($object, $schema)
@@ -3534,7 +3503,7 @@ class _uho_orm
                     'media' => ['type' => 'string'],
                     'media_field' => ['type' => 'string'],
                     "null" => ['type' => 'boolean'],
-                    'plugin' => ['type' => 'string'],                    
+                    'plugin' => ['type' => 'string'],
                     'webp' => ['type' => 'boolean']
                 ]
             ],
@@ -3684,19 +3653,6 @@ class _uho_orm
         return ['errors' => $errors];
     }
 
-    /**
-     * @return never
-     */
-    private function halt(string $message)
-    {
-        exit('<pre>' . $message . '</pre>');
-    }
-
-    public function setHaltOnError(bool $halt): void
-    {
-        $this->halt_on_error = $halt;
-        $this->sql->setHaltOnError($halt);
-    }
 
     public function convertBase64($image, $allowed_extensions)
     {
@@ -3724,25 +3680,20 @@ class _uho_orm
 
     private function copy($src, $dest, $remove_src = false)
     {
-        if ($this->getS3())
-        {
-            $s3=$this->getS3();
-            if (substr($src,0,4)=='http')
-            {
+        if ($this->getS3()) {
+            $s3 = $this->getS3();
+            if (substr($src, 0, 4) == 'http') {
                 // s3 cannot get source stream from another s3
-                $temp_filename=$this->getTempFilename(true);
-                copy($src,$temp_filename);
-                $s3->copy($temp_filename,$dest);
+                $temp_filename = $this->getTempFilename(true);
+                copy($src, $temp_filename);
+                $s3->copy($temp_filename, $dest);
                 unlink($temp_filename);
-            } else
-            {
-                $s3->copy($src,$dest);
-            }     
-            
-        } else
-        {
+            } else {
+                $s3->copy($src, $dest);
+            }
+        } else {
             $dest = $_SERVER['DOCUMENT_ROOT'] . $dest;
-            copy($src, $dest);            
+            copy($src, $dest);
         }
 
         if ($remove_src) @unlink($src);
@@ -3754,7 +3705,7 @@ class _uho_orm
 
     public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
     {
-        
+
         $root = $_SERVER['DOCUMENT_ROOT'];
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
@@ -3776,15 +3727,15 @@ class _uho_orm
         $filename = str_replace($field['settings']['filename'], '%uid%', $record['uid']) . '.' . $extension;
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
-        
-        if ($image && !$temp_filename) {            
+
+        if ($image && !$temp_filename) {
             $temp_filename = $this->getTempFilename(true);
             if (!file_put_contents($temp_filename, $image)) {
                 return false;
             }
         }
-        
-        $temp_original_filename=$temp_filename;
+
+        $temp_original_filename = $temp_filename;
         $this->copy($temp_filename, $original_filename); // no-remove
 
         /* resize */
@@ -3795,14 +3746,12 @@ class _uho_orm
             if (isset($v['crop'])) $v['cut'] = $v['crop'];
             $v['enlarge'] = true;
 
-            if ($this->getS3())
-            {
-                $src=$temp_original_filename;
+            if ($this->getS3()) {
+                $src = $temp_original_filename;
                 $dest = $this->getTempFilename(true);
-                $dest_s3=$field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
-            } else
-            {
-                $src=$root . $original_filename;
+                $dest_s3 = $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
+            } else {
+                $src = $root . $original_filename;
                 $dest = $root . $field['settings']['folder'] . '/' . $v['folder'] . '/' . $filename;
             }
 
@@ -3814,10 +3763,9 @@ class _uho_orm
             );
 
             if (!$r['result']) $result = false;
-                elseif ($this->getS3())
-                {
-                    $this->copy($dest,$dest_s3);
-                }
+            elseif ($this->getS3()) {
+                $this->copy($dest, $dest_s3);
+            }
         }
 
         return $result;
@@ -3828,15 +3776,15 @@ class _uho_orm
     */
 
     public function removeImage($model_name, $record_id, $field_name)
-    {        
+    {
         $result = false;
         $schema = $this->getSchema($model_name);
         $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
         $s3 = $this->getS3();
         if (isset($record[$field_name])) {
-            $result = true;            
+            $result = true;
             foreach ($record[$field_name] as $image) {
-                $image=$this->fileRemoveTime($image);
+                $image = $this->fileRemoveTime($image);
                 if ($s3) $s3->unlink($image);
                 else unlink($_SERVER['DOCUMENT_ROOT'] . $image);
             }
@@ -3872,18 +3820,17 @@ class _uho_orm
 
     public function addImageSrc($model_name, $record_id, $field_name, $filename)
     {
-        if ($this->getS3() && substr($filename,0,4)=='http')
-        {
-            $temp_filename=$this->getTempFilename(true);
-            copy($filename,$temp_filename);
-            $filename=$temp_filename;
-        } else $temp_filename=null;
+        if ($this->getS3() && substr($filename, 0, 4) == 'http') {
+            $temp_filename = $this->getTempFilename(true);
+            copy($filename, $temp_filename);
+            $filename = $temp_filename;
+        } else $temp_filename = null;
 
         $schema = $this->getSchema($model_name);
         $record = $this->getJsonModel($model_name, ['id' => $record_id], true);
 
         if ($schema && $record && isset($record[$field_name])) {
-            $response=$this->uploadImage($schema, $record, $field_name, null, $filename);
+            $response = $this->uploadImage($schema, $record, $field_name, null, $filename);
             if ($temp_filename) unlink($temp_filename);
             return $response;
         }

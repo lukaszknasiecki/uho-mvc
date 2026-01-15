@@ -445,6 +445,13 @@ class _uho_s3
                     $object['ContentDisposition'] = "inline";
                     $object['CacheControl'] = "max-age=31536000, public";
                     break;
+                case "mp3":
+                case "webm":
+                    $object['ContentType']= 'audio/'.$ext;
+                    $object['ContentDisposition'] = "inline";
+                    $object['CacheControl'] = "max-age=31536000, public";
+                    break;
+
             }
 
             $result = $this->s3Client->putObject($object);            

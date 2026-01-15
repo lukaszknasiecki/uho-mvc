@@ -121,9 +121,13 @@ class _uho_model
         if (isset($_SERVER['HTTPS']) || isset($_SERVER['SSL_PROTOCOL'])) $this->http_server = 'https://';
         else $this->http_server = 'http://';
         $this->http_server .= $_SERVER['HTTP_HOST'];
-        $this->orm = new _uho_orm($this, $this->sql, $this->lang, @$params['keys']);
+        $this->orm = new _uho_orm(
+            $this->sql,
+            $this->lang,
+            isset($params['keys']) ? $params['keys'] : []
+        );
 
-        if (isset($params['languages'])) $this->orm->setLangs($params['languages']);
+        if (isset($params['languages'])) $this->orm->setLanguages($params['languages']);
         if (!$this->uploadServer)
         {
             if (isset($params['files_decache']) && $params['files_decache']) $this->orm->setFilesDecache($params['files_decache']);
@@ -141,7 +145,7 @@ class _uho_model
      */
     public function setDebug($q): void
     {
-        $this->orm->setDebug($q);
+        // $this->orm->setDebug($q);
     }
 
     /**
