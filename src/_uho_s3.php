@@ -671,8 +671,8 @@ class _uho_s3
                     $c[] = ['id' => md5($k), 'time' => str_replace('T',' ',$v['time'])];
                 }
 
-            if ($this->orm->truncateModel('uho_image_cache'))
-                $this->orm->postJsonModel('uho_image_cache', $c, true);
+            if ($this->orm->truncate('uho_image_cache'))
+                $this->orm->post('uho_image_cache', $c, true);
             */
         }
 

@@ -353,17 +353,6 @@ class _uho_model
     }
 
     /**
-     * Runs mySQL write queries via ORM instance
-     * @param string $query
-     * @return boolean
-     */
-
-    public function queryMultiOut($query)
-    {
-        return ($this->orm->queryMultiOut($query));
-    }
-
-    /**
      * Runs mySQL write query via ORM instance
      * @param string $query
      * @return boolean
@@ -385,9 +374,9 @@ class _uho_model
      * @return array
      */
 
-    public function getJsonModel($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
+    public function get($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
     {
-        return $this->orm->getJsonModel($name, $filters, $single, $order, $limit, $params);
+        return $this->orm->get($name, $filters, $single, $order, $limit, $params);
     }
 
     /**
@@ -399,9 +388,9 @@ class _uho_model
      * @return array
      */
 
-    public function getJsonModelDeep($name, $filters = null, $single = false, $settings = null)
+    public function getDeep($name, $filters = null, $single = false, $settings = null)
     {
-        return $this->orm->getJsonModelDeep($name, $filters, $single, $settings);
+        return $this->orm->getDeep($name, $filters, $single, $settings);
     }
 
     /**
@@ -412,9 +401,9 @@ class _uho_model
      * @return boolean
      */
 
-    public function postJsonModel($model, $data, $multiple = false)
+    public function post($model, $data, $multiple = false)
     {
-        return $this->orm->postJsonModel($model, $data, $multiple);
+        return $this->orm->post($model, $data, $multiple);
     }
 
     /**
@@ -426,9 +415,9 @@ class _uho_model
      * @return boolean
      */
 
-    public function putJsonModel($model, $data, $filters = null, $multiple = false)
+    public function put($model, $data, $filters = null, $multiple = false)
     {
-        return $this->orm->putJsonModel($model, $data, $filters, $multiple);
+        return $this->orm->put($model, $data, $filters, $multiple);
     }
 
     /**
@@ -439,9 +428,9 @@ class _uho_model
      * @return boolean
      */
 
-    public function deleteJsonModel($model, $filters, $multiple = false)
+    public function delete($model, $filters, $multiple = false)
     {
-        return $this->orm->deleteJsonModel($model, $filters, $multiple);
+        return $this->orm->delete($model, $filters, $multiple);
     }
 
     /**

@@ -340,7 +340,7 @@ class _uho_client
   {
     if ($user_id && $this->fieldBadLogin) {
       $data = [$this->fieldBadLogin => 0];
-      $this->orm->putJsonModel($this->clientModel, $data, ['id' => $user_id]);
+      $this->orm->put($this->clientModel, $data, ['id' => $user_id]);
     }
   }
 
@@ -360,7 +360,7 @@ class _uho_client
         if ($this->maxBadLogin && $this->fields['locked'] && $i >= $this->maxBadLogin)
           $data[$this->fields['locked']] = 1;
 
-        $this->orm->putJsonModel($this->clientModel, $data, ['id' => $exists['id']]);
+        $this->orm->put($this->clientModel, $data, ['id' => $exists['id']]);
       }
     }
   }
@@ -423,7 +423,7 @@ class _uho_client
   {
     if ($this->cookie && $this->cookieLoginEnabled) {
       $uid = $this->hashPass(uniqid());
-      $this->orm->putJsonModel($this->clientModel, ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
+      $this->orm->put($this->clientModel, ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
       setcookie(
         $this->cookie['name'],
         $uid,
@@ -446,7 +446,7 @@ class _uho_client
    */
   private function cookieLoginClear($id): void
   {
-    $this->orm->putJsonModel($this->clientModel, ['id' => $id, 'cookie_key' => '']);
+    $this->orm->put($this->clientModel, ['id' => $id, 'cookie_key' => '']);
   }
 
   public function getCookieName()
@@ -511,7 +511,7 @@ class _uho_client
       $this->cookieLogin();
       $data = @$_SESSION[$this->session_key];
       if (@$data['id'] && $reload) {
-        $data = $this->orm->getJsonModel($this->clientModel, ['id' => $data['id'], 'status' => 'confirmed'], true);
+        $data = $this->orm->get($this->clientModel, ['id' => $data['id'], 'status' => 'confirmed'], true);
         $this->storeData($data);
       }
     }
@@ -598,7 +598,7 @@ class _uho_client
 
     unset($filters['password']);
 
-    $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
+    $t = $this->orm->get($this->clientModel, $filters, true);
 
     if ($this->salt['type'] == 'double')
       $pass .= @$t[$this->salt['field']];
@@ -651,7 +651,7 @@ class _uho_client
   private function logAdd($type, $result): void
   {
     if (!empty($this->models['logs']))
-      $this->orm->postJsonModel($this->models['logs'], ['type' => $type, 'result' => $result]);
+      $this->orm->post($this->models['logs'], ['type' => $type, 'result' => $result]);
   }
 
   /**
@@ -724,7 +724,7 @@ class _uho_client
 
     if (isset($this->models['client_logins_model'])) {
       $val = ['login' => $email, 'success' => intval($result), 'ip' => $this->getIp()];
-      $this->orm->postJsonModel($this->models['client_logins_model'], $val);
+      $this->orm->post($this->models['client_logins_model'], $val);
       $_SESSION['login_session_id'] = $this->orm->getInsertId();
     }
 
@@ -741,7 +741,7 @@ class _uho_client
     $user_id = $this->getUserToken($token);
 
     if (!empty($user_id))
-      $client = $this->orm->getJsonModel($this->clientModel, ['id' => intval($user_id)], true);
+      $client = $this->orm->get($this->clientModel, ['id' => intval($user_id)], true);
     else $client = null;
 
     if ($client) {
@@ -1006,7 +1006,7 @@ class _uho_client
       $data = ['datetime' => _uho_fx::sqlNow(), 'user' => $user, 'action' => $action, 'session' => $session, 'ip' => $this->getIp()];
       foreach ($data as $k => $_) if (!in_array($k, $this->models['client_logs_model']['fields'])) unset($data[$k]);
       if (isset($result)) $data['result'] = $result;
-      $this->orm->postJsonModel($this->models['client_logs_model']['model'], $data);
+      $this->orm->post($this->models['client_logs_model']['model'], $data);
     }
   }
 
@@ -1023,7 +1023,7 @@ class _uho_client
       ];
       foreach ($f as $k => $_) if (!in_array($k, $this->models['client_logs_model'])) unset($f[$k]);
 
-      $find = $this->orm->getJsonModel($this->models['client_logs_model']['model'], $f, false, null, null);
+      $find = $this->orm->get($this->models['client_logs_model']['model'], $f, false, null, null);
 
 
       if ($find && count($find) >= 5) $result = true;
@@ -1078,7 +1078,7 @@ class _uho_client
 
     $log = [];
     if (!$source) return;
-    $schema = $this->orm->getJsonModelSchema($this->clientModel);
+    $schema = $this->orm->getSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
     if ($image) {
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
@@ -1112,7 +1112,7 @@ class _uho_client
    */
   private function removeImage($uid): void
   {
-    $schema = $this->orm->getJsonModelSchema($this->clientModel);
+    $schema = $this->orm->getSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
     if ($image) {
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
@@ -1143,13 +1143,13 @@ class _uho_client
     if (isset($data['password']))
       $data['password'] = $this->encodePassword($data['password'], true, $data['salt']);
 
-    $result = $this->orm->postJsonModel($this->clientModel, $data);
+    $result = $this->orm->post($this->clientModel, $data);
 
     if ($result) {
       $user = $this->orm->getInsertId();
       if (isset($data['image']) && $user) {
-        if ($this->orm->convertBase64($data['image'], ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-          $this->orm->addImage($this->clientModel, $user, 'image', $data['image']);
+        if ($this->orm->decodeBase64Image($data['image'], ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+          $this->orm->uploadBase64Image($this->clientModel, $user, 'image', $data['image']);
         } else $this->setImageFromUrl($data['image'], $user, $data['uid']);
       }
       if ($returnId) $result = $user;
@@ -1157,7 +1157,7 @@ class _uho_client
       // use separate token table
       if (!empty($data['key_confirm']) && $this->tokenModel) {
         $days = $this->settings['registration_confirmation_days'] ?? 7;
-        $this->orm->postJsonModel(
+        $this->orm->post(
           $this->tokenModel,
           [
             'expiration' => date('Y-m-d', strtotime("+" . $days . " days")),
@@ -1199,7 +1199,7 @@ class _uho_client
 
   public function anyUserExists()
   {
-    $exists = $this->orm->getJsonModel($this->clientModel);
+    $exists = $this->orm->get($this->clientModel);
     if (!$exists) return false;
     else return true;
   }
@@ -1211,7 +1211,7 @@ class _uho_client
 
   public function adminExists()
   {
-    $exists = $this->orm->getJsonModel($this->clientModel, ['admin' => 1]);
+    $exists = $this->orm->get($this->clientModel, ['admin' => 1]);
     if ($exists === 'error' || !$exists) return false;
     else return true;
   }
@@ -1228,7 +1228,7 @@ class _uho_client
     if (!$user_id) $user_id = $this->getClientId();
 
     $data['id'] = $user_id;
-    $result = $this->orm->putJsonModel($this->clientModel, $data);
+    $result = $this->orm->put($this->clientModel, $data);
     $client = $this->getData();
 
     if (@$data['image'] == '[remove]')
@@ -1275,7 +1275,7 @@ class _uho_client
   {
     $result = ['result' => false];
     if ($key) {
-      $client = $this->orm->getJsonModel($this->clientModel, ['key_remove' => $key]);
+      $client = $this->orm->get($this->clientModel, ['key_remove' => $key]);
       if (count($client) == 1) {
         $data = [
           'id' => $client[0]['id'],
@@ -1291,7 +1291,7 @@ class _uho_client
           'facebook_id' => '',
           'epuap_id' => ''
         ];
-        $this->orm->putJsonModel($this->clientModel, $data);
+        $this->orm->put($this->clientModel, $data);
         $result = ['result' => true];
       }
     }
@@ -1404,13 +1404,13 @@ class _uho_client
   {
     if ($this->tokenModel) {
       $user = $this->getUserToken($key, 'registration_confirmation', true);
-      if ($user) $user = $this->orm->getJsonModel($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
+      if ($user) $user = $this->orm->get($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
     } else {
-      $user = $this->orm->getJsonModel($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
+      $user = $this->orm->get($this->clientModel, ['key_confirm' => $key, 'status' => 'submitted'], true);
     }
 
     if ($user) {
-      $result = $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
+      $result = $this->orm->put($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
       $result = ['result' => true, 'user' => $user['id']];
     } else $result = ['result' => false];
 
@@ -1559,7 +1559,7 @@ class _uho_client
       $pass = trim($pass . $this->salt['value']);
       $filters = ['id' => $data['id']];
 
-      $t = $this->orm->getJsonModel($this->clientModel, $filters, true);
+      $t = $this->orm->get($this->clientModel, $filters, true);
 
       if ($t && $pass) {
         if ($this->salt['type'] == 'double')
@@ -1607,7 +1607,7 @@ class _uho_client
       $pass = $this->encodePassword($pass, false, $salt);
       $data = ['id' => $user, 'salt' => $salt, 'date_set' => date('Y-m-d H:i:s'), 'password' => $pass];
 
-      $result = $this->orm->putJsonModel($this->clientModel, $data);
+      $result = $this->orm->put($this->clientModel, $data);
       if ($result) $this->cookieLoginStore($user);
       else {
         exit($this->orm->getLastError());
@@ -1629,7 +1629,7 @@ class _uho_client
     if (!isset($this->models['users'])) exit('_uho_client::passwordChangeByEmail::missing_model');
     $users = $this->models['users'];
 
-    $exists = $this->orm->getJsonModel($users, ['email' => $email, 'status' => 'confirmed'], true);
+    $exists = $this->orm->get($users, ['email' => $email, 'status' => 'confirmed'], true);
     if (!$exists) return ['result' => false, 'code' => 'user_not_exists'];
 
     $token = $this->generateUserToken('password_reset', '+10 days', $exists['id']);
@@ -1697,7 +1697,7 @@ class _uho_client
     if (!isset($this->models['users'])) exit('_uho_client::passwordChangeByKey::missing_model');
     $users = $this->models['users'];
 
-    $exists = $this->orm->getJsonModel($users, ['key_confirm' => $key, 'status' => 'confirmed'], true);
+    $exists = $this->orm->get($users, ['key_confirm' => $key, 'status' => 'confirmed'], true);
 
     if (!$exists) return ['result' => false, 'code' => 'user_not_found'];
     if (!$exists['salt']) $exists['salt'] = substr(bin2hex(random_bytes(32)), 0, 3);
@@ -1708,7 +1708,7 @@ class _uho_client
       'key_confirm' => ''
     ];
 
-    $result = $this->orm->putJsonModel($users, $set);
+    $result = $this->orm->put($users, $set);
     if ($result) return ['result' => true];
     else return ['result' => false, 'code' => 'system_error'];
   }
@@ -1721,7 +1721,7 @@ class _uho_client
   {
     $filters = ['user' => $user_id];
     if (!empty($type)) $filters['type'] = $type;
-    return $this->orm->deleteJsonModel($this->tokenModel, $filters, true);
+    return $this->orm->delete($this->tokenModel, $filters, true);
   }
 
   /**
@@ -1740,9 +1740,9 @@ class _uho_client
       if (!$user_id) $user_id = $this->getClientId();
       $data = ['user' => $user_id, 'expiration' => $date, 'type' => $type, 'value' => $token];
 
-      $result = $this->orm->postJsonModel($this->tokenModel, $data);
+      $result = $this->orm->post($this->tokenModel, $data);
       if ($result) {
-        //$exists=$this->orm->getJsonModel('users_tokens',['token'=>$token,'id'=>$result]);
+        //$exists=$this->orm->get('users_tokens',['token'=>$token,'id'=>$result]);
         //if ($exists) return $token;
         return $token;
       }
@@ -1761,9 +1761,9 @@ class _uho_client
     $f = ['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];
 
     if ($type) $f['type'] = $type;
-    $item = $this->orm->getJsonModel($this->tokenModel, $f, true);
+    $item = $this->orm->get($this->tokenModel, $f, true);
 
-    if ($item && $remove_if_present) $this->orm->deleteJsonModel($this->tokenModel, ['id' => $item['id']]);
+    if ($item && $remove_if_present) $this->orm->delete($this->tokenModel, ['id' => $item['id']]);
     if ($item) return $item['user'];
     else return null;
   }
@@ -1782,7 +1782,7 @@ class _uho_client
     if (!isset($this->models['mailing'])) exit('_uho_client::mailing::missing_model');
     if (!$emails) return false;
 
-    $mailing = $this->orm->getJsonModel($this->models['mailing'], ['slug' => $slug], true);
+    $mailing = $this->orm->get($this->models['mailing'], ['slug' => $slug], true);
 
     if (!$mailing) exit('_uho_client::mailing::missing_mailing_model::' . $slug);
 
@@ -1819,7 +1819,7 @@ class _uho_client
   {
     if (!$user_id && $this->isLogged()) $user_id = $this->getClientId();
     if ($user_id)
-      $this->orm->postJsonModel('users_logs', ['user' => $user_id, 'action' => $action, 'value' => $value]);
+      $this->orm->post('users_logs', ['user' => $user_id, 'action' => $action, 'value' => $value]);
   }
 
   /**
@@ -1873,9 +1873,9 @@ class _uho_client
 
   public function newsletterRemove($key)
   {
-    $exists = $this->orm->getJsonModel($this->models['newsletter_users'], ['key_remove' => $key], true);
+    $exists = $this->orm->get($this->models['newsletter_users'], ['key_remove' => $key], true);
     if ($exists)
-      $this->orm->putJsonModel($this->models['newsletter_users'], ['email' => '', 'key_remove' => '', 'key_confirm' => '', 'status' => 'cancelled'], ['id' => $exists['id']]);
+      $this->orm->put($this->models['newsletter_users'], ['email' => '', 'key_remove' => '', 'key_confirm' => '', 'status' => 'cancelled'], ['id' => $exists['id']]);
     return $exists;
   }
 
@@ -1887,11 +1887,11 @@ class _uho_client
   public function newsletterSend()
   {
     $package_count = 10;
-    $issues = $this->orm->getJsonModel('client_newsletter_issues', ['status' => 'sending']);
+    $issues = $this->orm->get('client_newsletter_issues', ['status' => 'sending']);
     $i = [];
     foreach ($issues as $v) $i[] = $v['id'];
 
-    if ($issues) $emails = $this->orm->getJsonModel('client_newsletter_mailing', ['status' => 'waiting', 'issue' => $i], false, 'id', '0,' . $package_count);
+    if ($issues) $emails = $this->orm->get('client_newsletter_mailing', ['status' => 'waiting', 'issue' => $i], false, 'id', '0,' . $package_count);
 
 
     $count = 0;
@@ -1900,14 +1900,14 @@ class _uho_client
     if ($emails) {
       foreach ($emails as $v) {
         $i = _uho_fx::array_filter($issues, 'id', $v['issue'], ['first' => true]);
-        $user = $this->orm->getJsonModel('client_users_newsletter', ['id' => $v['user'], 'status' => 'confirmed'], true);
+        $user = $this->orm->get('client_users_newsletter', ['id' => $v['user'], 'status' => 'confirmed'], true);
         $error = false;
         if ($user) {
 
           $key_remove = $user['key_remove'];
           if (!$key_remove) {
             $key_remove = $this->uniqid();
-            $this->orm->putJsonModel('client_users_newsletter', ['id' => $user['id'], 'key_remove' => $key_remove]);
+            $this->orm->put('client_users_newsletter', ['id' => $user['id'], 'key_remove' => $key_remove]);
           }
           $body = $i['body_' . strtoupper($user['lang'])];
           $body = str_replace('%key%', $key_remove, $body);
@@ -1917,16 +1917,16 @@ class _uho_client
         } else $error = true;
 
         if ($error) {
-          $this->orm->putJsonModel('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'error']);
+          $this->orm->put('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'error']);
           $errors++;
         } else {
           $count++;
-          $this->orm->putJsonModel('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'sent']);
+          $this->orm->put('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'sent']);
         }
       }
     } else {
       foreach ($issues as $v)
-        $this->orm->putJsonModel('client_newsletter_issues', ['id' => $v['id'], 'status' => 'sent']);
+        $this->orm->put('client_newsletter_issues', ['id' => $v['id'], 'status' => 'sent']);
     }
     return ['result' => true, 'count' => $count, 'error' => $errors];
   }
@@ -2021,21 +2021,21 @@ class _uho_client
 
     if (!isset($this->models['newsletter_users'])) exit('_uho_client::newsletterAdd::missing_model');
 
-    $exists = $this->orm->getJsonModel($this->models['newsletter_users'], ['email' => $email], true);
+    $exists = $this->orm->get($this->models['newsletter_users'], ['email' => $email], true);
 
     // new address
     if (!$exists) {
       //echo('insert:'.$this->models['newsletter_users']);
-      $result = $this->orm->postJsonModel($this->models['newsletter_users'], ['email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
+      $result = $this->orm->post($this->models['newsletter_users'], ['email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
       if (!$result) return ['result' => false, 'message' => 'System error'];
     }
     // re-activating cancelled address
     elseif ($exists && $exists['status'] == 'cancelled')
-      $result = $this->orm->putJsonModel($this->models['newsletter_users'], ['id' => $exists['id'], 'email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
+      $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
 
     // adding confirm key if missing
     elseif ($exists && !@$exists['key_confirm'])
-      $result = $this->orm->putJsonModel($this->models['newsletter_users'], ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
+      $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
 
     // setting confirm key for previously submitted email
     elseif ($exists && $exists['status'] == 'submitted') {
@@ -2060,8 +2060,8 @@ class _uho_client
 
   public function newsletterConfirmation($key)
   {
-    $exists = $this->orm->getJsonModel($this->models['newsletter_users'], ['key_confirm' => $key], true);
-    if ($exists) $result = $this->orm->putJsonModel($this->models['newsletter_users'], ['id' => $exists['id'], 'status' => 'confirmed']);
+    $exists = $this->orm->get($this->models['newsletter_users'], ['key_confirm' => $key], true);
+    if ($exists) $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'status' => 'confirmed']);
     else $result = false;
     return $result;
   }
@@ -2072,7 +2072,7 @@ class _uho_client
   private function favouritesLoad(): void
   {
     if ($this->favourites && $this->isLogged()) {
-      $t = $this->orm->getJsonModel($this->favourites['model'], ['user' => $this->getClientId()], false);
+      $t = $this->orm->get($this->favourites['model'], ['user' => $this->getClientId()], false);
       $types = [];
       foreach ($t as $v) {
         if (!isset($types[$v['type']])) $types[$v['type']] = [];
@@ -2127,11 +2127,11 @@ class _uho_client
 
     if (isset($_SESSION['fav'][$type][$id])) {
       unset($_SESSION['fav'][$type][$id]);
-      if ($this->favourites['model']) $this->orm->deleteJsonModel($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
+      if ($this->favourites['model']) $this->orm->delete($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
     } else {
       if (!isset($_SESSION['fav'][$type])) $_SESSION['fav'][$type] = [];
       $_SESSION['fav'][$type][$id] = 1;
-      if ($this->favourites['model']) $this->orm->postJsonModel($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
+      if ($this->favourites['model']) $this->orm->post($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
     }
     return ['result' => true, 'status' => intval(@$_SESSION['fav'][$type][$id])];
   }
@@ -2178,14 +2178,14 @@ class _uho_client
     $date = date('Y-m-d');
     $date = date('Y-m-d', strtotime($date . ' + ' . $alerts[0] . ' days'));
 
-    $users = $this->orm->getJsonModel('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<=', 'value' => $date]]);
+    $users = $this->orm->get('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<=', 'value' => $date]]);
     foreach ($users as $v)
       if (!_uho_fx::getGet('dbg') || $v['email'] == 'lukasz@huncwot.com') {
         $diff = strtotime($v['gdpr_expiration_date']) - strtotime(date('Y-m-d'));
         $diff = round($diff / 86400);
         if (in_array($diff, $alerts)) {
           $f = ['action' => 'mailing_gdpr_expiry_alert', 'user' => $v['id'], 'date' => ['operator' => '%LIKE%', 'value' => date('Y-m-d')]];
-          $exists = $this->orm->getJsonModel('users_logs', $f, true);
+          $exists = $this->orm->get('users_logs', $f, true);
           if (!$exists) {
             $this->user_gdpr_extension_mailing_send($days_agree, $mailing_url, $v, $diff);
             $i++;
@@ -2205,7 +2205,7 @@ class _uho_client
   private function anonimize($user, $why = 'exipration', bool $mailing = false): void
   {
     // anonimize
-    $this->orm->putJsonModel($this->clientModel, ['id' => $user['id'], 'email' => '', 'institution' => '', 'surname' => '', 'uid' => '', 'status' => 'anonimized']);
+    $this->orm->put($this->clientModel, ['id' => $user['id'], 'email' => '', 'institution' => '', 'surname' => '', 'uid' => '', 'status' => 'anonimized']);
 
     // mailing
     if ($mailing && $why == 'expiration') $this->mailing('gdpr_expiry_information', $user['email']);
@@ -2219,7 +2219,7 @@ class _uho_client
 
   public function gdpr_expiration_check()
   {
-    $users = $this->orm->getJsonModel('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<', 'value' => date('Y-m-d')]]);
+    $users = $this->orm->get('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<', 'value' => date('Y-m-d')]]);
     foreach ($users as $v)
       $this->anonimize($v, 'expiration', true);
     return count($users);
@@ -2380,7 +2380,7 @@ class _uho_client
 
     $id = $this->getId();
     if ($id && in_array($field, $this->userCustomFields)) {
-      $result = $this->orm->putJsonModel($this->clientModel, [$field => $value], ['id' => $id]);
+      $result = $this->orm->put($this->clientModel, [$field => $value], ['id' => $id]);
       $this->getData(true);
     } else $result = false;
     return $result;

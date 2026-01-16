@@ -430,21 +430,6 @@ class _uho_mysqli
      * @param string $query
      * @return boolean
      */
-
-    public function queryMultiOut($query)
-    {
-        $t = $this->base_link->multi_query($query);
-        if (!$t) {
-            $this->errorAdd($query);
-        }
-        return ($t);
-    }
-
-    /**
-     * Runs mySQL write queries
-     * @param string $query
-     * @return boolean
-     */
     public function multiQueryOut($query)
     {
         $t = $this->base_link->multi_query($query);

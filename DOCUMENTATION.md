@@ -334,7 +334,7 @@ class model_app_home extends \Huncwot\UhoFramework\_uho_model
     public function getData()
     {
         // Get data using ORM
-        $this->data['items'] = $this->getJsonModel('items', ['active' => 1]);
+        $this->data['items'] = $this->get('items', ['active' => 1]);
         
         // Or use raw SQL
         $this->data['users'] = $this->query("SELECT * FROM items WHERE active=1 LIMIT 10");
@@ -478,7 +478,7 @@ $data = [
     'active' => 1
 ];
 
-$this->postJsonModel('items', $data);
+$this->post('items', $data);
 $new_id = $this->getInsertId();
 ```
 
@@ -488,13 +488,13 @@ $new_id = $this->getInsertId();
 $data = ['title' => 'Updated Title'];
 $filters = ['id' => 1];
 
-$this->putJsonModel('items', $data, $filters);
+$this->put('items', $data, $filters);
 ```
 
 #### Delete Models
 
 ```php
-$this->deleteJsonModel('items', ['id' => 1]);
+$this->delete('items', ['id' => 1]);
 ```
 
 ### Raw SQL Queries
@@ -510,7 +510,7 @@ $user = $this->query("SELECT * FROM users WHERE id = 1", true);
 $this->queryOut("UPDATE users SET last_login = NOW() WHERE id = 1");
 
 // Multiple queries
-$this->queryMultiOut("INSERT INTO ...; UPDATE ...;");
+$this->multiQueryOut("INSERT INTO ...; UPDATE ...;");
 ```
 
 ### Field Types
@@ -600,7 +600,7 @@ class controller_app_home extends \Huncwot\UhoFramework\_uho_controller
             'description' => $post['description']
         ];
         
-        $this->model->postJsonModel('items', $data);
+        $this->model->post('items', $data);
     }
 }
 ```
@@ -913,10 +913,10 @@ Base model class.
 
 **Methods:**
 
-* `getJsonModel($name, $filters, $single, $order, $limit, $params)`: Get model data
-* `postJsonModel($model, $data, $multiple)`: Create model
-* `putJsonModel($model, $data, $filters, $multiple)`: Update model
-* `deleteJsonModel($model, $filters, $multiple)`: Delete model
+* `get($name, $filters, $single, $order, $limit, $params)`: Get model data
+* `post($model, $data, $multiple)`: Create model
+* `put($model, $data, $filters, $multiple)`: Update model
+* `delete($model, $filters, $multiple)`: Delete model
 * `query($query, $single, $stripslashes, $key, $do_field_only)`: Raw SQL read
 * `queryOut($query)`: Raw SQL write
 * `csrf_token_create($uid, $force)`: Create CSRF token
@@ -1005,12 +1005,12 @@ class model_app_post extends \Huncwot\UhoFramework\_uho_model
         $slug = $this->route->getUrlArray()[1] ?? null;
         
         if ($slug) {
-            $this->data['post'] = $this->getJsonModel('posts', ['slug' => $slug], true);
+            $this->data['post'] = $this->get('posts', ['slug' => $slug], true);
             if (!$this->data['post']) {
                 $this->data['404'] = true;
             }
         } else {
-            $this->data['posts'] = $this->getJsonModel('posts', ['published' => 1], false, 'created_at DESC');
+            $this->data['posts'] = $this->get('posts', ['published' => 1], false, 'created_at DESC');
         }
     }
 }
@@ -1073,7 +1073,7 @@ class controller_app_api extends \Huncwot\UhoFramework\_uho_controller
             return;
         }
         
-        $items = $this->model->getJsonModel('items');
+        $items = $this->model->get('items');
         $this->data['content'] = ['items' => $items];
     }
 }
