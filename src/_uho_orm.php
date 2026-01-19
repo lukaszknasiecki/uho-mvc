@@ -123,6 +123,11 @@ class _uho_orm
     private $filesDecache = false;
     private $filesDecache_style = 'standard';
     private $temp_public_folder = '/temp';
+
+    private $getElementsMethod='aggregate'; // Available methods: aggregate|iterate
+    private $getCheckboxesMethod='aggregate'; // Available methods: aggregate|iterate
+    private $getSelectMethod='aggregate'; // Available methods: aggregate|iterate
+
     /**
      * indicates if for elements_double fields we should
      * use integer is only one value is set
@@ -990,11 +995,13 @@ class _uho_orm
                  * for fields with no field specified - doing nothing
                  */
                 elseif (@!$v[$v2['field']]) {
+                    //
                 }
                 /**
                  * elements type with source.model
+                 * get model on each iteration
                  */
-                elseif ($v2['type'] == 'elements' && isset($v2['source']['model'])) {
+                elseif ($this->getElementsMethod=='iterate' && $v2['type'] == 'elements' && isset($v2['source']['model'])) {
 
                     $f = explode(',', $v[$v2['field']]);
 
@@ -1014,8 +1021,9 @@ class _uho_orm
                 }
                 /**
                  * checkboxes type with source.model
+                 * get model on each iteration
                  */
-                elseif ($v2['type'] == 'checkboxes' && isset($v2['source']['model'])) {
+                elseif ($this->getCheckboxesMethod=='iterate' && $v2['type'] == 'checkboxes' && isset($v2['source']['model'])) {
 
                     $f = explode(',', $v[$v2['field']]);
                     $f4 = array();
@@ -1048,10 +1056,10 @@ class _uho_orm
                 /**
                  * select type with source.model
                  */
-                elseif (@$v2['type'] == 'select' && @$v2['model']) // || $v2['source']['model']))
+                elseif ($this->getSelectMethod=='iterate' && @$v2['type'] == 'select' && !empty($v2['source']['model']))
                 {
 
-                    if ($v2['source']['filters']) {
+                    if (isset($v2['source']['filters'])) {
                         $f = array($v2['source']['filters']);
                         $f = _uho_fx::arrayReplace($f, $v, '%', '%');
                         $getSingle = false;
@@ -1062,29 +1070,42 @@ class _uho_orm
                         $getSingle = true;
                         $order = '';
                     }
-                    if ($v2['model']) $model0 = $v2['model'];
-                    else  $model0 = $v2['source']['model'];
+                    $model0 = $v2['source']['model'];
                     $data[$k][$v2['field']] = $this->get($model0, $f, $getSingle, $order);
                 }
                 /**
                  * Select fields with source.model
                  */
-                elseif (@$v2['source'] && ($v2['type'] == 'elements' || $v2['type'] == 'select' || $v2['type'] == 'checkboxes')) {
+                elseif (@$v2['source'] && (in_array($v2['type'],['elements','select','checkboxes'])))
+                    {
 
                     /**
-                     * Create Source Data - all elements to choose from
+                     * Create Source.Data if needed - all elements to choose from
                      */
 
-                    if (!@$v2['source']['data']) {
+                    if (!@$v2['source']['data'])
+                    {
 
-                        if (@$v2['source']['model']) {
+                        if (@$v2['source']['model'])
+                        {
 
                             $ids = [];
                             foreach ($data as $v5)
-                                if (!in_array($v5[$v2['field']], $ids)) $ids[] = $v5[$v2['field']];
+                            {
+                                $id_vals=explode(',',$v5[$v2['field']]);
+                                foreach ($id_vals as $id_val)
+                                {
+                                     if (empty($v2['settings']['output']) || $v2['settings']['output'] != 'string')
+                                        $id_val=intval($id_val);
+                                    if (!in_array($id_val, $ids))
+                                    {
+                                        $ids[] = $id_val;
+                                    }
+                                }
+                            }
 
                             if (isset($v2['source']['id'])) $id_field = $v2['source']['id'];
-                            else  $id_field = 'id';
+                                else  $id_field = 'id';
 
                             if (!empty($v2['source']['model_fields'])) $params0 = ['fields' => $v2['source']['model_fields']];
                             else $params0 = [];
@@ -1099,6 +1120,7 @@ class _uho_orm
                                 foreach ($v4 as $k6 => $_) $v4[$k6] = $v4[$k6][$v2['source']['field']];
 
                             $v2['source']['data'] = $model['fields'][$k2]['source']['data'] = $v4;
+
                         } else {
 
                             if (!$v2['source']['fields']) $this->halt('_uho_model::error No source fields for ' . $v2['field']);
