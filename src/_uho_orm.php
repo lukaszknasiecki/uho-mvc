@@ -666,10 +666,6 @@ class _uho_orm
             $this->halt('get::no-schema-name');
         }
 
-        if ($name == 'cms_users') {
-            var_dump($single);
-        }
-
         $name_string = $name;
 
         // checks if SQL connection has been established

@@ -5,16 +5,105 @@ namespace Huncwot\UhoFramework;
 use Huncwot\UhoFramework\_uho_mailer;
 use Huncwot\UhoFramework\_uho_thumb;
 use Huncwot\UhoFramework\_uho_fx;
-use Google\Client as GoogleClient;
-use Google\Service\Oauth2 as GoogleOauth2;
+use Huncwot\UhoFramework\_uho_client_favourites;
+use Huncwot\UhoFramework\_uho_client_gdpr;
+use Huncwot\UhoFramework\_uho_client_newsletter;
 
 /**
  * This class provides CLIENT object methods
  * connected with register, login and various profile settings
+ *
+ * Methods:
+ * - __construct($orm, $settings, $lang = null)
+ * - setFields($t): void
+ * - setModel($t): void
+ * - setKeys($k): void
+ * - userSetCustomField($field, $value)
+ * - storeDataParam($key, $value): void
+ * 
+ * - enableCookie($name, $days, $domain, $login = false): void
+ * - cookieLogin($force = false): void
+ * - cookieLoginStore($id): void
+ * - getCookieName()
+ * 
+ * - getToken($key = '')
+ * - validateToken($token, $key = '')
+ * - removeUserTokens($user_id, $type = null)
+ * - generateUserToken($type, $date, $user_id = 0)
+ * - getUserToken($token, $type = null, $remove_if_present = false)
+ * 
+ * - logsAdd($action, int|null $result = null): void
+ * - logsAddLogged($action, $result = null)
+ * - logsAddUnlogged($action, $result = null)
+ *  
+ * - isLogged()
+ * - getData($reload = false)
+ * - getDataField($field)
+ * - getId($reload = false): string|int
+ * - getLoggedClient($reload = false)
+ * - getClient(array $params, $skip_provider = false, $skip_pass_check = false)
+ * - getClientId(bool $reload = false)
+ * 
+ * - beforeLogin()
+ * - beforeLogout()
+ * - beforeLoginCallback($data)
+ * 
+ * - getMaxLoginAttempts()
+ * - getRemainingLoginAttempts($login)
+ * - login($email, $pass, array|null $params = null)
+ * - loginByToken($token)
+ * - logout(): bool
+ * - loginCheckBan(): bool
+ * 
+ * - anyUserExists()
+ * - adminExists()
+
+ * - create($data, $returnId = false)
+ * - createAdmin($login, $pass)
+ * - register($data, $url = null): array
+ * - registerConfirmation($key)
+ * - update($user_id = 0, $data = null)
+ * - accountRemoveRequest($password, $url)
+ * - accountRemoveByKey($key)
+ * 
+ * - passwordValidateFormat($pass)
+ * - passwordGenerate()
+ * - passwordCheck($pass)
+ * - passwordCheckExpired($days)
+ * - passwordChange($pass, $user = null)
+ * - passwordChangeByEmail($email, $url)
+ * - passwordSetFirstTime($pass)
+ * - passwordChangeByOldPassword($oldpass, $pass)
+ * - passwordChangeByKey($key, $pass)
+ * 
+ * - mailing($slug, $emails, $data = [], $user_id = null)
+ * - mailingRaw($email, $subject, $message)
+ * 
+ * - newsletter(): ?_uho_client_newsletter
+ * - newsletterAdd($email, $mailing = false, $url = null, $list = null): array|bool
+ * - newsletterRemove($key)
+ * - newsletterSend()
+ * - newsletterAddData($email, $list = null)
+ * - newsletterStandardAddData($email): array
+ * - newsletterConfirmation($key)
+ * 
+ * - favourites(): ?_uho_client_favourites
+ * - favouritesGet($type)
+ * - favouritesCheck($type, $id)
+ * - favouritesToggle($type, $id)
+ * 
+ * - gdpr(): ?_uho_client_gdpr
+ * - gdpr_extension_mailing($days_agree, $mailing_url): int
+ * - gdpr_expiration_check(): int
+ * 
+ * - getIp()
  */
 
 class _uho_client
 {
+  use _uho_client_auth_facebook;
+  use _uho_client_auth_google;
+  use _uho_client_auth_epuap;
   /**
    * _uho_orm client model name
    */
@@ -83,6 +172,18 @@ class _uho_client
    * settings for Favourites functions
    */
   private $favourites;
+  /**
+   * Favourites service instance
+   */
+  private $_uho_client_favourites;
+  /**
+   * GDPR service instance
+   */
+  private $_uho_client_gdpr;
+  /**
+   * Newsletter service instance
+   */
+  private $_uho_client_newsletter;
   /**
    * indicates is Cookie Login is enabled
    */
@@ -208,7 +309,16 @@ class _uho_client
       else $this->userCustomFields = [];
 
       if (@$settings['oauth']) $this->oAuth = $settings['oauth'];
-      if (@$settings['favourites']) $this->favourites = $settings['favourites'];
+      if (@$settings['favourites']) {
+        $this->favourites = $settings['favourites'];
+        $this->_uho_client_favourites = new _uho_client_favourites($orm, $settings['favourites'], fn() => $this->getClientId());
+      }
+      if (@$settings['settings']['gdpr_days']) {
+        $this->_uho_client_gdpr = new _uho_client_gdpr($orm, $this->clientModel, $settings['settings'], $this);
+      }
+      if (@$settings['models']['newsletter_users'] || @$settings['models']['newsletter_type']) {
+        $this->_uho_client_newsletter = new _uho_client_newsletter($orm, $this->models, @$this->keys, $this);
+      }
       if (@$settings['settings']['http_host'])  $this->http_host = $settings['settings']['http_host'];
 
       if (@$settings['fields_subset'] == 'standard')
@@ -559,16 +669,6 @@ class _uho_client
   }
 
   /**
-   * Returns true is any user is currently logged via Epuap
-   *
-   * @return null|true
-   */
-  public function isLoggedEpuap()
-  {
-    if (@$this->getData()['epuap_id']) return true;
-  }
-
-  /**
    * Get's currently logged user's data
    * @return array
    */
@@ -732,7 +832,7 @@ class _uho_client
       $_SESSION['login_session_id'] = $this->orm->getInsertId();
     }
 
-    if ($result) $this->favouritesLoad();
+    if ($result && $this->_uho_client_favourites) $this->_uho_client_favourites->load();
 
     if ($result) {
       if (!isset($message)) $message = 'client_login_success';
@@ -754,221 +854,6 @@ class _uho_client
     }
   }
 
-
-  public function loginFacebookInit()
-  {
-    $redirectUri = "https://www.facebook.com/v23.0/dialog/oauth?" . http_build_query([
-      'client_id' => $this->oAuth['facebook']['client_id'],
-      'response_type' => 'code',
-      'redirect_uri'  => $this->oAuth['facebook']['redirect_uri'],
-      'scope' => 'email,public_profile'
-    ]);
-
-
-    header('Location: ' . $redirectUri, true, 302);
-    exit;
-  }
-
-  /**
-   * Facebook login
-   * @param string $accessToken token from Google API
-   * @return boolean returns true if successfull
-   */
-
-  public function loginFacebook($accessToken = null, $code = null)
-  {
-
-    if (!$this->oAuth['facebook']) return ['result' => false, 'Facebook oAuth config missing'];
-
-    // we can get data with token or code (from hard redirect)
-
-    if (!$accessToken && !$code) return ['result' => false, 'message' => 'No code/token specified'];
-
-    // $code --> $accessToken    
-    if ($code) {
-      $tokenUrl = "https://graph.facebook.com/v19.0/oauth/access_token?" . http_build_query([
-        'client_id' => $this->oAuth['facebook']['client_id'],
-        'client_secret' => $this->oAuth['facebook']['client_secret'],
-        'redirect_uri'  => $this->oAuth['facebook']['redirect_uri'],
-        'code'          => $code
-      ]);
-
-      $response = @file_get_contents($tokenUrl);
-      $data = @json_decode($response, true);
-      $accessToken = isset($data['access_token']) ? $data['access_token'] : null;
-    }
-
-    if (empty($accessToken)) {
-      http_response_code(400);
-      exit('Authentication failed or was cancelled.');
-    }
-
-    // Fetch user profile
-    $graphUrl = "https://graph.facebook.com/me?"
-      . "fields=id,first_name,last_name,email,picture.width(200).height(200)"
-      . "&access_token=" . urlencode($accessToken);
-
-    $response = @file_get_contents($graphUrl);
-    $data = @json_decode($response, true);
-
-    if (empty($data['id'])) {
-      http_response_code(400);
-      exit('Failed to fetch user profile.');
-    }
-
-    $data = [
-      'name' => $data['first_name'],
-      'surname' => $data['last_name'],
-      'email' => $data['email'],
-      'facebook_id' => $data['id'],
-      'image_uri' => isset($data['picture']['data']['url']) ? $data['picture']['data']['url'] : null,
-      'image_present' => isset($data['picture']['data']['url']) ? 1 : 0,
-      'status' => 'confirmed'
-    ];
-
-    $result = $this->register($data);
-
-    if ($result) {
-      $image = $data['image_uri'];
-      $result = $this->login(null, null, ['facebook_id' => $data['facebook_id']]);
-      @$result['client']['image_uri'] = $image;
-    }
-
-    return ($result);
-  }
-
-  /**
-   * Google Oauth Section
-   * 
-   * loginGoogleClient    --> creates Google Client
-   * loginGoogleInit      --> shows Google Oauth Popup
-   * loginGoogle          --> registers / logins user
-   */
-
-  private function loginGoogleClient()
-  {
-    $client = new GoogleClient();
-    $client->setClientId($this->oAuth['google']['client_id']);
-    $client->setClientSecret($this->oAuth['google']['client_secret']);
-    $client->setRedirectUri($this->oAuth['google']['redirect_uri']);
-    $client->setScopes([
-      'openid',
-      'email',
-      'profile',
-    ]);
-    $client->setAccessType('offline');       // to receive refresh_token (first consent)
-    $client->setPrompt('consent');           // force consent screen to get refresh_token reliably
-    return $client;
-  }
-
-  /**
-   * Google login init, redirects to login screen
-   */
-
-  public function loginGoogleInit()
-  {
-    $client = $this->loginGoogleClient();
-
-    // CSRF protection: random state
-    $state = bin2hex(random_bytes(16));
-    $_SESSION['oauth2state'] = $state;
-
-    // Build auth URL
-    $authUrl = $client->createAuthUrl();
-
-    // Append state safely
-    $sep = (parse_url($authUrl, PHP_URL_QUERY) ? '&' : '?');
-    $authUrl .= $sep . 'state=' . urlencode($state);
-
-    header('Location: ' . $authUrl, true, 302);
-    exit;
-  }
-
-  /**
-   * Google login
-   * @param string $accessToken token from Google API
-   * @return boolean returns true if successfull
-   */
-
-  public function loginGoogle($access_token, $code = null)
-  {
-
-    if (!$this->oAuth['google']) return ['result' => false, 'Google oAuth config missing'];
-
-    // we can get data with token or code (from hard redirect)
-
-    if (!$access_token && !$code) return ['result' => false, 'message' => 'No token/code specified'];
-
-    $client = $this->loginGoogleClient();
-
-
-    // Option#1 - getting data via TOKEN
-
-    if ($access_token) {
-
-      try {
-        $data = $client->verifyIdToken($access_token);
-      } catch (\Exception $e) {
-        return ['result' => false, 'message' => 'Login with token failed'];
-      }
-
-      if ($data && $data['sub']) {
-        $data = [
-          'name' => $data['given_name'],
-          'surname' => $data['family_name'],
-          'email' => $data['email'],
-          'google_id' => $data['sub'],
-          'image_uri' => isset($data['picture']) ? $data['picture'] : "",
-          'image_present' => isset($data['picture']) ? 1 : 0,
-          'status' => 'confirmed'
-        ];
-      } else {
-        return ['result' => false, 'message' => 'Login with token failed'];
-      }
-    }
-
-    // Option#2 - getting data via CODE
-
-    elseif ($code) {
-
-      $token = $client->fetchAccessTokenWithAuthCode($code);
-
-      if (isset($token['error'])) return ['result' => false, 'message' => 'No token found: ' . $token['error']];
-      try {
-        $client->setAccessToken($token);
-      } catch (\Exception $e) {
-        return ['result' => false, 'message' => $e->getMessage()];
-      }
-
-      $google_oauth = new GoogleOauth2($client);
-      $google_account_info = $google_oauth->userinfo->get();
-
-      if (!$google_account_info->id) return ['result' => false, 'message' => 'No google ID found'];
-
-      $data = [
-        'name' => $google_account_info->given_name,
-        'surname' => $google_account_info->family_name,
-        'email' => $google_account_info->email,
-        'google_id' => $google_account_info->id,
-        'image_uri' => $google_account_info->picture,
-        'status' => 'confirmed'
-      ];
-    }
-
-    // ------------------------------------------------------------------------------------
-    // not registered via Google but maybe via EMAIL?
-
-    $result = $this->register($data);
-
-    // logujemy
-    if ($result) {
-      $image = $data['image_uri'];
-      $result = $this->login(null, null, ['google_id' => $data['google_id']]);
-      @$result['client']['image_uri'] = $image;
-    }
-
-    return ($result);
-  }
 
   /**
    * Performs current user's logout
@@ -1046,27 +931,7 @@ class _uho_client
     else return $this->logsAdd($action, $result);
   }
 
-  /**
-   * Curl_copy function, copies file from one location to another
-   *
-   * @param string $remote_file file to be copied
-   * @param string $local_file destination path
-   */
-  private function curl_copy($remote_file, $local_file): void
-  {
-    curl_init();
-    $fp = @fopen($local_file, 'w+');
-    if ($fp) {
-      $ch = curl_init($remote_file);
-      curl_setopt($ch, CURLOPT_TIMEOUT, 50);
-      curl_setopt($ch, CURLOPT_FILE, $fp);
-      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-      curl_setopt($ch, CURLOPT_ENCODING, "");
-      curl_exec($ch);
-      curl_close($ch);
-      fclose($fp);
-    }
-  }
+
 
   /**
    * Saves user's portrait image from remote location
@@ -1186,7 +1051,8 @@ class _uho_client
 
   public function createAdmin($login, $pass)
   {
-    if (!$this->adminExists()) {
+    if (!$this->adminExists())
+    {
       $data = ['name' => 'Admin', 'login' => $login, 'password' => $pass, 'admin' => 1, 'status' => 'confirmed', 'edit_all' => 1];
       $r = $this->create($data);
       if (!$r) {
@@ -1851,259 +1717,76 @@ class _uho_client
   }
 
   /**
+   * Returns the newsletter service instance
+   * @return _uho_client_newsletter|null
+   */
+  public function newsletter(): ?_uho_client_newsletter
+  {
+    return $this->_uho_client_newsletter;
+  }
+
+  /**
    * Adds newsletter email to DB
-   *
-   * @param string $email destination email
-   * @param boolean $mailing if true confirmation mail is being sent
-   * @param string $url confirmation url
-   * @param string $list mailing software list_id
-   *
-   * @return bool|true[] returns ['result'=>true] if went well
-   *
    */
   public function newsletterAdd($email, $mailing = false, $url = null, $list = null): array|bool
   {
-    $result = $this->newsletterAddData($email, $list);
-
-    if ($mailing && !empty($result['key_confirm'])) {
-      $this->mailing('newsletter_confirmation', $email, ['url' => str_replace('%key%', $result['key_confirm'], $url)]);
-      $result = ['result' => true, 'mailing' => true];
-    }
-    return $result;
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->add($email, $mailing, $url, $list);
+    return ['result' => false, 'message' => 'Newsletter service not configured'];
   }
 
   /**
-   * Removes newsletter email to DB
-   * @param string $token unique token
-   * @return boolean
+   * Removes newsletter email from DB
    */
-
   public function newsletterRemove($key)
   {
-    $exists = $this->orm->get($this->models['newsletter_users'], ['key_remove' => $key], true);
-    if ($exists)
-      $this->orm->put(
-        $this->models['newsletter_users'],
-        ['email' => '', 'key_remove' => '', 'key_confirm' => '', 'status' => 'cancelled'],
-        ['id' => $exists['id']]
-        );
-    return $exists;
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->remove($key);
+    return false;
   }
 
   /**
-   * Semds any currently qued newsletter
+   * Sends any currently queued newsletter
    * @return array returns ['result'=>true] if went well
    */
-
   public function newsletterSend()
   {
-    $package_count = 10;
-    $issues = $this->orm->get('client_newsletter_issues', ['status' => 'sending']);
-    $i = [];
-    foreach ($issues as $v) $i[] = $v['id'];
-
-    if ($issues) $emails = $this->orm->get('client_newsletter_mailing', ['status' => 'waiting', 'issue' => $i], false, 'id', '0,' . $package_count);
-
-
-    $count = 0;
-    $errors = 0;
-
-    if ($emails) {
-      foreach ($emails as $v) {
-        $i = _uho_fx::array_filter($issues, 'id', $v['issue'], ['first' => true]);
-        $user = $this->orm->get('client_users_newsletter', ['id' => $v['user'], 'status' => 'confirmed'], true);
-        $error = false;
-        if ($user) {
-
-          $key_remove = $user['key_remove'];
-          if (!$key_remove) {
-            $key_remove = $this->uniqid();
-            $this->orm->put(
-              'client_users_newsletter', ['id' => $user['id'], 'key_remove' => $key_remove]);
-          }
-          $body = $i['body_' . strtoupper($user['lang'])];
-          $body = str_replace('%key%', $key_remove, $body);
-          $subject = $i['label_' . strtoupper($user['lang'])];
-          $result = $this->mailingRaw($user['email'], $subject, $body);
-          if (!$result) $error = true;
-        } else $error = true;
-
-        if ($error) {
-          $this->orm->put(
-            'client_newsletter_mailing',
-            ['id' => $v['id'], 'status' => 'error']);
-          $errors++;
-        } else {
-          $count++;
-          $this->orm->put(
-            'client_newsletter_mailing',
-            ['id' => $v['id'], 'status' => 'sent']);
-        }
-      }
-    } else {
-      foreach ($issues as $v)
-        $this->orm->put(
-          'client_newsletter_issues',
-          ['id' => $v['id'], 'status' => 'sent']);
-    }
-    return ['result' => true, 'count' => $count, 'error' => $errors];
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->send();
+    return ['result' => false, 'count' => 0, 'error' => 0];
   }
 
   /**
-   * Adds newsltter to internal database or extennal service
-   * @param string $email email to be added
-   * @param string $list list_id
-   * @return boolean
+   * Adds newsletter to internal database or external service
    */
-
   public function newsletterAddData($email, $list = null)
   {
-
-    switch (@$this->models['newsletter_type']) {
-      case "getresponse":
-        $result = $this->newsletterGetResponseAddData($email, $list);
-        break;
-      default:
-        $result = $this->newsletterStandardAddData($email);
-        break;
-    }
-    return $result;
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->addData($email, $list);
+    return ['result' => false, 'message' => 'Newsletter service not configured'];
   }
-
-  /**
-   * Handles getResponse system subsription
-   * @param string $email email to be added
-   * @param string $list list_id
-   * @return boolean
-   */
-
-  private function newsletterGetResponseAddData($email, $list = null)
-  {
-
-    if (!isset($this->keys['getresponse']['api_key'])) $message = 'GetResponse API Key not found';
-    else {
-      if (!$list) $list = @array_shift($this->keys['getresponse']['lists']);
-      else $list = @$this->keys['getresponse']['lists'][$list];
-      if (!$list) $message = 'GetResponse List not found';
-      else
-        $result = $this->newsletterGetResponseAddDataToList($this->keys['getresponse']['api_key'], $list, $email);
-    }
-    if (!$result) return ['result' => false, 'message' => $message];
-    return $result;
-  }
-
-  /**
-   * Handles getResponse system subsription
-   *
-   * @param string $api_key token
-   * @param string $list list_id
-   * @param string $email email to be added
-   *
-   * @return (bool|mixed)[]
-   *
-   */
-  private function newsletterGetResponseAddDataToList($api_key, $list_token, $email): array
-  {
-    $authorization = "X-Auth-Token: api-key " . $api_key;
-    $url = 'https://api.getresponse.com/v3/contacts';
-    $d = ['email' => $email, 'campaign' => ['campaignId' => $list_token]];
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization));
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($d));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $result = @json_decode(curl_exec($ch), true);
-    $response = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    // 202 --> ok
-    // 400 --> error
-    // 409 --> exists
-    if ($response == 202 || $response == 409) return ['result' => true];
-    else return ['result' => false, 'message' => @$result['message']];
-  }
-
 
   /**
    * Adds newsletter email to internal system
-   *
-   * @param string $email email to be added
-   *
-   * @return (bool|mixed|string)[]
-   *
    */
   public function newsletterStandardAddData($email): array
   {
-
-    $result = false;
-    $key_confirm = $this->uniqid();
-
-    if (!isset($this->models['newsletter_users'])) exit('_uho_client::newsletterAdd::missing_model');
-
-    $exists = $this->orm->get($this->models['newsletter_users'], ['email' => $email], true);
-
-    // new address
-    if (!$exists) {
-      //echo('insert:'.$this->models['newsletter_users']);
-      $result = $this->orm->post($this->models['newsletter_users'], ['email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
-      if (!$result) return ['result' => false, 'message' => 'System error'];
-    }
-    // re-activating cancelled address
-    elseif ($exists && $exists['status'] == 'cancelled')
-      $result = $this->orm->put(
-        $this->models['newsletter_users'],
-        ['id' => $exists['id'], 'email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
-
-    // adding confirm key if missing
-    elseif ($exists && !@$exists['key_confirm'])
-      $result = $this->orm->put(
-        $this->models['newsletter_users'],
-        ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
-
-    // setting confirm key for previously submitted email
-    elseif ($exists && $exists['status'] == 'submitted') {
-      $result = true;
-      $key_confirm = $exists['key_confirm'];
-    }
-
-    // false if address exists and is activated
-    elseif ($exists) {
-      $result = false;
-    }
-
-    if ($result)  return ['result' => true, 'key_confirm' => $key_confirm];
-    else return ['result' => true];
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->standardAddData($email);
+    return ['result' => false, 'message' => 'Newsletter service not configured'];
   }
 
   /**
-   * Adds newsletter confirmation by unique token
-   * @param string $key token
-   * @return boolean
+   * Confirms newsletter subscription by unique token
    */
-
   public function newsletterConfirmation($key)
   {
-    $exists = $this->orm->get($this->models['newsletter_users'], ['key_confirm' => $key], true);
-    if ($exists) $result = $this->orm->put
-        ($this->models['newsletter_users'],
-        ['id' => $exists['id'], 'status' => 'confirmed']);
-    else $result = false;
-    return $result;
+    if ($this->_uho_client_newsletter) return $this->_uho_client_newsletter->confirmation($key);
+    return false;
   }
 
   /**
-   * Loads favourites data from DB to Session VAR
+   * Returns the favourites service instance
+   * @return _uho_client_favourites|null
    */
-  private function favouritesLoad(): void
+  public function favourites(): ?_uho_client_favourites
   {
-    if ($this->favourites && $this->isLogged()) {
-      $t = $this->orm->get($this->favourites['model'], ['user' => $this->getClientId()], false);
-      $types = [];
-      foreach ($t as $v) {
-        if (!isset($types[$v['type']])) $types[$v['type']] = [];
-        $types[$v['type']][$v['object_id']] = 1;
-      }
-      $_SESSION['fav'] = $types;
-    }
+    return $this->_uho_client_favourites;
   }
 
   /**
@@ -2112,141 +1795,61 @@ class _uho_client
    * @param string $type data type
    *
    * @return array|null
-   *
    */
   public function favouritesGet($type)
   {
-    if ($this->isLogged()) {
-      $items = @$_SESSION['fav'][$type];
-      $i = [];
-      if ($items)
-        foreach ($items as $k => $_)
-          $i[] = $k;
-      return $i;
-    }
+    if ($this->_uho_client_favourites) return $this->_uho_client_favourites->get($type);
   }
 
   /**
    * Checks if object is in favourites
    * @param string $type data type
    * @param int $id objects' id
-   * @return array
+   * @return mixed
    */
-
   public function favouritesCheck($type, $id)
   {
-    if ($this->isLogged()) return @$_SESSION['fav'][$type][$id];
+    if ($this->_uho_client_favourites) return $this->_uho_client_favourites->check($type, $id);
   }
 
   /**
    * Toggles objects in favourites
-   * @param string $type data type
-   * @param int $id objects' id
-   * @return array
    */
-
   public function favouritesToggle($type, $id)
   {
-    if (!isset($type) || !isset($id) || !$this->isLogged()) return ['result' => false];
-
-    if (isset($_SESSION['fav'][$type][$id])) {
-      unset($_SESSION['fav'][$type][$id]);
-      if ($this->favourites['model']) $this->orm->delete($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
-    } else {
-      if (!isset($_SESSION['fav'][$type])) $_SESSION['fav'][$type] = [];
-      $_SESSION['fav'][$type][$id] = 1;
-      if ($this->favourites['model']) $this->orm->post($this->favourites['model'], ['user' => $this->getClientId(), 'type' => $type, 'object_id' => $id]);
-    }
-    return ['result' => true, 'status' => intval(@$_SESSION['fav'][$type][$id])];
+    if ($this->_uho_client_favourites) return $this->_uho_client_favourites->toggle($type, $id);
+    return ['result' => false];
   }
 
   /**
-   * Sends user's GDPR expiratiomn email
-   *
-   * @param int $days_agree number of max days before expiration
-   * @param string $mailing_url url to avoid expiration
-   * @param int $user user's id
-   * @param int $days days from today when expiration occurs
+   * Returns the GDPR service instance
+   * @return _uho_client_gdpr|null
    */
-  private function user_gdpr_extension_mailing_send($days_agree, $mailing_url, $user, $days): bool
+  public function gdpr(): ?_uho_client_gdpr
   {
-    $token = $this->generateUserToken('gdpr_extension', '+10 days', $user['id']);
-
-    if (!$token) $result = false;
-    else {
-      $result = $this->mailing(
-        'gdpr_expiry_alert',
-        $user['email'],
-        [
-          'days_agree' => $days_agree,
-          'url' => '{{http}}' . str_replace('%token%', $token, $mailing_url),
-          'days' => $days
-        ],
-        $user['id']
-      );
-    }
-    return $result;
+    return $this->_uho_client_gdpr;
   }
 
   /**
-   * Sends user's GDPR exntension email
+   * Sends user's GDPR extension email (delegated to _uho_client_gdpr)
    *
    * @param int $days_agree number of max days before expiration
    * @param string $mailing_url url to avoid expiration
-   *
    */
   public function gdpr_extension_mailing($days_agree, $mailing_url): int
   {
-    $alerts = [100, 50, 30, 15, 5, 1];
-    $i = 0;
-    $date = date('Y-m-d');
-    $date = date('Y-m-d', strtotime($date . ' + ' . $alerts[0] . ' days'));
-
-    $users = $this->orm->get('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<=', 'value' => $date]]);
-    foreach ($users as $v)
-      if (!_uho_fx::getGet('dbg') || $v['email'] == 'lukasz@huncwot.com') {
-        $diff = strtotime($v['gdpr_expiration_date']) - strtotime(date('Y-m-d'));
-        $diff = round($diff / 86400);
-        if (in_array($diff, $alerts)) {
-          $f = ['action' => 'mailing_gdpr_expiry_alert', 'user' => $v['id'], 'date' => ['operator' => '%LIKE%', 'value' => date('Y-m-d')]];
-          $exists = $this->orm->get('users_logs', $f, true);
-          if (!$exists) {
-            $this->user_gdpr_extension_mailing_send($days_agree, $mailing_url, $v, $diff);
-            $i++;
-          }
-        }
-      }
-    return $i;
+    if ($this->_uho_client_gdpr) return $this->_uho_client_gdpr->extensionMailing($days_agree, $mailing_url);
+    return 0;
   }
 
   /**
-   * Anonimizes user and sends the email
-   *
-   * @param int $user user's id
-   * @param string $why type of expiration
-   * @param boolean if true email is being sent
+   * Anonymizes all the users whose accounts expired (delegated to _uho_client_gdpr)
+   * @return int count of anonymized accounts
    */
-  private function anonimize($user, $why = 'exipration', bool $mailing = false): void
+  public function gdpr_expiration_check(): int
   {
-    // anonimize
-    $this->orm->put($this->clientModel, ['id' => $user['id'], 'email' => '', 'institution' => '', 'surname' => '', 'uid' => '', 'status' => 'anonimized']);
-
-    // mailing
-    if ($mailing && $why == 'expiration') $this->mailing('gdpr_expiry_information', $user['email']);
-    elseif ($mailing) $this->mailing('gdpr_remove_information', $user['email']);
-  }
-
-  /**
-   * Anonimizes all the users whos accounts expired
-   * @return int count of anonimized accounts
-   */
-
-  public function gdpr_expiration_check()
-  {
-    $users = $this->orm->get('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<', 'value' => date('Y-m-d')]]);
-    foreach ($users as $v)
-      $this->anonimize($v, 'expiration', true);
-    return count($users);
+    if ($this->_uho_client_gdpr) return $this->_uho_client_gdpr->expirationCheck();
+    return 0;
   }
 
   /**
@@ -2264,132 +1867,6 @@ class _uho_client
       $ip = $_SERVER['REMOTE_ADDR'];
     }
     return $ip;
-  }
-
-  /**
-   * Handles start of ePuap login processs
-   *
-   * @return (false|string)[]|null user's data
-   *
-   */
-  public function loginEpuapStart($type, $sso_return_url, $debug = false)
-  {
-
-    //$type = [symulator,int,prod]
-
-    require_once('_uho_client_epuap.php');
-
-    if (!isset($this->oAuth['epuap'])) return ['result' => false, 'message' => 'oAuth.epuap not found'];
-
-    //$java_decrypt_artifact_properties=$this->oAuth['epuap']['artifact_properties'];
-
-    $lib_path = $_SERVER['DOCUMENT_ROOT'] . '/application/_uho/library/epuap/';
-    $config_path = $_SERVER['DOCUMENT_ROOT'] . '/application_config/';
-
-
-    $ePuap = new _uho_client_epuap(
-      [
-        'type' => $type,
-        'debug' => $debug,
-        'temp_folder' => $_SERVER['DOCUMENT_ROOT'] . '/temp/',
-        'sso_return_url' => $sso_return_url,
-        'issuer' => $this->oAuth['epuap']['issuer'],
-        'p12_sig_path' => $config_path . $this->oAuth['epuap']['p12_sig'],
-        'p12_sig_pass' => $this->oAuth['epuap']['p12_sig_pass'],
-        'java_sign_xml' => $lib_path . 'uho_epuap_xml_sig.jar'
-      ]
-    );
-
-    $auth = $ePuap->authRequest();
-    $ePuap->loginRedirect($auth);
-  }
-
-  public function loginEpuap($type, $SAMLart, $debug = false, $return_data_only = false): array|bool
-  {
-
-    require_once('_uho_client_epuap.php');
-    $lib_path = $_SERVER['DOCUMENT_ROOT'] . '/application/_uho/library/epuap/';
-    $config_path = $_SERVER['DOCUMENT_ROOT'] . '/application_config/';
-
-    $params = [
-      'type' => $type,
-      'debug' => $debug,
-      'temp_folder' => $_SERVER['DOCUMENT_ROOT'] . '/temp/',
-      'sso_return_url' => '',
-      'issuer' => $this->oAuth['epuap']['issuer'],
-      'p12_sig_path' => $config_path . $this->oAuth['epuap']['p12_sig'],
-      'p12_sig_pass' => $this->oAuth['epuap']['p12_sig_pass'],
-      'java_sign_xml' => $lib_path . 'uho_epuap_xml_sig.jar',
-      'java_decrypt_artifact_properties' => $config_path . $this->oAuth['epuap']['artifact_properties'],
-      'java_decrypt_artifact' => $lib_path . 'uho_epuap_du-encryption-tool-1.1.jar'
-    ];
-
-    $ePuap = new _uho_client_epuap($params);
-
-    $data = $ePuap->artifactResolve($SAMLart);
-
-    if (isset($data['session_id']) && isset($data['nazwisko'])) {
-
-      if (!$return_data_only) {
-        $data = [
-          'name' => $data['imie'],
-          'surname' => $data['nazwisko'],
-          'email' => hash('sha256', 'zd5' . $data['pesel'] . $this->salt['value']),
-          'status' => 'confirmed',
-          'session_id' => $data['session_id'],
-          'session_name_id' => $data['session_name_id'],
-          'epuap_id' => hash('sha256', 'ciq' . $data['pesel'] . $this->salt['value']),
-          'result' => true
-        ];
-
-        $result = $this->register($data);
-        if ($result) {
-          $this->login(null, null, ['epuap_id' => $data['epuap_id']]);
-        }
-      } else {
-        $data = [
-          'name' => $data['imie'],
-          'surname' => $data['nazwisko'],
-          'session_id' => $data['session_id'],
-          'session_name_id' => $data['session_name_id'],
-          'epuap_id' => $data['pesel'],
-          'result' => true
-        ];
-      }
-    }
-
-    return $data;
-  }
-
-  /**
-   * Handles start of ePuap logout processs
-   * @return boolean
-   */
-
-  public function logoutEpuap($type, $sso_return_url, $sessionId, $nameId, $debug = false)
-  {
-
-    require_once('_uho_client_epuap.php');
-    $lib_path = $_SERVER['DOCUMENT_ROOT'] . '/application/_uho/library/epuap/';
-    $config_path = $_SERVER['DOCUMENT_ROOT'] . '/application_config/';
-
-    $ePuap = new _uho_client_epuap(
-      [
-        'type' => $type,
-        'debug' => $debug,
-        'temp_folder' => $_SERVER['DOCUMENT_ROOT'] . '/temp/',
-        'sso_return_url' => $sso_return_url, ///epuap-sso
-        'issuer' => $this->oAuth['epuap']['issuer'],
-        'p12_sig_path' => $config_path . $this->oAuth['epuap']['p12_sig'],
-        'p12_sig_pass' => $this->oAuth['epuap']['p12_sig_pass'],
-        'java_sign_xml' => $lib_path . 'uho_epuap_xml_sig.jar',
-        'java_decrypt_artifact_properties' => $config_path . $this->oAuth['epuap']['artifact_properties'],
-        'java_decrypt_artifact' => $lib_path . 'uho_epuap_du-encryption-tool-1.1.jar'
-      ]
-    );
-
-    $result = $ePuap->logout($sessionId, $nameId);
-    return $result;
   }
 
   /**
@@ -2425,4 +1902,26 @@ class _uho_client
     if ($this->http_host) return $this->http_host;
     else return ($this->http . '://' . $_SERVER['HTTP_HOST']);
   }
+
+  /**
+   * Curl_copy function, copies file from one location to another
+   *
+   * @param string $remote_file file to be copied
+   * @param string $local_file destination path
+   */
+  private function curl_copy($remote_file, $local_file): void
+  {
+    curl_init();
+    $fp = @fopen($local_file, 'w+');
+    if ($fp) {
+      $ch = curl_init($remote_file);
+      curl_setopt($ch, CURLOPT_TIMEOUT, 50);
+      curl_setopt($ch, CURLOPT_FILE, $fp);
+      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+      curl_setopt($ch, CURLOPT_ENCODING, "");
+      curl_exec($ch);
+      fclose($fp);
+    }
+  }
+
 }

@@ -219,9 +219,7 @@ class _uho_model
             return false;
         }
         // Ensures raw binary string length returned
-        $strlen = /**
-         * @psalm-return int<0, max>
-         */
+        $strlen = 
         function ($string): int {
             //if (USE_MB_STRING) {
             //  return mb_strlen($string, '8bit');
@@ -374,10 +372,6 @@ class _uho_model
 
     /**
      * Gets model from mySQL via ORM, with its children models
-     * @param string $name
-     * @param array $filters
-     * @param boolean $single
-     * @param array $settings
      * @return array
      */
 
@@ -447,25 +441,6 @@ class _uho_model
     }
 
     /**
-     * Return decached image filename
-     * @param string $image
-     * @return string
-     */
-
-    public function image_decache($image)
-    {
-        $image = explode('?', $image);
-        $image = array_shift($image);
-        $image = explode('.', $image);
-        $ext = array_pop($image);
-        $base = implode('.', $image);
-        $base = explode('___', $base);
-        $base = array_shift($base);
-        $image = $base . '.' . $ext;
-        return $image;
-    }
-
-    /**
      * File_exists function using CURL for remote files
      *
      * @param string $f
@@ -482,7 +457,6 @@ class _uho_model
             curl_setopt($ch, CURLOPT_NOBODY, true);
             curl_exec($ch);
             $retCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             if ($retCode == 200) {
                 return true;
             } else return false;
@@ -493,12 +467,6 @@ class _uho_model
 
     /**
      * getimagesize function using decache and remote servers
-     *
-     * @param string $f
-     *
-     * @return (int|string)[]|false|null
-     *
-     * @psalm-return array{0: int, 1: int, 2: int, 3: string, mime: string, channels?: 3|4, bits?: int}|false|null
      */
     public function getimagesize($f): array|false|null
     {
