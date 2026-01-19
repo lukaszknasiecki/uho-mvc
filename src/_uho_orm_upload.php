@@ -7,14 +7,16 @@ namespace Huncwot\UhoFramework;
  *
  * Handles file and image upload operations for UHO ORM
  *
- * Methods:
+ * Main Methods:
+ * - uploadImage($schema, $record, $field_name, $image, $temp_filename = null): bool
+ * - removeImage($model_name, $record_id, $field_name): bool
+ * - copy($src, $dest, $remove_src = false): void
+ * 
+ * Utility methods:
  * - getTempFilename(): string
  * - setTempPublicFolder($folder): void
  * - decodeBase64Image($image, $allowed_extensions): string|false
  * - uploadBase64Image($model_name, $record_id, $field_name, $image): bool
- * - uploadImage($schema, $record, $field_name, $image, $temp_filename = null): bool
- * - removeImage($model_name, $record_id, $field_name): bool
- * - copy($src, $dest, $remove_src = false): void
  */
 
 class _uho_orm_upload
@@ -90,7 +92,7 @@ class _uho_orm_upload
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
         if (!$field) return false;
 
-        /* retina? */
+        /* retina */
         $retina = [];
         foreach ($field['images'] as $v)
             if (!empty($v['retina'])) {
@@ -162,7 +164,7 @@ class _uho_orm_upload
         if (isset($record[$field_name])) {
             $result = true;
             foreach ($record[$field_name] as $image) {
-                $image = $this->orm->fileRemoveTime($image);
+                $image = $this->orm->fileCacheBuster($image);
                 if ($s3) $s3->unlink($image);
                 else unlink($_SERVER['DOCUMENT_ROOT'] . $image);
             }

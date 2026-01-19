@@ -130,9 +130,9 @@ class _uho_model
         if (isset($params['languages'])) $this->orm->setLanguages($params['languages']);
         if (!$this->uploadServer)
         {
-            if (isset($params['files_decache']) && $params['files_decache']) $this->orm->setFilesDecache($params['files_decache']);
+            if (isset($params['files_decache']) && $params['files_decache']) $this->orm->fileSetCacheBuster($params['files_decache']);
             elseif (isset($params['files_decache']) && $params['files_decache'] === false);
-            else $this->orm->setFilesDecache(true);
+            else $this->orm->fileSetCacheBuster(true);
         }
 
         $this->init();
@@ -191,7 +191,7 @@ class _uho_model
 
     public function setFileTimeCache($q): void
     {
-        $this->orm->setFilesDecache($q);
+        $this->orm->fileSetCacheBuster($q);
     }
 
     /**

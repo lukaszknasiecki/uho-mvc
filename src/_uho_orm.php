@@ -65,30 +65,26 @@ use Huncwot\UhoFramework\_uho_orm_schema_sql;
  * - sqlSanitizeLangFields($fields)
  * - updateFieldValue($field, $v0, $full = null)
  * - updateFieldImageAddServer(&$f, $server): void
-
+ * - setImageSizes($onOff): void
+ * - fieldImageAddSize(&$f): void
+ * - setFolderReplace($source, $destination, $s3 = null): void
  * 
  * Post/Patch/Delete methods
  * - post($model, $data, $multiple = false)
  * - getInsertId()
- * - delete($model, $filters, $multiple = false): bool
- * - truncate($model)
  * - put ($model, $data, $filters = null, $multiple = false, $params = [])
  * - patch($model, $data, $filters = null, $multiple = false, $params = [])
+ * - delete($model, $filters, $multiple = false): bool
+ * - truncate($model)
  * - buildOutputQuery($model, $data, string $join = ','): array|string
  * - buildOutputQueryMultiple($model, $data, $output = 'query')
- * - filterResults($schema, $data, $filters, $any = false)
- * - updateRecordSources($schema, $record)
- * - setImageSizes($onOff): void
- * - setFolderReplace($source, $destination, $s3 = null): void
  *
- * FILENAME CACHING METHODS
- * - fileAddTime(&$f): void
- * - fileRemoveTime($f)
- * - setFilesDecache($q): void
- * - imageAddSize(&$f): void
+ * FILENAME CACHE BUSTER METHODS
+ * - fileAddCacheBuster(&$f): void
+ * - fileRemoveCacheBuster($f)
+ * - fileSetCacheBuster($q): void
  * 
  * FILE/IMAGE UPLOAD METHODS (Delegated to _uho_orm_upload)
- *
  * - uploadBase64Image($model_name, $record_id, $field_name, $image)
  * - uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
  * - removeImage($model_name, $record_id, $field_name)
@@ -105,6 +101,9 @@ use Huncwot\UhoFramework\_uho_orm_schema_sql;
  * - s3get(string $filename)
  * - s3copy($src, $dest)
  *
+ * Utility methods (not used by this class)
+ * - filterResults($schema, $data, $filters, $any = false)
+ * - updateRecordSources($schema, $record)
  */
 
 class _uho_orm
@@ -116,56 +115,55 @@ class _uho_orm
     private $lang;
     private $lang_add;
     private $langs = [];
-    /**
-     * indicates if filesDecache should be performed
-     */
-    private $addImageSizes = false;
-    private $filesDecache = false;
-    private $filesDecache_style = 'standard';
+
+    /* indicates if Cache Buster should be used and how */
+    private $files_cache_buster = false;
+    private $files_cache_buster_style = 'standard';
+
+    /* default temporary folder */
     private $temp_public_folder = '/temp';
 
+    /* if true - image sizes are stored in separate JSON */
+    private $addImageSizes = false;
+
+    /* method to GET source based fields */
     private $getElementsMethod='aggregate'; // Available methods: aggregate|iterate
     private $getCheckboxesMethod='aggregate'; // Available methods: aggregate|iterate
     private $getSelectMethod='aggregate'; // Available methods: aggregate|iterate
 
-    /**
-     * indicates if for elements_double fields we should
-     * use integer is only one value is set
-     */
+    /* indicates if for elements_double fields we should use integer is only one value is set */
     private $elements_double_first_integer = false;
 
     /**
      * array of query errors
      */
     private $errors = [];
-    /**
-     * indicates if there is folder to be replaced
-     * for media assets
-     */
+
+    /* indicates if there is folder to be replaced for media assets */
     private $folder_replace = null;
-    /**
-     * S3 Manager for handling all S3 operations
-     */
+
+    /* S3 Manager for handling all S3 operations */
     private _uho_orm_s3 $s3Manager;
-    /**
-     * Upload Manager for handling file and image upload operations
-     */
+
+    /* Upload Manager for handling file and image upload operations */
     private _uho_orm_upload $uploadManager;
-    /**
-     * Schema Loader for handling schema file path management and JSON loading
-     */
+
+    /* Schema Loader for handling schema file path management and JSON loading */    
     private _uho_orm_schema_loader $schemaLoader;
-    /**
-     * Schema Manager for handling schema operations
-     */
+
+    /* Schema Manager for handling schema operations */
     public _uho_orm_schema $schemaManager;
-    /**
-     * Schema SQL Manager for handling SQL table creation and updates
-     */
+    
+    /* Schema SQL Manager for handling SQL table creation and updates */
     private _uho_orm_schema_sql $schemaSqlManager;
 
+    /* _uho_sql object */
     private $sql;
+
+    /* hashing keys */
     private $keys;
+
+    /* debug/test flags */
     private bool $debug = false;
     private bool $test = false;
 
@@ -393,17 +391,18 @@ class _uho_orm
 
 
     /**
-     * Sets filedecache variable
+     * Sets cache buster style
      *
      * @param string $q
      */
-    public function setFilesDecache($q): void
+    public function fileSetCacheBuster($q): void
     {
-        if (is_string($q) && in_array($q, ['standard', 'medium'])) {
-            $this->filesDecache_style = $q;
+        if (is_string($q) && in_array($q, ['standard', 'medium']))
+        {
+            $this->files_cache_buster_style = $q;
             $q = 1;
         }
-        $this->filesDecache = $q;
+        $this->files_cache_buster = $q;
     }
 
     /**
@@ -1150,9 +1149,8 @@ class _uho_orm
                             if (is_numeric($id0)) $id0 = intval($id0);
                             if (isset($v2['source']['data'][$id0]))
                                 $data[$k][$v2['field']] = $v[$v2['field']] = $v2['source']['data'][$id0];
-
-
                             break;
+                            
                         case 'elements':
                         case 'checkboxes':
 
@@ -1394,13 +1392,13 @@ class _uho_orm
 
                             if (!empty($src)) {
 
-                                $this->fileAddTime($src);
+                                $this->fileAddCacheBuster($src);
                                 @$data[$k][$v2['field']] = ['src' => $src];
                             }
 
                             if (@$v2['images']) {
                                 $poster = $v2['settings']['folder'] . '/' . $v2['images'][1]['folder'] . '/' . $v2['settings']['filename_bare'] . '.jpg';
-                                $this->fileAddTime($poster);
+                                $this->fileAddCacheBuster($poster);
                                 if ($poster) $data[$k][$v2['field']]['poster'] = $poster;
                             }
                         }
@@ -1470,13 +1468,13 @@ class _uho_orm
                                     optional - add image size
                                 */
                                 if (isset($v4['size'])) {
-                                    $this->imageAddSize($m[$image_id]);
+                                    $this->fieldImageAddSize($m[$image_id]);
                                 } elseif (isset($v2['server'])) $this->updateFieldImageAddServer($m[$image_id], $v2['server']);
                                 /*
                                     default - add image time as suffix to avoid cache                                
                                 */
                                 else {
-                                    $this->fileAddTime($m[$image_id]);
+                                    $this->fileAddCacheBuster($m[$image_id]);
                                 }
 
                                 if ($sizes) {
@@ -1492,8 +1490,8 @@ class _uho_orm
                                 if (isset($v2['settings']['webp']) && $image_id != 'original') {
                                     $m[$image_id . '_webp'] = $v2['settings']['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.webp';
                                     if (isset($v4['size']))
-                                        $this->imageAddSize($m[$image_id . '_webp']);
-                                    else $this->fileAddTime($m[$image_id . '_webp']);
+                                        $this->fieldImageAddSize($m[$image_id . '_webp']);
+                                    else $this->fileAddCacheBuster($m[$image_id . '_webp']);
 
                                     if ($sizes) {
                                         $m[$image_id . '_webp'] = ['src' => $m[$image_id . '_webp']];
@@ -2056,13 +2054,13 @@ class _uho_orm
     }
 
     /**
-     * FILENAME CACHING METHODS
+     * FILENAME CACHE BUSTER METHODS
      */
 
     /**
-     * Adds cache to filename
+     * Adds cache buster to filename
      */
-    public function fileAddTime(string &$f): void
+    public function fileAddCacheBuster(string &$f): void
     {
 
         /*
@@ -2070,12 +2068,12 @@ class _uho_orm
         */
 
         if ($this->isS3()) {
-            if ($this->filesDecache) {
+            if ($this->files_cache_buster)
+            {
                 $time = $this->s3Manager->getFileTime($f);
                 if ($time) $f .= '?' . $time;
                 else $f = '';
             }
-
             if ($f) {
                 $f = $this->s3Manager->getFilenameWithHost($f, true);
             }
@@ -2083,7 +2081,7 @@ class _uho_orm
 
         /*
             standard files, uploaded to the folder
-        */ elseif ($this->filesDecache && isset($this->folder_replace)) {
+        */ elseif ($this->files_cache_buster && isset($this->folder_replace)) {
 
             if ($this->folder_replace['source'])
                 $f = str_replace($this->folder_replace['source'], $this->folder_replace['destination'], $f);
@@ -2094,20 +2092,20 @@ class _uho_orm
 
                 if ($time) $f .= '?v=' . md5($time['time']);
 
-                elseif ($this->filesDecache_style == 'standard') $f = '';
+                elseif ($this->files_cache_buster_style == 'standard') $f = '';
             } elseif ($this->folder_replace['s3']) {
                 $time = $this->folder_replace['s3']->file_time($f);
                 if ($time) $f .= '?v=' . $time;
                 else $f = '';
             }
         } else
-        if ($this->filesDecache) {
+        if ($this->files_cache_buster) {
 
             $filename = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $f;
 
             if (!is_dir($filename)) $time = @filemtime($filename);
 
-            if (isset($time) && $time && $this->filesDecache === '___') {
+            if (isset($time) && $time && $this->files_cache_buster === '___') {
                 $filename = explode('.', $f);
                 $ext = array_pop($filename);
                 $f = implode('.', $filename) . '___' . $time . '.' . $ext;
@@ -2120,105 +2118,33 @@ class _uho_orm
     }
 
     /**
-     * Decaches filename
+     * Cleans filename from cache buster
      * @param string $f
      * @return string
      */
 
-    private function fileRemoveTime($f)
+    public function fileCacheBuster($f)
     {
-        if ($this->filesDecache) {
+        if ($this->files_cache_buster) {
             $f = explode('?', $f)[0];
         }
         return $f;
     }
 
     /**
-     * Adds image size cache to filename
+     * Converts string image src to array containing
+     * src, width and height
      */
-    private function imageAddSize(string &$f): void
+    private function fieldImageAddSize(string &$f): void
     {
-        if ($this->filesDecache) {
+        if ($this->files_cache_buster) {
             $filename = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $f;
             $size = @getimagesize($filename);
             if ($size) {
-                $this->fileAddTime($f);
+                $this->fileAddCacheBuster($f);
                 $f = ['src' => $f, 'width' => $size[0], 'height' => $size[1]];
-            }
+            } else $f = ['src' => $f];
         }
-    }
-
-
-    /**
-     * Filters data by virtual filters
-     * @param array $schema
-     * @param array $data
-     * @param array $filters
-     * @param boolean $any
-     * @return array
-     */
-
-    public function filterResults($schema, $data, $filters, $any = false)
-    {
-        if (is_array($filters))
-            foreach ($data as $k => $v) {
-                foreach ($filters as $k2 => $v2)
-                    if ($v) {
-                        if (!is_array($v2)) $v2 = ['operator' => '=', 'value' => $v2];
-                        $val = $v[$k2];
-                        $val_filter = $v2['value'];
-                        $result = false;
-                        $field = _uho_fx::array_filter($schema['fields'], 'field', $k2, ['first' => true]);
-
-                        switch ($v2['operator']) {
-                            case "%LIKE%":
-
-                                if ($field['options'] && $any) {
-                                    foreach ($field['options'] as $v3)
-                                        if (strpos(strtolower(' ' . $v3['label']), strtolower($val_filter))) {
-                                            if ($v3['value'] == $val) $result = true;
-                                        }
-                                } else $result = strpos(strtolower(' ' . $val), strtolower($val_filter));
-                                break;
-
-                            case "=":
-                                $result = ($val == $val_filter);
-                                break;
-                        }
-                        if ($any && $result);
-                        elseif (!$any && !$result) unset($data[$k]);
-                    }
-                //if (($any && !$ok) || (!$any && !$v)) unset($data[$k]);
-            }
-        $data = array_values($data);
-        return $data;
-    }
-
-    /**
-     * Adds field structure to bare record, based on sources
-     * @param array $schema
-     * @param array $record
-     * @return array
-     */
-
-    public function updateRecordSources($schema, $record)
-    {
-        foreach ($schema['fields'] as $v)
-            if (isset($v['source']) && isset($record[$v['field']])) {
-                $value = $record[$v['field']];
-                if ($v['source']['model']) {
-                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes') {
-                        if (!is_array($value)) $value = explode(',', $value);
-                        else
-                            foreach ($value as $kk => $vv)
-                                if (is_array($vv) && @$vv['id']) $value[$kk] = $vv['id'];
-
-                        $value = $this->get($v['source']['model'], ['id' => $value]);
-                    } else $value = $this->get($v['source']['model'], ['id' => $value], true);
-                }
-                $record[$v['field']] = $value;
-            }
-        return $record;
     }
 
     /**
@@ -2230,7 +2156,6 @@ class _uho_orm
      */
     public function setFolderReplace($source, $destination, $s3 = null): void
     {
-
         $this->folder_replace = [
             'source' => $source,
             'destination' => $destination,
@@ -2238,8 +2163,9 @@ class _uho_orm
         ];
     }
 
-
-
+    /*
+        enabled image size external field
+    */
     public function setImageSizes($onOff): void
     {
         $this->addImageSizes = $onOff;
@@ -2502,5 +2428,73 @@ class _uho_orm
     public function s3getCacheFilename()
     {
         return $this->s3Manager->s3getCacheFilename();
+    }
+
+    /**
+     * Filters data virtually by filters
+     * in the same way as GET menthod does with SQL query
+     */
+
+    public function filterResults($schema, $data, $filters, $any = false)
+    {
+        if (is_array($filters))
+            foreach ($data as $k => $v) {
+                foreach ($filters as $k2 => $v2)
+                    if ($v) {
+                        if (!is_array($v2)) $v2 = ['operator' => '=', 'value' => $v2];
+                        $val = $v[$k2];
+                        $val_filter = $v2['value'];
+                        $result = false;
+                        $field = _uho_fx::array_filter($schema['fields'], 'field', $k2, ['first' => true]);
+
+                        switch ($v2['operator']) {
+                            case "%LIKE%":
+
+                                if ($field['options'] && $any) {
+                                    foreach ($field['options'] as $v3)
+                                        if (strpos(strtolower(' ' . $v3['label']), strtolower($val_filter))) {
+                                            if ($v3['value'] == $val) $result = true;
+                                        }
+                                } else $result = strpos(strtolower(' ' . $val), strtolower($val_filter));
+                                break;
+
+                            case "=":
+                                $result = ($val == $val_filter);
+                                break;
+                        }
+                        if ($any && $result);
+                        elseif (!$any && !$result) unset($data[$k]);
+                    }
+                //if (($any && !$ok) || (!$any && !$v)) unset($data[$k]);
+            }
+        $data = array_values($data);
+        return $data;
+    }    
+
+        /**
+     * Adds field structure to bare record, based on sources
+     * @param array $schema
+     * @param array $record
+     * @return array
+     */
+
+    public function updateRecordSources($schema, $record)
+    {
+        foreach ($schema['fields'] as $v)
+            if (isset($v['source']) && isset($record[$v['field']])) {
+                $value = $record[$v['field']];
+                if ($v['source']['model']) {
+                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes') {
+                        if (!is_array($value)) $value = explode(',', $value);
+                        else
+                            foreach ($value as $kk => $vv)
+                                if (is_array($vv) && @$vv['id']) $value[$kk] = $vv['id'];
+
+                        $value = $this->get($v['source']['model'], ['id' => $value]);
+                    } else $value = $this->get($v['source']['model'], ['id' => $value], true);
+                }
+                $record[$v['field']] = $value;
+            }
+        return $record;
     }
 }

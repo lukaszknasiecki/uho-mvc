@@ -609,7 +609,6 @@ You can adjust every field with custom settings:
 
 * `field_output`: swaps the field's name in output to a new one
 
-
 There are also additional settings per each type,
 here is a list of available settings for each field type.
 
@@ -617,6 +616,18 @@ here is a list of available settings for each field type.
   * `settings.format=ISO8601|UTC` converts value to ISO8601 format in UTC timezone
 * `elements`:
   * `settings.multiple_filters` can be set to `&&` or `||` (default) to join filter values on GET
+* `image`:
+  * `settings.folder` required, base folder for image storage, i.e. `/public/upload`
+  * `settings.extensions` array of available image extensions, if not defined only `jpg` is being user
+  * `settings.extension_field` points to an external field with image extension, if not specified `jpg` is being used, if value is blank, first extension from `setting.extensions` is taken
+  * `settings.field_exists` points to boolean field which marks if image exists and will be returned (true) or not (false)
+  * `settings.sizes` points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`
+  * `settings.images` required, array with image sizes
+  * `settings.images.filename` filename pattern, default is `{{uid}}.jpg`
+  * `settings.images[].folder` required, folder to store the iamge, relatve to `settings.folder`, i.e. `desktop`
+  * `settings.images[].retina` boolean, if true, image is returning additionally its retina versions, in `_x2` folders
+  * `settings.images[].size` boolean, if true, image is returning not only src, but width and height, read live from the server file with `getimagesize`
+  
 * `model`: Get external model
   * `settings.schema` name of model's schema
   * `settings.filters` array of filters

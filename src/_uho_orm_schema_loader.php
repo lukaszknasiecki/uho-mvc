@@ -7,10 +7,12 @@ namespace Huncwot\UhoFramework;
  *
  * Handles schema file path management and JSON loading for UHO ORM
  *
- * Methods:
+ * Methods to handle set of paths:
  * - getRootPaths($add_root = false): array
  * - addRootPath($path): void
  * - removeRootPaths(): void
+ * 
+ * Main method to load Json schema
  * - loadJsonSchema($filename): array|null
  */
 
