@@ -423,7 +423,8 @@ class _uho_client
   {
     if ($this->cookie && $this->cookieLoginEnabled) {
       $uid = $this->hashPass(uniqid());
-      $this->orm->put($this->clientModel, ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
+      $this->orm->put($this->clientModel, 
+        ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
       setcookie(
         $this->cookie['name'],
         $uid,
@@ -446,7 +447,10 @@ class _uho_client
    */
   private function cookieLoginClear($id): void
   {
-    $this->orm->put($this->clientModel, ['id' => $id, 'cookie_key' => '']);
+    $this->orm->put(
+      $this->clientModel,
+      ['id' => $id, 'cookie_key' => '']
+      );
   }
 
   public function getCookieName()
@@ -1410,7 +1414,10 @@ class _uho_client
     }
 
     if ($user) {
-      $result = $this->orm->put($this->clientModel, ['id' => $user['id'], 'status' => 'confirmed']);
+      $result = $this->orm->put(
+        $this->clientModel,
+        ['id' => $user['id'], 'status' => 'confirmed']
+        );
       $result = ['result' => true, 'user' => $user['id']];
     } else $result = ['result' => false];
 
@@ -1875,7 +1882,11 @@ class _uho_client
   {
     $exists = $this->orm->get($this->models['newsletter_users'], ['key_remove' => $key], true);
     if ($exists)
-      $this->orm->put($this->models['newsletter_users'], ['email' => '', 'key_remove' => '', 'key_confirm' => '', 'status' => 'cancelled'], ['id' => $exists['id']]);
+      $this->orm->put(
+        $this->models['newsletter_users'],
+        ['email' => '', 'key_remove' => '', 'key_confirm' => '', 'status' => 'cancelled'],
+        ['id' => $exists['id']]
+        );
     return $exists;
   }
 
@@ -1907,7 +1918,8 @@ class _uho_client
           $key_remove = $user['key_remove'];
           if (!$key_remove) {
             $key_remove = $this->uniqid();
-            $this->orm->put('client_users_newsletter', ['id' => $user['id'], 'key_remove' => $key_remove]);
+            $this->orm->put(
+              'client_users_newsletter', ['id' => $user['id'], 'key_remove' => $key_remove]);
           }
           $body = $i['body_' . strtoupper($user['lang'])];
           $body = str_replace('%key%', $key_remove, $body);
@@ -1917,16 +1929,22 @@ class _uho_client
         } else $error = true;
 
         if ($error) {
-          $this->orm->put('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'error']);
+          $this->orm->put(
+            'client_newsletter_mailing',
+            ['id' => $v['id'], 'status' => 'error']);
           $errors++;
         } else {
           $count++;
-          $this->orm->put('client_newsletter_mailing', ['id' => $v['id'], 'status' => 'sent']);
+          $this->orm->put(
+            'client_newsletter_mailing',
+            ['id' => $v['id'], 'status' => 'sent']);
         }
       }
     } else {
       foreach ($issues as $v)
-        $this->orm->put('client_newsletter_issues', ['id' => $v['id'], 'status' => 'sent']);
+        $this->orm->put(
+          'client_newsletter_issues',
+          ['id' => $v['id'], 'status' => 'sent']);
     }
     return ['result' => true, 'count' => $count, 'error' => $errors];
   }
@@ -2031,11 +2049,15 @@ class _uho_client
     }
     // re-activating cancelled address
     elseif ($exists && $exists['status'] == 'cancelled')
-      $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
+      $result = $this->orm->put(
+        $this->models['newsletter_users'],
+        ['id' => $exists['id'], 'email' => $email, 'status' => 'submitted', 'groups' => '0001', 'key_confirm' => $key_confirm]);
 
     // adding confirm key if missing
     elseif ($exists && !@$exists['key_confirm'])
-      $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
+      $result = $this->orm->put(
+        $this->models['newsletter_users'],
+        ['id' => $exists['id'], 'key_confirm' => $key_confirm]);
 
     // setting confirm key for previously submitted email
     elseif ($exists && $exists['status'] == 'submitted') {
@@ -2061,7 +2083,9 @@ class _uho_client
   public function newsletterConfirmation($key)
   {
     $exists = $this->orm->get($this->models['newsletter_users'], ['key_confirm' => $key], true);
-    if ($exists) $result = $this->orm->put($this->models['newsletter_users'], ['id' => $exists['id'], 'status' => 'confirmed']);
+    if ($exists) $result = $this->orm->put
+        ($this->models['newsletter_users'],
+        ['id' => $exists['id'], 'status' => 'confirmed']);
     else $result = false;
     return $result;
   }

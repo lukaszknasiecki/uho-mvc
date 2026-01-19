@@ -110,7 +110,7 @@ foreach ($schemas as $section => $list)
                     Create / Update
                 */
                 {
-                    $response=$orm->creator($schema, $settings);
+                    $response=$orm->sqlCreator($schema, $settings);
                     if (in_array('table_update', $response['actions'])) $updated++;
                     if (in_array('table_create', $response['actions'])) $created++;
                     

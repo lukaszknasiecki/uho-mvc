@@ -318,7 +318,6 @@ $url_array = $this->route->getUrlArray();
 $url_element = $this->route->e(1);
 ```
 
-
 ---
 
 ## Models and ORM
@@ -393,6 +392,23 @@ Create `application/models/json/items.json`:
 
 In addition to `table`, `fields`, and `order`, you can use these keys at the schema level:
 
+* `fields_to_read` (object): Defines sets of fields to be read via orm.get method, useful if you want to read just part of model values with something like `$model->get(['fields'=>'list'])`
+
+  ```json
+  "fields_to_read": {
+      "list": ["title", "author"],
+      "single": ["title", "author", "theme", "description"]
+  }
+  ```
+
+You can also set fields to be returned for every single-record and multi-record `get` used without `fields` param, by adding:
+```json
+  "fields_to_read": {
+      "_single": ["title", "author", "theme", "description"],
+      "_multiple": ["title", "author"]
+  }
+  ```
+
 * `filters` (object/array): Default filters applied to all queries for this model
 
   ```json
@@ -403,10 +419,32 @@ In addition to `table`, `fields`, and `order`, you can use these keys at the sch
   ```
 
   Filters can use dynamic values with Twig syntax: `"category_id": "{{id}}"`
-* `order` (string/object): Default ordering for queries
+
+* `children` (object): For nested schemas
+
+  ```json
+  "children": {
+      "subitems": {
+        "id": "id",             // source id field
+        "schema": "submenu",    // children schema
+        "parent": "parent",     // children id field, to be matched with source id field
+        "filters": {"active":1} // children filters
+        }
+  }
+  ```
+
+  You can get nested models with ORM's `getDeep` method.
+
+* `order` (string/object): Default ordering for queries, can be formatted in couple of ways
 
   ```json
   "order": "created_at DESC"
+  ```
+```json
+  "order": {"type": "field", "values": ["title", "date"]}
+  ```
+```json
+  "order": {"field": "date", "sort": ["DESC"]}
   ```
 
   Or use object format:
@@ -419,6 +457,16 @@ In addition to `table`, `fields`, and `order`, you can use these keys at the sch
   ```
 
   Prefix field with `!` for DESC: `"!created_at"` = `"created_at DESC"`
+
+* `url`: you can predefine URL for each model, which can be later converted to the final (string) URL via router class
+
+  ```json
+    "url":
+    {
+        "type": "news",
+        "slug": "{{slug}}"
+    }
+  ```
 
 ### Field-Level Keys
 
@@ -455,7 +503,14 @@ In addition to `type` and `field` keys, you can use:
 
 ```php
 // Get all items
-$items = $this->get('items');
+$items = $this->get(
+    'schema'=>'news',
+    'count'=>true,      // return count of all records only, use SQL COUNT(*)
+    'count'=>['type'=>'quick'],  // return count of all records only, read all records and return just their number
+    'count'=>['type'=>'average','field'=>'cost'],  // returns AVG(cost) AS average
+    'count'=>['type'=>'average','function'=>'custom','field'=>'cost'],  // returns AVG(custom(cost)) AS average
+    'first'=>true,      // get only first record
+);
 
 // Get single item
 $item = $this->get('items', ['id' => 1], true);
@@ -543,9 +598,36 @@ $this->multiQueryOut("INSERT INTO ...; UPDATE ...;");
 #### Special Types
 
 * `html`: HTML content (TEXT)
+* `model`: Get external model
 * `order`: Ordering/sorting field
 * `table`: Table/structured data field
 * `uid`: Unique identifier field (auto-generated)
+
+### Field Settings
+
+You can adjust every field with custom settings:
+
+* `field_output`: swaps the field's name in output to a new one
+
+
+There are also additional settings per each type,
+here is a list of available settings for each field type.
+
+* `datetime`: 
+  * `settings.format=ISO8601|UTC` converts value to ISO8601 format in UTC timezone
+* `elements`:
+  * `settings.multiple_filters` can be set to `&&` or `||` (default) to join filter values on GET
+* `model`: Get external model
+  * `settings.schema` name of model's schema
+  * `settings.filters` array of filters
+  * `settings.order` order of results
+* `string`: 
+  * `settings.length(INT)` sets string field length
+* `table`: 
+  * `settings.fields(BOOL)` if TRUE returns table values as an array, where each row key is taken from `settings.header` array
+  * `settings.format=object` returns table values as an object
+* `text`: 
+  * `settings.function=nl2br` performs PHPs nl2br function on field value
 
 
 ---

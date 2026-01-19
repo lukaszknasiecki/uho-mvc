@@ -365,16 +365,9 @@ class _uho_model
 
     /**
      * Gets model from mySQL via ORM
-     * @param string $name
-     * @param array $filters
-     * @param boolean $single
-     * @param string $order
-     * @param string $limit
-     * @param array $params
-     * @return array
      */
 
-    public function get($name, $filters = null, $single = false, $order = null, $limit = null, $params = null)
+    public function get($name, $filters = null, $single = false, $order = null, $limit = null, $params = [])
     {
         return $this->orm->get($name, $filters, $single, $order, $limit, $params);
     }
@@ -388,9 +381,9 @@ class _uho_model
      * @return array
      */
 
-    public function getDeep($name, $filters = null, $single = false, $settings = null)
+    public function getDeep(array $params)
     {
-        return $this->orm->getDeep($name, $filters, $single, $settings);
+        return $this->orm->getDeep($params);
     }
 
     /**
