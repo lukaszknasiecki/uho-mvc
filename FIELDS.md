@@ -103,6 +103,7 @@ some work only with specified field types.
       "type": "select",
       "source": {
           "model": "categories",
+          "model_fields": ["title", "description"],
           "filters": {
               "active": 1
           },
@@ -142,6 +143,201 @@ Here is a list of field types and properties which work with these types:
   * `settings.format=object` returns table values as an object
 * `text`:
   * `settings.function=nl2br` performs PHPs nl2br function on field value
+
+## Media Types
+
+### `image`
+
+Uploaded image - creates virtual object (no SQL field).
+By default `uid` field is used to create unique filenames and all images are JPGs and WEBP (optional).
+
+```json
+{
+    "field": "image",
+    "type": "image",
+    "settings": {
+        "folder": "/public/upload/images",  // root folder for uploads
+        "folder_preview": "thumb",          // preview folder to be used in CMS for thumbnails
+        "filename": "%uid%",                // filename template
+        "filename_field": "filename",       // field to store original filename
+        "sizes": "image_sizes",             // json field to store JSON with all image sizes
+        "webp": true                        // add webp format
+    },
+    "images": [                             // list of sizes/folders
+        {
+            "folder": "original",           // first folder - to store original image
+            "label": "Original image"
+        },
+        {
+            "folder": "desktop",            // subfolder name
+            "label": "Desktop",             // cms label
+            "width": 1200,                  // max width
+            "height": 800,                  // max height
+            "crop": true,               // use to force fixed ratio
+            "retina": true              // create retina (x2) images, in desktop_x2 folder
+        },
+        {
+            "folder": "mobile",
+            "label": "Mobile",
+            "width": 640,
+            "height": 480,
+            "crop": true
+        }
+    ]
+}
+```
+
+You can also use PNG/GIF images without converting them to JPGs, which is convenient for transparent images (like PNG).
+
+```json
+{
+    "field": "image",
+    "type": "image",
+    "settings": {
+        "folder": "/public/upload/images",  // root folder for uploads
+        "folder_preview": "thumb",          // preview folder to be used in CMS for thumbnails
+        "filename": "%uid%",                // filename template
+        "filename_field": "filename",       // field to store original filename
+        "extensions": [ "png"],             // allowed extensions
+        "extension_field": "extension",     // field to store original extension
+        "webp": true                        // add webp format
+    },
+    "images": [                             // list of sizes/folders
+        {
+            "folder": "original",           // first folder - to store original image
+            "label": "Original image"
+        },
+        {
+            "folder": "desktop",            // subfolder name
+            "label": "Desktop",             // cms label
+            "width": 1200,                  // max width
+            "height": 800,                  // max height
+            "crop": true,               // use to force fixed ratio
+            "retina": true              // create retina (x2) images, in desktop_x2 folder
+        },
+        {
+            "folder": "mobile",
+            "label": "Mobile",
+            "width": 640,
+            "height": 480,
+            "crop": true
+        }
+    ]
+}
+```
+
+### `file`
+
+Represents uploaded file - by default filename is created from `uid` field with added extension.
+
+```json
+{
+    "field": "file",
+    "type": "file",
+    "settings": {
+        "folder": "/public/upload/files",       // folder to upload files
+        "size": "size",                          // field to store file size
+        "hashable": false,                      // if you want to enable option to hash/dehash files
+        "extensions": ["docx", "pdf"],          // list of supported extensions for multi-extension fields
+        "extension_field": "ext"                // field to store file's extension,        
+    }    
+},
+{
+    "field":"ext",
+    "type":"string"
+}
+```
+
+You can also store files with their original filenames, you will need additional field to store that filename. Additionally you can specify just one extenstion, then you won’t need separate extension field.
+
+```json
+{
+    "field": "file",
+    "type": "file",
+    "settings": {
+        "folder": "/public/upload/files",       // folder to upload files
+        "filename_original": "filename_org",        // field to store original filename
+        "filename":"{{filename_org}}",              // pattern to create filename
+        "extension": "docx"                    // extension for single-extension fields
+     }
+},
+{
+    "field":"filename_org",
+    "type":"string"
+}
+```
+### `video`
+
+Uploaded video file (MP4).
+
+```json
+{
+    "field": "video",
+    "type": "video",
+    "settings": {
+        "folder": "/public/upload/videos",
+        "field_cover": "image"                  // video's cover and save for this field
+    }
+}
+```
+Files are stored as: `{folder}/{uid}.mp4`
+
+### `media`
+
+Attach media from another model.
+
+```json
+{
+    "field": "gallery",
+    "type": "media",
+    "source": {
+        "model": "media",
+        "types": [
+            "image",
+            "video",
+            "audio",
+            {
+                "type": "file",
+                "extensions": ["pdf", "doc", "docx"]
+            },
+            "vimeo",
+            "youtube"
+        ]
+    },
+    "captions": [
+        {
+            "label": "Caption",
+            "field": "label"
+        },
+        {
+            "label": "Description",
+            "field": "description",
+            "field_type": "text"            // youtube|vimeo|url|text
+        }
+    ]
+}
+```
+
+**Media Types:**
+
+* `image`: Image files
+* `video`: Video files
+* `audio`: Audio files
+* `file`: Other files
+* `youtube`/`vimeo`: Stores video's UIDs and thumbnails if available
+
+For YouTube and Vimeo you need to specify access keys in ENVs to get covers
+and/or sources (Vimeo):
+
+VIMEO_CLIENT
+VIMEO_SECRET
+VIMEO_TOKEN
+YOUTUBE_TOKEN
+
+Fields used to store the data:
+`youtube`
+`vimeo`
+`vimeo_sources`
 
 ## Multi-language Support
 

@@ -1086,6 +1086,7 @@ class _uho_orm
 
                             $ids = [];
                             foreach ($data as $v5)
+                            if (isset($v2['field']))
                             {
                                 $id_vals=explode(',',$v5[$v2['field']]);
                                 foreach ($id_vals as $id_val)
@@ -2036,14 +2037,14 @@ class _uho_orm
 
         unset($data['id']);
 
-        $data = $this->buildOutputQuery($model, $data);
+        $set = $this->buildOutputQuery($model, $data);
 
-        if ($data) {
-            $query = 'UPDATE ' . $model['table'] . ' SET ' . $data . ' ' . $where;
+        if ($set) {
+            $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
             $r = $this->queryOut($query);
             return $r;
         } else {
-
+                    
             $this->errors[] = 'mysql error:: buildOutputQuery empty for table: ' . $model['table'];
             return false;
         }
@@ -2477,17 +2478,24 @@ class _uho_orm
     public function updateRecordSources($schema, $record)
     {
         foreach ($schema['fields'] as $v)
-            if (isset($v['source']) && isset($record[$v['field']])) {
+            if (isset($v['source']) && isset($record[$v['field']]))
+            {
                 $value = $record[$v['field']];
-                if ($v['source']['model']) {
-                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes') {
+                if ($v['source']['model'])
+                {
+                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes')
+                    {
                         if (!is_array($value)) $value = explode(',', $value);
                         else
                             foreach ($value as $kk => $vv)
                                 if (is_array($vv) && @$vv['id']) $value[$kk] = $vv['id'];
 
                         $value = $this->get($v['source']['model'], ['id' => $value]);
-                    } else $value = $this->get($v['source']['model'], ['id' => $value], true);
+                    } else
+                    {
+                        if (is_array($value)) $value=$value['id'];
+                        $value = $this->get($v['source']['model'], ['id' => $value], true);
+                    }
                 }
                 $record[$v['field']] = $value;
             }
