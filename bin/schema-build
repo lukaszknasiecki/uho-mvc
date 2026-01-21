@@ -100,7 +100,7 @@ $e = 0;
 $err = [];
 $created = 0;
 $updated = 0;
-$settings = ['create' => 'auto', 'update' => 'alert'];
+$settings = ['create' => 'auto', 'update' => 'auto'];
 
 foreach ($schemas as $section => $list)
     foreach ($list as $schema) {

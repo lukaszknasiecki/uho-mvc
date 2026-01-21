@@ -30,7 +30,7 @@ class _uho_worker
      * @return null
      */
 
-    function __construct(_uho_orm $orm)
+    public function __construct(_uho_orm $orm)
     {
         $this->orm = $orm;
         $this->start = _uho_fx::microtime_float();
@@ -41,7 +41,7 @@ class _uho_worker
      * @return array
      */
 
-    function get()
+    public function get()
     {
         return $this->orm->get($this->schema_name, ['status' => 'waiting'], true, 'date_created,id');
     }
@@ -93,7 +93,7 @@ class _uho_worker
      * @return boolean
      */
 
-    function setStatus($id, $status)
+    public function setStatus($id, $status)
     {
         return $this->orm->put($this->schema_name, ['status' => $status, 'date_completed' => date('Y-m-d H:i:s')], ['id' => $id]);
     }
@@ -103,11 +103,18 @@ class _uho_worker
      *
      * @param array $actions
      */
-    function add($actions): void
+    public function add($actions): void
     {
         if (!is_array($actions)) $actions = [$actions];
         foreach ($actions as $v)
             $this->orm->post($this->schema_name, ['action' => $v, 'status' => 'waiting']);
+    }
+
+    public function patch($actions): void
+    {
+        if (!is_array($actions)) $actions = [$actions];
+        foreach ($actions as $v)
+            $this->orm->patch($this->schema_name, ['action' => $v, 'status' => 'waiting'],['action' => $v, 'status' => 'waiting']);
     }
 
     /**
@@ -115,7 +122,7 @@ class _uho_worker
      *
      * @param integer $id
      */
-    function addRepeat($id): void
+    public function addRepeat($id): void
     {
         $data = $this->orm->get($this->schema_name, ['id' => $id], true);
         if ($data) {

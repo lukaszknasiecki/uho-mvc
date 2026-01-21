@@ -1088,7 +1088,9 @@ class _uho_orm
                             foreach ($data as $v5)
                             if (isset($v2['field']))
                             {
-                                $id_vals=explode(',',$v5[$v2['field']]);
+                                if (is_string($v5[$v2['field']]))
+                                    $id_vals=explode(',',$v5[$v2['field']]);
+                                    else $id_vals=[];
                                 foreach ($id_vals as $id_val)
                                 {
                                      if (empty($v2['settings']['output']) || $v2['settings']['output'] != 'string')
@@ -1702,6 +1704,7 @@ class _uho_orm
                 } else {
                     if (isset($field['hash'])) $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['hash']) . '"';
                     elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
+                    elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
                     elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';
                     else $data[$k] = '`' . $k . '`="' . $this->sqlSafe($v) . '"';
                 }

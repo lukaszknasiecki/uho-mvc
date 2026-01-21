@@ -84,6 +84,8 @@ class _uho_orm_upload
 
     /**
      * Upload image to the model
+     * -- if $image is set - it's raw data source
+     * -- if temp_filename - we are using this as a source
      */
     public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
     {
