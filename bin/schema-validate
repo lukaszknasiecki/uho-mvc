@@ -1,6 +1,11 @@
 #!/usr/bin/env php
 <?php
 
+$RED   = "\033[0;31m";
+$GREEN = "\033[0;32m";
+$YELLOW = "\033[0;33m";
+$NC    = "\033[0m";
+
 echo "UHO-MVC validator...\n\n";
 $root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
@@ -17,17 +22,23 @@ $path = $root.'/application/models/json';
 if (!empty($argv[1]))
 {
     $schemas = @file_get_contents($root .'/'. $argv[1]);
+
     if (!$schemas)
         {
             echo('Schemas file not found: '.$root . '/'.$argv[1]);
             exit(1);
         }
+
     $schemas = @json_decode($schemas,true);
     if (!$schemas)
         {
             echo('JSON invalid in: '.$root . '/'.$argv[1]);
             exit(1);
         }
+
+    if (!empty($argv[2]))
+        $path = $root.'/'.$argv[2];
+
 }
  else {
     
@@ -48,6 +59,8 @@ if (!empty($argv[1]))
 }
 
 $orm = new _uho_orm(null, null, [], true);
+$orm->setDebug(true);
+$path=str_replace('//','/',$path.'/');
 $orm->addRootPath($path);
 
 $i = 0;
@@ -72,7 +85,7 @@ foreach ($schemas as $section => $list)
         if ($model)
         {
             $schema = $orm->getSchema($model, null, ['return_error' => true]);
-            if (@$schema['result'] === false) $err[] = 'Schema definition not found: ' . $model;
+            if (@$schema['result'] === false) $err[] = $schema['message'];
             else {
                 $response = $orm->validateSchema($schema);
                 if ($response['errors']) {
@@ -81,10 +94,14 @@ foreach ($schemas as $section => $list)
             }
         }
     }
-if ($err)
-    foreach ($err as $error)
-        echo "$error\n";
 
+if ($err)
+{
+    echo "{$RED}Errors occurred (".count($err)."){$NC}\n\n";
+    foreach ($err as $nr => $error)
+        echo ($nr+1).'. '. $error."\n";
+    echo "\n";
+}
 echo "Schemas (" . count($err) . ") invalid.\n";
 echo "Schemas (" . $valid . ") valid.\n";
 exit(0);

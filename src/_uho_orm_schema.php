@@ -118,7 +118,7 @@ class _uho_orm_schema
                     $root_paths = $this->loader->getRootPaths();
                     $errors = $this->loader->getLastError();
                     $message = '_uho_orm::JSON schema not found: ' . $filename . ' in ' . implode(', ', $root_paths) . ' ::: ' . $errors;
-                } else $message = '_uho_orm::JSON schema not found: ' . $filename;
+                } else $message = '_uho_orm::JSON schema not foundd: ' . $filename;
                 return ['result' => false, 'message' => $message];
             }
         }

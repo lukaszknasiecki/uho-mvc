@@ -1,6 +1,11 @@
 #!/usr/bin/env php
 <?php
 
+$RED   = "\033[0;31m";
+$GREEN = "\033[0;32m";
+$YELLOW = "\033[0;33m";
+$NC    = "\033[0m";
+
 echo "UHO-MVC builder...\n\n";
 $root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
@@ -50,6 +55,11 @@ if (isset($argv[2])) {
         echo ('JSON invalid in: ' . $root . '/' . $argv[2]);
         exit(1);
     }
+
+    if (!empty($argv[3]))
+        $path = $root.'/'.$argv[3];
+    
+
 } else {
 
     $files = glob($path . '/*.json');
@@ -81,6 +91,8 @@ $sql->init(
 );
 
 $orm = new _uho_orm($sql, null, []);
+$orm->setDebug(true);
+$path=str_replace('//','/',$path.'/');
 $orm->addRootPath($path);
 
 $i = 0;
@@ -129,8 +141,12 @@ foreach ($schemas as $section => $list)
 
 
 if ($err)
-    foreach ($err as $error)
-        echo "$error\n";
+{
+    echo "{$RED}Errors occurred (".count($err)."){$NC}\n\n";
+    foreach ($err as $nr => $error)
+        echo ($nr+1).'. '. $error."\n";
+    echo "\n";
+}
 
 echo "Schemas (\e[31m" . count($err) . "\e[0m) invalid.\n";
 echo "Schemas (\e[33m" . $created . "\e[0m) created.\n";
