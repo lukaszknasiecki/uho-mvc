@@ -2,33 +2,34 @@
 <?php
 
 echo "UHO-MVC builder...\n\n";
-$_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
-
-require __DIR__ . '/../vendor/autoload.php';
+$root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
+require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 use Huncwot\UhoFramework\_uho_orm;
 use Huncwot\UhoFramework\_uho_load_env;
 use Huncwot\UhoFramework\_uho_mysqli;
 
-function validate_env()
-{
-
-}
+function validate_env() {}
 
 /*
     Env read
 */
-$env_path = $argv[1];
-if (!$env_path || !file_exists($env_path)) exit('Env file not found');
 
-$env_loader = new _uho_load_env($env_path);
+$env_path = @$argv[1];
+if (!$env_path || !file_exists($root . '/' . $env_path)) {
+    echo ('ENV file not found');
+    exit(1);
+}
+
+$env_loader = new _uho_load_env($root . '/' . $env_path);
 $env_loader->load();
 
-$required=['SQL_HOST', 'SQL_BASE', 'SQL_USER', 'SQL_PASS'];
+$required = ['SQL_HOST', 'SQL_BASE', 'SQL_USER', 'SQL_PASS'];
 
 foreach ($required as $req) {
     if (!getenv($req)) {
-        exit("Error: required env variable missing: $req\n");
+        echo ("Error: required env variable missing: $req\n");
+        exit(1);
     }
 }
 
@@ -36,17 +37,27 @@ foreach ($required as $req) {
     Schemas read
 */
 
-$path_original = $path = $argv[2] ?? __DIR__ . '/../../..';
-$path .= '/application/models/';
-$path = rtrim($path, '/');
+$path = $root . '/application/models/json';
 
-$schemas = @json_decode(file_get_contents($path . '/schemas.json'), true);
-
-if ($schemas) {
-    $path .= 'json/';
+if (isset($argv[2])) {
+    $schemas = @file_get_contents($root . '/' . $argv[2]);
+    if (!$schemas) {
+        echo ('Schemas file not found: ' . $root . '/' . $argv[2]);
+        exit(1);
+    }
+    $schemas = @json_decode($schemas, true);
+    if (!$schemas) {
+        echo ('JSON invalid in: ' . $root . '/' . $argv[2]);
+        exit(1);
+    }
 } else {
-    $files = glob($path_original . '/*.json');
-    $path = $path_original;
+
+    $files = glob($path . '/*.json');
+
+    if (!$files) {
+        echo ('No JSON files found in: ' . $path . '/');
+        exit(1);
+    }
 
     if ($files) {
         foreach ($files as $k => $file) {
@@ -56,11 +67,10 @@ if ($schemas) {
     }
 }
 
-if (!$schemas)
-    {
-        echo 'Error: cannot read ' . $path . '/schemas.json, either no jsons found in ' . $path_original . " or invalid format.\n";
-        exit(1);
-    }
+if (!$schemas) {
+    echo 'Error: cannot read ' . $path . '/schemas.json, either no jsons found in ' . $path_original . " or invalid format.\n";
+    exit(1);
+}
 
 $sql = new _uho_mysqli();
 $sql->init(
@@ -70,7 +80,7 @@ $sql->init(
     getenv('SQL_BASE')
 );
 
-$orm = new _uho_orm($sql, null, null, true);
+$orm = new _uho_orm($sql, null, []);
 $orm->addRootPath($path);
 
 $i = 0;
@@ -94,8 +104,7 @@ foreach ($schemas as $section => $list)
             }
         } else $model = $schema;
 
-        if ($model)
-        {
+        if ($model) {
             /*
                 Validation
             */
@@ -108,14 +117,10 @@ foreach ($schemas as $section => $list)
                 } else
                 /*
                     Create / Update
-                */
-                {
-                    $response=$orm->sqlCreator($schema, $settings);
+                */ {
+                    $response = $orm->sqlCreator($schema, $settings);
                     if (in_array('table_update', $response['actions'])) $updated++;
                     if (in_array('table_create', $response['actions'])) $created++;
-                    
-
-
                 }
             }
         }

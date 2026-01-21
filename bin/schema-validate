@@ -2,22 +2,42 @@
 <?php
 
 echo "UHO-MVC validator...\n\n";
-
-require __DIR__ . '/../vendor/autoload.php';
+$root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
+require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
 use Huncwot\UhoFramework\_uho_orm;
 
-$path_original = $path = $argv[1] ?? __DIR__ . '/../../..';
-$path .= '/application/models/';
-$path = rtrim($path, '/');
+/*
+    if first argument is set it should point to application_config folder
+    otherwise we will scrap application/models/ folder
+*/
 
-$schemas = @json_decode(file_get_contents($path . '/schemas.json'), true);
+$path = $root.'/application/models/json';
 
-if ($schemas) {
-    $path .= 'json/';
-} else {
-    $files = glob($path_original . '/*.json');
-    $path = $path_original;
+if (!empty($argv[1]))
+{
+    $schemas = @file_get_contents($root .'/'. $argv[1]);
+    if (!$schemas)
+        {
+            echo('Schemas file not found: '.$root . '/'.$argv[1]);
+            exit(1);
+        }
+    $schemas = @json_decode($schemas,true);
+    if (!$schemas)
+        {
+            echo('JSON invalid in: '.$root . '/'.$argv[1]);
+            exit(1);
+        }
+}
+ else {
+    
+    $files = glob($path . '/*.json');
+
+    if (!$files)
+        {
+            echo('No JSON files found in: '.$$path . '/');
+            exit(1);
+        }
 
     if ($files) {
         foreach ($files as $k => $file) {
@@ -27,19 +47,7 @@ if ($schemas) {
     }
 }
 
-if (!$schemas)
-    {
-        echo 'Error: cannot read ' . $path . '/schemas.json, either no jsons found in ' . $path_original . " or invalid format.\n";
-        exit(1);
-    }
-
-
-//$settings = ['create' => 'alert', 'update' => 'alert'];
-
-$orm = new _uho_orm(null, null, null, true);
-
-$_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
-
+$orm = new _uho_orm(null, null, [], true);
 $orm->addRootPath($path);
 
 $i = 0;
