@@ -15,6 +15,7 @@ namespace Huncwot\UhoFramework;
  * - validateSchema(array $schema, bool $strict = false): array
  * - validateSchemaField(array $field, bool $strict): array
  * - validateSchemaObject($object, $schema)
+ * - validateFieldAgainstSchema(array $field): array
  */
 
 class _uho_orm_schema
@@ -44,7 +45,7 @@ class _uho_orm_schema
 
         // getting and merging array of models
         if (is_array($name)) {
-        
+
             $inital_names = [];
             $model = [];
             foreach ($name as $k => $v)
@@ -113,8 +114,7 @@ class _uho_orm_schema
             if ($model && !isset($model['model_name'])) $model['model_name'] = $name;
 
             if (!$model && isset($params['return_error'])) {
-                if ($this->orm->isDebug())
-                {
+                if ($this->orm->isDebug()) {
                     $root_paths = $this->loader->getRootPaths();
                     $errors = $this->loader->getLastError();
                     $message = '_uho_orm::JSON schema not found: ' . $filename . ' in ' . implode(', ', $root_paths) . ' ::: ' . $errors;
@@ -135,13 +135,11 @@ class _uho_orm_schema
         }
 
         // children object validation
-        if (isset($model['children']))
-        {
-            foreach ($model['children'] as $k=>$v)
-                if (isset($v['schema']) && isset($v['parent']))
-                    {
-                        if (empty($v['id'])) $model['children'][$k]['id']='id';
-                    } else unset($model['children'][$k]);
+        if (isset($model['children'])) {
+            foreach ($model['children'] as $k => $v)
+                if (isset($v['schema']) && isset($v['parent'])) {
+                    if (empty($v['id'])) $model['children'][$k]['id'] = 'id';
+                } else unset($model['children'][$k]);
         }
 
         // setting field defaults ------------------------------------------------------------
@@ -285,7 +283,7 @@ class _uho_orm_schema
                 }
 
         if ($uid && !_uho_fx::array_filter($model['fields'], 'field', 'uid')) {
-            $model['fields'][] = ['type' => 'uid', 'field' => 'uid', 'list' => 'read'];
+            $model['fields'][] = ['type' => 'uid', 'field' => 'uid', 'cms' => ['list' => 'read']];
         }
 
         // depreceated fields reformatting
@@ -507,6 +505,8 @@ class _uho_orm_schema
         return $schema;
     }
 
+
+
     /**
      * Validates schema field structure
      *
@@ -517,137 +517,24 @@ class _uho_orm_schema
     private function validateSchemaField(array $field, bool $strict): array
     {
 
-        $types = [
-            "boolean" => [],
-            "date" => [],
-            "datetime" => [],
-            "float" => [],
-            "integer" => [],
-            "uid" => [],
-            "checkboxes" => [],
-            "elements" => [],
-            "file" => ['field' => false],
-            "html" => [],
-            "image" => ['field' => false],
-            "json" => [],
-            "media" => ['field' => false],
-            "plugin" => [],
-            "order" => [],
-            "string" => [],
-            "select" => [],
-            "text" => [],
-            "table" => [],
-            "video" => ['field' => false]
-        ];
-
-        $properties = [
-            // orm
-            'captions' => ['type' => 'array'],
-            'field' => ['type' => 'string'],
-            'hash' => ['type' => 'string'],
-            'images' => ['type' => 'array'],
-            'type' => ['type' => 'string'],
-            'options' => ['type' => 'array'],
-            'settings' => [
-                'type' => 'object',
-                'properties' =>
-                [
-                    'default' => ['type' => ['string','integer']],
-                    'extension' => ['type' => 'string'],
-                    'filename' => ['type' => 'string'],
-                    "hash" => ['type' => 'string'],
-                    'hashable' => ['type' => 'boolean'],
-                    'folder' => ['type' => 'string'],
-                    'folder_preview' => ['type' => 'string'],
-                    'header' => ['type' => 'array'],
-                    'layout' => ['type' => 'array'],
-                    'length' => ['type' => 'integer'],
-                    "long" => ['type' => 'boolean'],
-                    'media' => ['type' => 'string'],
-                    'media_field' => ['type' => 'string'],
-                    "null" => ['type' => 'boolean'],
-                    'plugin' => ['type' => 'string'],
-                    'webp' => ['type' => 'boolean']
-                ]
-            ],
-            'source' => ['type' => 'array'],
-            'filters' => ['type' => 'array'],
-
-            // cms
-            'cms' => [
-                'type' => 'object',
-                'properties' => [
-                    'auto' => ['type' => 'array'],
-                    'case' => ['type' => 'boolean'],
-                    'code' => ['type' => 'boolean'],
-                    'counter' => ['type' => 'boolean'],
-                    'default' => ['type' => 'string'],
-                    'edit' => ['type' => 'boolean'],
-                    'header' => ['type' => 'string'],
-                    'help' => ['type' => ['string', 'array']],
-                    'hidden' => ['type' => 'boolean'],
-                    'hr' => ['type' => 'boolean'],
-                    'input' => ['type' => ['string']],
-                    'max' => ['type' => 'integer'],
-                    'label' => ['type' => 'string'],
-                    'label_PL' => ['type' => 'string'],
-                    'label_EN' => ['type' => 'string'],
-                    'list' => ['type' => ['string', 'array']],
-                    'layout' => ['type' => 'array'],
-                    'on_demand' => ['type' => 'boolean'],
-                    'position_before' => ['type' => 'string'],  //tbd
-                    'position_after' => ['type' => 'string'],     //tbd
-                    'required' => ['type' => 'boolean'],
-                    'rows' => ['type' => 'integer'],
-                    'small' => ['type' => 'boolean'],
-                    'style' => ['type' => 'string'],
-                    'tab' => ['type' => 'string'],
-                    'tab_EN' => ['type' => 'string'],
-                    'tab_PL' => ['type' => 'string'],
-                    'toggle_fields' => ['type' => 'array'],
-                    'search' => ['type' => ['boolean', 'string']],
-                    'tall' => ['type' => 'boolean'],
-                    "unique" => ['type' => 'boolean'],
-                    'wide' => ['type' => 'boolean'],
-                    'width' => ['type' => 'integer']
-                ]
-            ],
-
-
-            'label' => ['type' => 'string'],
-            'label_PL' => ['type' => 'string'],
-            'label_EN' => ['type' => 'string'],
-            'list' => ['type' => ['string', 'array']]
-
-
-        ];
-
-        if ($strict) {
-            unset($properties['list']);
-            unset($properties['label']);
-            unset($properties['label_EN']);
-            unset($properties['label_PL']);
-        }
+        $types = json_decode(file_get_contents(__DIR__ . '/../schemas/_uho_orm_fields.json'), true);
+        if (!$types) $this->orm->halt('schemas/fields.json not found');
 
         if (!isset($types[$field['type']])) {
-            $response = ['errors' => ['Field type invalid: ' . $field['type']]];
+            $response = ['errors' => ['Field of type [' . $field['type'] . '] not found in schemas/_uho_orm_fields.json']];
             return $response;
-        }
-
-        foreach ($field as $property => $value) {
-            if (isset($properties[$property])) {
-                $expected_type = $properties[$property]['type'];
-                if (!is_array($expected_type)) $expected_type = [$expected_type];
-                $actual_type = gettype($field[$property]);
-
-                if ($expected_type == ['object'] && $actual_type == 'array') {
-                    $response = $this->validateSchemaObject($value, $properties[$property]);
-                    if ($response['errors']) return $response;
-                } elseif (!in_array($actual_type, $expected_type)) {
-                    $response = ['errors' => ['Field property [' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type]];
-                    return $response;
-                }
-            } else return ['errors' => ['Property [' . $property . '] unknown']];
+        } else {
+            $r = $this->validateFieldAgainstSchema(
+                $field['type'],
+                $types[$field['type']],
+                $types['_all'],
+                $field
+            );
+            if (!$r['result']) {
+                return ['errors' => [
+                    implode(', ', $r['errors'])
+                ]];
+            }
         }
 
         return ['errors' => []];
@@ -663,6 +550,10 @@ class _uho_orm_schema
     public function validateSchema(array $schema, bool $strict = false): array
     {
         $errors = [];
+
+        /*
+            Main Properties
+        */
 
         $properties = [
             'buttons_edit' => ['type' => ['array']],
@@ -680,7 +571,11 @@ class _uho_orm_schema
             'order' => ['type' => ['array']],
             'page_update' => ['type' => ['string']],
             'table' => ['type' => 'string', 'required' => true],
-            'url' => ['type' => ['string', 'array']]
+            'url' => ['type' => ['string', 'array']],
+            // uho-cms only
+            'langs' => ['type' => ['array']],
+            'sortable' => ['type' => ['array']],
+            'structure' => ['type' => ['array']],
         ];
 
         foreach ($properties as $property => $rules) {
@@ -708,7 +603,7 @@ class _uho_orm_schema
                     $name = isset($v['field']) ? $v['field'] : 'nr ' . ($k + 1);
                     $response = $this->validateSchemaField($v, $strict);
                     if ($response['errors'])
-                        $errors[] = 'Schema field [' . $name . '] is invalid --> ' . implode(', ', $response['errors']);
+                        $errors[] = 'Schema field [' . $name . '] of type [' . $v['type'] . '] is invalid --> ' . implode(', ', $response['errors']);
                 }
             }
         }
@@ -734,5 +629,244 @@ class _uho_orm_schema
 
         if ($errors) return ['errors' => $errors];
         else return ['errors' => null];
+    }
+
+    /**
+     * Validates a single field against the type schema defined in fields.json
+     *
+     * @return array ['result' => bool, 'errors' => array]
+     */
+    public function validateFieldAgainstSchema(string $field_type, array $typeSchema, array $commonSchema, array $field): array
+    {
+
+        // prepare
+        if (isset($field['field'])) unset($field['field']);
+        if (isset($field['type'])) unset($field['type']);
+        if (isset($field['cms_field'])) unset($field['cms_field']);
+        if (isset($field['_original_models'])) unset($field['_original_models']);
+
+        if (empty($typeSchema['allowed'])) $typeSchema['allowed'] = [];
+        if (empty($typeSchema['allowed']['cms'])) $typeSchema['allowed']['cms'] = [];
+
+        $typeSchema = $this->deepMergeProps($typeSchema, $commonSchema);
+
+        $errors = [];
+
+        // Validate required properties
+        if (isset($typeSchema['required'])) {
+            $requiredErrors = $this->validateRequiredProperties($field, $typeSchema['required'], '');
+            $errors = array_merge($errors, $requiredErrors);
+        }
+
+        // Validate allowed properties
+        if (isset($typeSchema['allowed'])) {
+            $allowedErrors = $this->validateAllowedProperties($field, $typeSchema['allowed'], '');
+            $errors = array_merge($errors, $allowedErrors);
+        }
+
+        return [
+            'result' => empty($errors),
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Validates required properties recursively
+     *
+     * @param array $value The value to check
+     * @param array $required The required schema
+     * @param string $path Current property path for error messages
+     * @return array List of errors
+     */
+    private function validateRequiredProperties(array $value, array $required, string $path): array
+    {
+        $errors = [];
+
+        foreach ($required as $property => $rule) {
+            $currentPath = $path ? $path . '.' . $property : $property;
+
+            // Check if property exists
+            if (!isset($value[$property])) {
+                $errors[] = 'Missing required property [' . $currentPath . ']';
+                continue;
+            }
+
+            // Handle array of required field names (e.g., ["folder", "filename"])
+            if (is_array($rule) && array_keys($rule) === range(0, count($rule) - 1) && !isset($rule['fields'])) {
+                // Simple array of required field names
+                foreach ($rule as $requiredField) {
+                    if (!isset($value[$property][$requiredField])) {
+                        $errors[] = 'Missing required property [' . $currentPath . '.' . $requiredField . ']';
+                    }
+                }
+            }
+            // Handle array items validation (e.g., images with fields and minItems)
+            elseif (is_array($rule) && isset($rule['fields'])) {
+                if (!is_array($value[$property])) {
+                    $errors[] = 'Property [' . $currentPath . '] must be an array';
+                    continue;
+                }
+
+                // Check minItems
+                if (isset($rule['minItems']) && count($value[$property]) < $rule['minItems']) {
+                    $errors[] = 'Property [' . $currentPath . '] requires at least ' . $rule['minItems'] . ' item(s)';
+                }
+
+                // Validate required fields in each array item
+                foreach ($value[$property] as $index => $item) {
+                    foreach ($rule['fields'] as $requiredField) {
+                        if (!isset($item[$requiredField])) {
+                            $errors[] = 'Missing required property [' . $currentPath . '[' . $index . '].' . $requiredField . ']';
+                        }
+                    }
+                }
+            }
+            // Handle nested object validation
+            elseif (is_array($rule) && !empty($rule)) {
+                if (!is_array($value[$property])) {
+                    $errors[] = 'Property [' . $currentPath . '] must be an object';
+                    continue;
+                }
+                $nestedErrors = $this->validateRequiredProperties($value[$property], $rule, $currentPath);
+                $errors = array_merge($errors, $nestedErrors);
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Validates allowed properties and their types recursively
+     *
+     * @param array $value The value to check
+     * @param array $allowed The allowed schema
+     * @param string $path Current property path for error messages
+     * @return array List of errors
+     */
+    private function validateAllowedProperties(array $value, array $allowed, string $path): array
+    {
+        $errors = [];
+
+        foreach ($value as $property => $propValue) {
+            // Skip standard field properties (field, type, cms)
+            //if (in_array($property, ['field', 'type', 'cms'])) {
+            //    continue;
+            //}
+
+            $currentPath = $path ? $path . '.' . $property : $property;
+
+            if (!isset($allowed[$property])) {
+                $errors[] = 'Property [' . $currentPath . '] is not allowed for this field type';
+                continue;
+            }
+
+            $expectedType = $allowed[$property];
+
+            // Handle array schema (for arrays of objects like images)
+            if (is_array($expectedType) && isset($expectedType[0]) && is_array($expectedType[0])) {
+                if (!is_array($propValue)) {
+                    $errors[] = 'Property [' . $currentPath . '] must be an array';
+                    continue;
+                }
+
+                // Validate each item in the array
+                foreach ($propValue as $index => $item) {
+                    if (!is_array($item)) {
+                        $errors[] = 'Property [' . $currentPath . '[' . $index . ']] must be an object';
+                        continue;
+                    }
+
+                    foreach ($item as $itemProp => $itemValue) {
+                        if (!isset($expectedType[0][$itemProp])) {
+                            $errors[] = 'Property [' . $currentPath . '[' . $index . '].' . $itemProp . '] is not allowed';
+                            continue;
+                        }
+
+                        $typeError = $this->validatePropertyType($itemValue, $expectedType[0][$itemProp], $currentPath . '[' . $index . '].' . $itemProp);
+                        if ($typeError) {
+                            $errors[] = $typeError;
+                        }
+                    }
+                }
+            }
+            // Handle nested object schema
+            elseif (is_array($expectedType) && !empty($expectedType)) {
+                if (!is_array($propValue)) {
+                    $errors[] = 'Property [' . $currentPath . '] must be an object';
+                    continue;
+                }
+
+                $nestedErrors = $this->validateAllowedProperties($propValue, $expectedType, $currentPath);
+                $errors = array_merge($errors, $nestedErrors);
+            }
+            // Handle simple type validation
+            else {
+                $typeError = $this->validatePropertyType($propValue, $expectedType, $currentPath);
+                if ($typeError) {
+                    $errors[] = $typeError;
+                }
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Validates a single property type
+     *
+     * @param mixed $value The value to check
+     * @param string $expectedType The expected type from schema
+     * @param string $path Property path for error message
+     * @return string|null Error message or null if valid
+     */
+    private function validatePropertyType($value, string $expectedType, string $path): ?string
+    {
+        $actualType = gettype($value);
+
+        $typeMap = [
+            'string' => 'string',
+            'integer' => 'integer',
+            'boolean' => 'boolean',
+            'array' => 'array',
+            'double' => 'double'
+        ];
+
+        if (isset($typeMap[$expectedType])) {
+            if ($actualType !== $typeMap[$expectedType]) {
+                return 'Property [' . $path . '] must be ' . $expectedType . ', got ' . $actualType;
+            }
+        }
+
+        return null;
+    }
+
+    private  function deepMergeProps(array $left, array $right): array
+    {
+        foreach ($right as $key => $rVal) {
+            // Key doesn't exist on left → just copy
+            if (!array_key_exists($key, $left)) {
+                $left[$key] = $rVal;
+                continue;
+            }
+
+            $lVal = $left[$key];
+
+            // Both nested "objects" (arrays) → recurse
+            if (is_array($lVal) && is_array($rVal)) {
+                $left[$key] = $this->deepMergeProps($lVal, $rVal);
+                continue;
+            }
+
+            // Both numeric → sum
+            if (is_numeric($lVal) && is_numeric($rVal)) {
+                $left[$key] = $lVal + $rVal;
+                continue;
+            }
+
+            // Otherwise: overwrite with right
+            $left[$key] = $rVal;
+        }
+
+        return $left;
     }
 }

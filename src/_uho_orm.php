@@ -668,6 +668,7 @@ class _uho_orm
 
         $name_string = $name;
 
+
         // checks if SQL connection has been established
 
         $this->sqlCheckConnection('get::' . $name_string);
@@ -702,8 +703,11 @@ class _uho_orm
                 $this->halt($model['message']);
         }
 
-        if (empty($model['table']) || empty($model['fields']))
-            $this->halt('_uho_orm::get->table/fields [' . @$name . '] not found in schema');
+
+        if (empty($model['table']))
+            $this->halt('_uho_orm::get->.table not found in schema [' . @$name . ']');
+        if (empty($model['fields']))
+            $this->halt('_uho_orm::get->.fields not found in schema [' . @$name . ']');
 
 
         /**
