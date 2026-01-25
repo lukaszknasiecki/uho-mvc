@@ -1415,7 +1415,8 @@ class _uho_orm
 
                         $m = array();
 
-                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']])) {
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
+                        {
                             $data[$k][$v2['field']] = null;
                         } else {
 
@@ -1453,7 +1454,6 @@ class _uho_orm
                                 update filename patterns
                             */
 
-
                             foreach ($v2['images'] as $v4) {
 
                                 if (isset($v4['filename'])) {
@@ -1468,7 +1468,6 @@ class _uho_orm
                                 $m[$image_id] = $v2['settings']['folder'] . '/' . $v4['folder'] . '/' . $filename0 . '.' . $extension;
                                 $m[$image_id] = str_replace('//', '/', $m[$image_id]);
 
-
                                 /*
                                     optional - add image size
                                 */
@@ -1480,6 +1479,7 @@ class _uho_orm
                                 */
                                 else {
                                     $this->fileAddCacheBuster($m[$image_id]);
+
                                 }
 
                                 if ($sizes) {
@@ -2063,12 +2063,22 @@ class _uho_orm
      * FILENAME CACHE BUSTER METHODS
      */
 
+    public function fileRemoveCacheBuster(string $f): string
+    {
+        if ($this->files_cache_buster)
+            {
+                $f=explode('?',$f);
+                $f=$f[0];
+            }
+        return $f;
+    }
+
     /**
      * Adds cache buster to filename
      */
+
     public function fileAddCacheBuster(string &$f): void
     {
-
         /*
             s3 support
         */
