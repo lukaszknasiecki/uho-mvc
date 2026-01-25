@@ -1073,7 +1073,7 @@ class _uho_orm
                     $data[$k][$v2['field']] = $this->get($model0, $f, $getSingle, $order);
                 }
                 /**
-                 * Select fields with source.model
+                 * Select fields with source.model & aggregate method
                  */
                 elseif (@$v2['source'] && (in_array($v2['type'],['elements','select','checkboxes'])))
                     {
@@ -1138,8 +1138,6 @@ class _uho_orm
                                         $model['fields'][$k2]['source']['data'][$k4][$k5] = $v2['source']['data'][$k4][$k5] = _uho_fx::decrypt($v5, $this->keys, $v2['source']['fields_hashed'][$k5]);
                                 }
 
-
-
                         if (@$v2['source']['url'] && $v2['source']['data'])
                             foreach ($v2['source']['data'] as $k3 => $v3) {
                                 $v2['source']['data'][$k3]['url'] = $this->getTemplate($v2['source']['url'], $v3);
@@ -1160,13 +1158,17 @@ class _uho_orm
                             $elements = explode(',', $v[$v2['field']]);
 
                             foreach ($elements as $k3 => $v3)
-                                if (intval($v3) || (isset($v2['output']) && $v2['output'] == 'string' && $v3)) {
+                                if (intval($v3) || (isset($v2['output']) && $v2['output'] == 'string' && $v3))
+                                {
                                     $v3 = explode(':', $v3);
                                     if (isset($v3[1])) $v3 = $v3[1];
                                     else $v3 = $v3[0];
+
                                     if (isset($v2['output']) && $v2['output'] == 'string')
                                         $elements[$k3] = $v2['source']['data'][($v3)];
-                                    else $elements[$k3] = @$v2['source']['data'][intval($v3)];
+                                    elseif (isset($v2['source']['data'][intval($v3)]))
+                                         $elements[$k3] = $v2['source']['data'][intval($v3)];
+                                            else unset($elements[$k3]);
                                 } else unset($elements[$k3]);
 
                             $data[$k][$v2['field']] = $v[$v2['field']] = $elements;
