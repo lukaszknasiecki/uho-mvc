@@ -511,34 +511,44 @@ class _uho_orm_schema
      * Validates schema field structure
      *
      * @param array $field
-     * @param bool $strict
+     * @param string $method=uho_orm|json_schema
      * @return array
      */
-    private function validateSchemaField(array $field, bool $strict): array
+    private function validateSchemaField(array $field, string $method = 'uho_orm'): array
     {
+        switch ($method) {
+            case "uho_orm":
 
-        $types = json_decode(file_get_contents(__DIR__ . '/../schemas/_uho_orm_fields.json'), true);
-        if (!$types) $this->orm->halt('schemas/fields.json not found');
+                $types = json_decode(file_get_contents(__DIR__ . '/../schemas/_uho_orm_fields.json'), true);
+                if (!$types) $this->orm->halt('schemas/_uho_orm_fields.json not found');
 
-        if (!isset($types[$field['type']])) {
-            $response = ['errors' => ['Field of type [' . $field['type'] . '] not found in schemas/_uho_orm_fields.json']];
-            return $response;
-        } else {
-            $r = $this->validateFieldAgainstSchema(
-                $field['type'],
-                $types[$field['type']],
-                $types['_all'],
-                $field
-            );
-            if (!$r['result']) {
-                return ['errors' => [
-                    implode(', ', $r['errors'])
-                ]];
-            }
+                if (!isset($types[$field['type']])) {
+                    $response = ['errors' => ['Field of type [' . $field['type'] . '] not found in schemas/_uho_orm_fields.json']];
+                    return $response;
+                } else {
+                    $r = $this->validateFieldAgainstSchema(
+                        $field['type'],
+                        $types[$field['type']],
+                        $types['_all'],
+                        $field
+                    );
+                    if (!$r['result']) {
+                        return ['errors' => [
+                            implode(', ', $r['errors'])
+                        ]];
+                    }
+                }
+
+                break;
+
+            default:
+                return ['errors' => ['Validation method invalid']];
+                break;
         }
 
         return ['errors' => []];
     }
+
 
     /**
      * Validates schema structure
@@ -547,8 +557,10 @@ class _uho_orm_schema
      * @return array
      */
 
-    public function validateSchema(array $schema, bool $strict = false): array
+    public function validateSchema(array $schema, bool $strict = false, string $method = 'uho_orm'): array
     {
+
+
         $errors = [];
 
         /*
@@ -561,6 +573,7 @@ class _uho_orm_schema
             'data' => ['type' => ['array']],
             'disable' => ['type' => ['array']],
             'fields' => ['type' => 'array'],
+            'fields_to_read' => ['type' => 'array'],
             'filters' => ['type' => ['array']],
             'label' => ['type' => ['string', 'array']],
             'layout' => ['type' => ['array']],
@@ -574,6 +587,7 @@ class _uho_orm_schema
             'url' => ['type' => ['string', 'array']],
             // uho-cms only
             'langs' => ['type' => ['array']],
+            'shortcuts' => ['type' => ['array']],
             'sortable' => ['type' => ['array']],
             'structure' => ['type' => ['array']],
         ];
@@ -601,7 +615,7 @@ class _uho_orm_schema
         if (!empty($schema['fields']) && is_array($schema['fields'])) {
             foreach ($schema['fields'] as $k => $v) { {
                     $name = isset($v['field']) ? $v['field'] : 'nr ' . ($k + 1);
-                    $response = $this->validateSchemaField($v, $strict);
+                    $response = $this->validateSchemaField($v, $method);
                     if ($response['errors'])
                         $errors[] = 'Schema field [' . $name . '] of type [' . $v['type'] . '] is invalid --> ' . implode(', ', $response['errors']);
                 }
@@ -868,5 +882,35 @@ class _uho_orm_schema
         }
 
         return $left;
+    }
+
+    private function arrayToObject($data)
+    {
+        if (!is_array($data)) {
+            return $data;
+        }
+
+        // Your rule: empty array should become an object
+        if ($data === []) {
+            return new \stdClass();
+        }
+
+        $isList = is_numeric(array_keys($data)[0]);
+        
+
+        if ($isList) {
+            // Keep array, but recursively convert nested associative arrays
+            foreach ($data as $i => $value) {
+                $data[$i] = $this->arrayToObject($value);
+            }
+            return $data;
+        }
+
+        // Associative array => object
+        $obj = new \stdClass();
+        foreach ($data as $key => $value) {
+            $obj->{$key} = $this->arrayToObject($value);
+        }
+        return $obj;
     }
 }

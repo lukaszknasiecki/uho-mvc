@@ -24,9 +24,11 @@
     },
     "boolean": {
         "allowed": {
+            "settings": {
+                "default": "boolean|integer"
+            },
             "cms": {
-                "default": "boolean",
-                "list": "array"
+                "default": "boolean|integer"
             }
         }
     },
@@ -221,6 +223,7 @@
             "cms": {
                 "default": "string",
                 "list": "array",
+                "filters": "array",
                 "style": "string"
             },
             "settings": {
@@ -229,10 +232,11 @@
             },
             "options": "array",
             "source": {
-                "model": "string",
                 "filters": "array",
+                "list": "string",
+                "model": "string",
                 "model_fields": "array",
-                "list": "string"
+                "order":"string"
             }
         }
     },
@@ -255,6 +259,11 @@
         "allowed": {
             "settings": {
                 "header": "array"
+            },
+            "cms": {
+                "wide": "boolean",
+                "counter": "boolean",
+                "style": "string"
             }
         }
     },

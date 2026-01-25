@@ -360,7 +360,10 @@ chmod +x bin/schema-validate
 ./bin/schema-validate /path/to/application/models/json
 ```
 
-This validates all JSON model definitions in the specified directory.
+This validates all JSON model definitions in the specified directory, example:
+
+`vendor/lukaszknasiecki/uho-mvc/bin/schema-validate application/models/json/`
+
 
 
 ## License
