@@ -12,7 +12,7 @@ class _uho_controller_api extends _uho_controller
 
         $path = $this->route->e();
 
-        // remove API from path
+        // remove /API/ from path
         array_shift($path);
 
         // create full action path
@@ -24,29 +24,23 @@ class _uho_controller_api extends _uho_controller
         switch ($method) {
             case "GET":
                 $data = $this->get;
-                $json = file_get_contents('php://input');
-                if (is_string($json)) $json = json_decode($json, true);
-                if ($json) $data = array_merge($data, $json);
+                break;
 
+            case "DELETE":
+            case "PUT":
+            case "PATCH":
+                $data = $this->get;
+                $body = $this->getBody();
+                if ($body) $data = array_merge($data, $body);
                 break;
 
             case "POST":
 
                 $data = $this->post;
-                if (empty($data)) $data = $this->get;
-                $json = file_get_contents('php://input');
-                if (is_string($json)) $json = json_decode($json, true);
-                if ($json) $data = array_merge($data, $json);
+                $body = $this->getBody();
+                if ($body) $data = array_merge($data, $body);
                 break;
 
-            case "PUT":
-            case "PATCH":
-            case "DELETE":
-
-                $data = file_get_contents('php://input');
-                if (is_string($data)) $data = json_decode($data, true);
-                if (empty($data)) $data = $this->get;
-                break;
             default:
                 $data = [];
         }
@@ -62,5 +56,20 @@ class _uho_controller_api extends _uho_controller
         );
         $this->data['content'] = $this->route->updatePaths($this->data['content']);
         $this->outputType = 'json';
+    }
+
+    private function getBody()
+    {
+        $raw = file_get_contents('php://input');
+        if ($raw !== '') {
+            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+            if (str_contains($contentType, 'application/json')) {
+                $body = json_decode($raw, true);
+            } else {
+                parse_str($raw, $body);
+            }
+        }
+        if (is_array($body)) return $body;
     }
 }
