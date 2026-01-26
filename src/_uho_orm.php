@@ -2311,6 +2311,11 @@ class _uho_orm
         return $this->schemaSqlManager->creator($schema, $options, $recursive, $update_languages);
     }
 
+    public function getFiltersQueryArray($model)
+    {
+        return $this->schemaSqlManager->getFiltersQueryArray($model);
+    }
+
     /**
      * FILE/IMAGE UPLOAD METHODS
      * Delegates to Upload Manager
