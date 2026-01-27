@@ -959,8 +959,8 @@ class _uho_orm
 
             foreach ($model['fields'] as $k2 => $v2) {
 
-                if (isset($v2['hash']) && isset($data[$k][$v2['field']])) {
-                    $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['hash']);
+                if (isset($v2['settings']['hash']) && isset($data[$k][$v2['field']])) {
+                    $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['settings']['hash']);
                 }
 
                 if (isset($v2['source']) && $k == 0 && @is_array($v2['source']['fields'])) {
@@ -1708,7 +1708,7 @@ class _uho_orm
                 if (isset($v['type']) && $v['type'] == 'sql') {
                     $data[$k] = '`' . $k . '`=' . $v['value'];
                 } else {
-                    if (isset($field['hash'])) $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['hash']) . '"';
+                    if (isset($field['settings']['hash'])) $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
                     elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
                     elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
                     elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';
@@ -1758,7 +1758,7 @@ class _uho_orm
                     if ($val === null) $val = '';
                 } else $val = null;
 
-                if (isset($v['hash'])) $val = _uho_fx::encrypt($val, $this->keys, $v['hash']);
+                if (isset($v['settings']['hash'])) $val = _uho_fx::encrypt($val, $this->keys, $v['settings']['hash']);
 
                 if (isset($val)) {
                     switch (@$v['type']) {
