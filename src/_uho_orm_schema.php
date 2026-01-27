@@ -570,6 +570,7 @@ class _uho_orm_schema
         $properties = [
             'buttons_edit' => ['type' => ['array']],
             'buttons_page' => ['type' => ['array']],
+            'children' => ['type' => ['array']],
             'data' => ['type' => ['array']],
             'disable' => ['type' => ['array']],
             'fields' => ['type' => 'array'],

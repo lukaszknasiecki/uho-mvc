@@ -1,7 +1,6 @@
 {
     "_all": {
-        "allowed":
-        {
+        "allowed": {
             "cms": {
                 "description": "string|array",
                 "edit": "boolean",
@@ -19,6 +18,9 @@
                 "toggle_fields": "array",
                 "required": "boolean",
                 "unique": "boolean"
+            },
+            "settings": {
+                "field_output": "string"
             }
         }
     },
@@ -48,7 +50,8 @@
                 "default": "string"
             },
             "settings": {
-                "default": "string"
+                "default": "string",
+                "format": "string"
             }
         }
     },
@@ -81,7 +84,8 @@
     "elements": {
         "allowed": {
             "settings": {
-                "length": "integer|string",
+                "length": "integer",
+                "multiple_filters": "string",
                 "output": "string"
             },
             "cms": {
@@ -101,6 +105,9 @@
     "file": {
         "field": false,
         "allowed": {
+            "cms": {
+                "metadata": "array"
+            },
             "settings": {
                 "filename": "string",
                 "folder": "string",
@@ -133,12 +140,13 @@
         "field": false,
         "allowed": {
             "settings": {
-                "folder": "string",
-                "folder_preview": "string",
                 "filename": "string",
-                "webp": "boolean",
+                "folder": "string",
                 "extensions": "array",
-                "extension_field": "string"
+                "extension_field": "string",
+                "field_exists": "string",
+                "sizes": "string",
+                "webp": "boolean"
             },
             "images": [
                 {
@@ -199,25 +207,6 @@
         }
     },
     "order": {},
-    "string": {
-        "allowed": {
-            "settings": {
-                "length": "integer",
-                "case": "boolean",
-                "hash": true
-            },
-            "cms": {
-                "auto": "array",
-                "case": "boolean",
-                "code": "boolean",
-                "default": "string",
-                "placeholder": "string",
-                "on_demand": "boolean",
-                "style": "string",
-                "rows": "integer"
-            }
-        }
-    },
     "select": {
         "allowed": {
             "cms": {
@@ -236,7 +225,26 @@
                 "list": "string",
                 "model": "string",
                 "model_fields": "array",
-                "order":"string"
+                "order": "string"
+            }
+        }
+    },
+    "string": {
+        "allowed": {
+            "settings": {
+                "length": "integer",
+                "case": "boolean",
+                "hash": true
+            },
+            "cms": {
+                "auto": "array",
+                "case": "boolean",
+                "code": "boolean",
+                "default": "string",
+                "placeholder": "string",
+                "on_demand": "boolean",
+                "style": "string",
+                "rows": "integer"
             }
         }
     },
@@ -258,6 +266,9 @@
     "table": {
         "allowed": {
             "settings": {
+                "fields": "boolean",
+                "format": "string",
+                "function": "string",
                 "header": "array"
             },
             "cms": {
@@ -278,10 +289,10 @@
         "field": false,
         "allowed": {
             "settings": {
+                "extension": "string",
                 "folder": "string",
                 "field_cover": "string",
-                "filename": "string",
-                "extension": "string"
+                "filename": "string"
             }
         },
         "required": {

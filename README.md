@@ -13,7 +13,6 @@ To setup run:
 
 This project is using PHP8.2+ and mySQL
 
-
 ## Schema Validation
 
 You can validate your schemas with `schema-validate` script. By default script with validate all schemas

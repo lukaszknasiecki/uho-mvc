@@ -2,7 +2,6 @@
 
 ## Table of Contents
 
-
  1. [Overview](#overview)
  2. [System Requirements](#system-requirements)
  3. [Installation](#installation)
@@ -19,8 +18,6 @@
 14. [Examples](#examples)
 
 
----
-
 ## Overview
 
 UHO-MVC is a PHP Model-View-Controller (MVC) framework designed for building web applications. It features:
@@ -35,8 +32,6 @@ UHO-MVC is a PHP Model-View-Controller (MVC) framework designed for building web
 * **Image Processing**: Automatic thumbnail generation and caching
 
 
----
-
 ## System Requirements
 
 * **PHP**: 8.1 or higher
@@ -48,8 +43,6 @@ UHO-MVC is a PHP Model-View-Controller (MVC) framework designed for building web
   * openssl
   * gd (for image processing)
 
-
----
 
 ## Installation
 
@@ -66,25 +59,25 @@ A typical UHO-MVC application follows this structure:
 ```
 project/
 ├── application/
-│   ├── config/
-│   │   ├── config.php
-│   │   ├── config_additional.json
-│   │   └── hosts.php
 │   ├── controllers/
 │   │   └── controller_app_*.php
 │   ├── models/
 │   │   ├── model_app_*.php
+│   │   ├── api/
+│   │   │   └── model_app_api_*.php
+│   │   ├── modules/
+│   │   │   └── m_*.php
 │   │   └── json/
 │   │       └── *.json (model definitions)
 │   ├── views/
-│   │   ├── view_app_*.html
-│   │   └── svg/
-│   ├── routes/
-│   │   └── route_app.json
-│   └── Twig/
-│       ├── Filter/
-│       ├── Function/
-│       └── Global/
+│   │   ├── view_app.php
+│   │   ├── article.twig
+│   │   └── base.twig
+│   └── routes/
+│       └── route_app.json
+├── application_config/
+│   ├── config.php
+│   └── hosts.json
 ├── public/
 ├── vendor/
 └── index.php
@@ -110,8 +103,6 @@ echo $output['output'];
 ```
 
 
----
-
 ## Architecture
 
 ### MVC Pattern
@@ -124,7 +115,6 @@ The framework follows the Model-View-Controller pattern:
 
 ### Application Flow
 
-
 1. Request arrives at `index.php`
 2. `_uho_application` initializes routing
 3. Route determines controller, model, and view classes
@@ -134,8 +124,6 @@ The framework follows the Model-View-Controller pattern:
 7. View renders Twig template
 8. HTML/JSON output returned to client
 
-
----
 
 ## Configuration
 
@@ -246,8 +234,6 @@ The framework automatically loads `.env` files using `_uho_load_env`.
 Make sure to `chmod 400 .env`
 
 
----
-
 ## Routing
 
 ### Route Configuration
@@ -318,7 +304,6 @@ $url_array = $this->route->getUrlArray();
 $url_element = $this->route->e(1);
 ```
 
----
 
 ## Models and ORM
 
@@ -402,12 +387,13 @@ In addition to `table`, `fields`, and `order`, you can use these keys at the sch
   ```
 
 You can also set fields to be returned for every single-record and multi-record `get` used without `fields` param, by adding:
+
 ```json
   "fields_to_read": {
       "_single": ["title", "author", "theme", "description"],
       "_multiple": ["title", "author"]
   }
-  ```
+```
 
 * `filters` (object/array): Default filters applied to all queries for this model
 
@@ -419,7 +405,6 @@ You can also set fields to be returned for every single-record and multi-record 
   ```
 
   Filters can use dynamic values with Twig syntax: `"category_id": "{{id}}"`
-
 * `children` (object): For nested schemas
 
   ```json
@@ -434,29 +419,30 @@ You can also set fields to be returned for every single-record and multi-record 
   ```
 
   You can get nested models with ORM's `getDeep` method.
-
 * `order` (string/object): Default ordering for queries, can be formatted in couple of ways
 
   ```json
   "order": "created_at DESC"
   ```
+
 ```json
   "order": {"type": "field", "values": ["title", "date"]}
-  ```
+```
+
 ```json
   "order": {"field": "date", "sort": ["DESC"]}
-  ```
+```
 
-  Or use object format:
+Or use object format:
 
-  ```json
-  "order": {
-      "field": "created_at",
-      "sort": "DESC"
-  }
-  ```
+```json
+"order": {
+    "field": "created_at",
+    "sort": "DESC"
+}
+```
 
-  Prefix field with `!` for DESC: `"!created_at"` = `"created_at DESC"`
+Prefix field with `!` for DESC: `"!created_at"` = `"created_at DESC"`
 
 * `url`: you can predefine URL for each model, which can be later converted to the final (string) URL via router class
 
@@ -572,7 +558,6 @@ $this->multiQueryOut("INSERT INTO ...; UPDATE ...;");
 
 Please, refer `FIELDS.MD` file for detailed fields array description.
 
----
 
 ## Controllers
 
@@ -651,8 +636,6 @@ $route_class = $this->route->getRouteClass();
 ```
 
 
----
-
 ## Views
 
 ### Twig Templates
@@ -705,7 +688,7 @@ The framework includes custom Twig filters:
 * `declination`: Polish declination (1 obiekt, 2 obiekty, 5 obiektów)
 * `dozeruj`: Zero-pad numbers
 * `filesize`: Format file size
-* `nospaces`: Replace spaces with  
+* `nospaces`: Replace spaces with
 * `shuffle`: Shuffle array
 * `szewce`: Polish typography (non-breaking spaces)
 * `time`: Extract time from datetime
@@ -746,8 +729,6 @@ Add functions in `application/Twig/Function/` and globals in `application/Twig/G
 ```
 
 
----
-
 ## Database
 
 ### Database Connection
@@ -779,8 +760,6 @@ Always use ORM methods or parameterized queries. The framework provides:
 $safe_string = $this->sqlSafe($user_input);
 ```
 
-
----
 
 ## Security
 
@@ -824,8 +803,6 @@ if ($this->model->csrf_token_verify($_POST['csrf_token'])) {
 * Use `|raw` filter only when necessary
 * Sanitize user input before storing
 
-
----
 
 ## Features
 
@@ -913,8 +890,6 @@ $social = new \Huncwot\UhoFramework\_uho_social($config);
 ```
 
 
----
-
 ## API Reference
 
 ### _uho_application
@@ -1001,8 +976,6 @@ Utility functions class.
 * `getPost($param, $default)`: Get POST parameter
 * `getGetArray()`: Get all GET parameters
 
-
----
 
 ## Examples
 
@@ -1104,8 +1077,6 @@ class controller_app_api extends \Huncwot\UhoFramework\_uho_controller
 ```
 
 
----
-
 ## Schema Validation
 
 The framework includes a schema validation tool:
@@ -1118,9 +1089,10 @@ chmod +x bin/schema-validate
 This validates all JSON model definitions in the specified directory.
 
 
----
-
 ## Best Practices
+
+
+
 
 
  1. **Always use ORM methods** instead of raw SQL when possible
@@ -1134,8 +1106,6 @@ This validates all JSON model definitions in the specified directory.
  9. **Cache expensive operations** when appropriate
 10. **Test with schema validation** before deploying
 
-
----
 
 ## Troubleshooting
 
@@ -1165,14 +1135,10 @@ This validates all JSON model definitions in the specified directory.
 * Verify domain matches token creation domain
 
 
----
-
 ## License
 
 MIT License - See LICENSE file for details.
 
-
----
 
 ## Support
 
@@ -1180,7 +1146,5 @@ For issues and questions:
 
 * Email: lukasz@knasiecki.com
 
-
----
 
 *Last updated: 2025-12*

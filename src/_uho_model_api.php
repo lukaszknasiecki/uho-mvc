@@ -37,7 +37,7 @@ class _uho_model_api extends _uho_model
     {
         $this->captcha['no_auth'] = $items;
     }
-    public function setPathModules($path)
+    public function setPathModels($path)
     {
         $this->models_path=$path;
     }

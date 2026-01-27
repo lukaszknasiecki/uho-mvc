@@ -80,7 +80,7 @@ some work only with specified field types.
 
 ## Common field object properties
 
-* `field_output (string)`: swaps the field's name in output to a new one
+* `settings.field_output (string)`: swaps the field's name in output to a new one
 * `options (array)`: Populate options, works with types: `select`, `elements`, `checkboxes`, produces ENUM SQL field
 
   ```json
@@ -117,33 +117,70 @@ some work only with specified field types.
 
 Here is a list of field types and properties which work with these types:
 
+* `boolean`:
+  * `settings.default` (`boolean` | `integer`)
+* `date`:
+  * `settings.default` (`string`)
 * `datetime`:
-  * `settings.format=ISO8601|UTC` converts value to ISO8601 format in UTC timezone
+  * `settings.default` (`string`)
+  * `settings.format` (`string`): converts value to ISO8601 format in UTC timezone, accepts `ISO8601` or `UTC`
+* `checkboxes`:
+  * `settings.output` (`string`)
 * `elements`:
-  * `settings.multiple_filters` can be set to `&&` or `||` (default) to join filter values on GET
+  * `settings.length` (`integer`)
+  * `settings.multiple_filters` (`string`): can be set to `&&` or `||` (default) to join filter values on GET
+  * `settings.output` (`string`)
+* `file`:
+  * `settings.filename` (`string`)
+  * `settings.folder` (`string`)
+  * `settings.extension` (`string`)
+  * `settings.hashable` (`boolean`)
+* `html`:
+  * `settings.long` (`boolean`)
+  * `settings.media` (`string`)
+  * `settings.media_field` (`string`)
 * `image`:
-  * `settings.folder` required, base folder for image storage, i.e. `/public/upload`
-  * `settings.extensions` array of available image extensions, if not defined only `jpg` is being user
-  * `settings.extension_field` points to an external field with image extension, if not specified `jpg` is being used, if value is blank, first extension from `setting.extensions` is taken
-  * `settings.field_exists` points to boolean field which marks if image exists and will be returned (true) or not (false)
-  * `settings.sizes` points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`
-  * `settings.images` required, array with image sizes
-  * `settings.images.filename` filename pattern, default is `{{uid}}.jpg`
-  * `settings.images[].folder` required, folder to store the iamge, relatve to `settings.folder`, i.e. `desktop`
-  * `settings.images[].retina` boolean, if true, image is returning additionally its retina versions, in `_x2` folders
-  * `settings.images[].size` boolean, if true, image is returning not only src, but width and height, read live from the server file with `getimagesize`
+  * `settings.filename` (`string`): filename pattern, default `%uid%.jpg`
+  * `settings.folder` (`string`): required, base folder for image storage, i.e. `/public/upload`
+  * `settings.extensions` (`array`): array of available image extensions, if not defined only `jpg` is being used
+  * `settings.extension_field` (`string`): points to an external field with image extension, if not specified `jpg` is being used, if value is blank, first extension from `settings.extensions` is taken
+  * `settings.field_exists` (`string`): points to boolean field which marks if image exists and will be returned (true) or not (false)
+  * `settings.sizes` (`string`): points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`
+  * `settings.webp` (`boolean`)
+  * `images` (`array`): required, array with image sizes
+  * `images.filename` (`string`): filename pattern, default is `{{uid}}.jpg`
+  * `images[].folder` (`string`): required, folder to store the image, relative to `settings.folder`, i.e. `desktop`
+  * `images[].retina` (`boolean`): if true, image is returning additionally its retina versions, in `_x2` folders
+  * `images[].size` (`boolean`): if true, image is returning not only src, but width and height, read live from the server file with `getimagesize`
+* `media`: Several media attachments
+  * `captions` (`array`)
+  * `source` (`array`)
 * `model`: Get external model
-  * `settings.schema` name of model's schema
-  * `settings.filters` array of filters
-  * `settings.order` order of results
+  * `settings.schema` (`string`): name of model's schema
+  * `settings.filters` (`array`): array of filters
+  * `settings.order` (`string`): order of results
+* `select`:
+  * `settings.default` (`integer|string`)
+  * `settings.null` (`boolean`)
 * `string`:
-  * `settings.length(INT)` sets string field length
-* `table`:
-  * `settings.fields(BOOL)` if TRUE returns table values as an array, where each row key is taken from `settings.header` array
-  * `settings.format=object` returns table values as an object
+  * `settings.length` (`integer`): sets string field length
+  * `settings.case` (`boolean`)
+  * `settings.hash` (`string`)
 * `text`:
-  * `settings.function=nl2br` performs PHPs nl2br function on field value
-
+  * `settings.long` (`integer`)
+  * `settings.hash` (`string`)
+  * `settings.hashable` (`boolean`)
+* `table`:
+  * `settings.fields` (`boolean`): if true returns table values as an array, where each row key is taken from `settings.header` array
+  * `settings.header` (`array`)
+  * `settings.format` (`string`): returns table values as an object when set to `object`
+* `text`:
+  * `settings.function` (`string`): performs PHP's `nl2br` function on field value when set to `nl2br`
+* `video`:
+  * `settings.filename` (`string`): filename pattern, default `%uid%.mp4`
+  * `settings.field_cover` (`string`)
+  * `settings.folder` (`string`): required, base folder for video storage, i.e. `/public/upload`
+  
 ## Media Types
 
 ### `image`
@@ -155,9 +192,14 @@ By default `uid` field is used to create unique filenames and all images are JPG
 {
     "field": "image",
     "type": "image",
+    "cms": {
+        "list":
+        {
+            "folder": "thumb"          // preview folder to be used in CMS for thumbnails
+        }
+    },
     "settings": {
         "folder": "/public/upload/images",  // root folder for uploads
-        "folder_preview": "thumb",          // preview folder to be used in CMS for thumbnails
         "filename": "%uid%",                // filename template
         "filename_field": "filename",       // field to store original filename
         "sizes": "image_sizes",             // json field to store JSON with all image sizes
@@ -195,7 +237,6 @@ You can also use PNG/GIF images without converting them to JPGs, which is conven
     "type": "image",
     "settings": {
         "folder": "/public/upload/images",  // root folder for uploads
-        "folder_preview": "thumb",          // preview folder to be used in CMS for thumbnails
         "filename": "%uid%",                // filename template
         "filename_field": "filename",       // field to store original filename
         "extensions": [ "png"],             // allowed extensions
