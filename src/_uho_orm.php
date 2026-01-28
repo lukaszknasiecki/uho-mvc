@@ -348,7 +348,7 @@ class _uho_orm
 
     public function loadJson(string $filename): array|null
     {
-        return $this->schemaLoader->loadJson($filename);
+        return $this->schemaLoader->loadJsonSchema($filename);
     }
 
     /**
