@@ -256,6 +256,12 @@ class _uho_view
                 substr($string, 8, 2) . '.' . substr($string, 5, 2) . '.' . substr($string, 0, 4)
             ),
 
+            new TwigFilter(
+                'date',
+                fn($value,$format='long') =>
+                _uho_fx::convertSingleDate($value,$this->lang,$format)
+            ),
+
             new TwigFilter('time', fn($string) => substr($string, 11, 5)),
 
             new TwigFilter('shuffle', function ($array) {

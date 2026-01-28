@@ -179,6 +179,7 @@ class _uho_application
         }
         
         $this->view = new $view_class($root_path,'/application/views/');
+        $this->view->setLang($lang);
         $this->view->setDebug($development);
 
         $this->cms = new $model_class(
