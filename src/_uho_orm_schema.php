@@ -118,7 +118,7 @@ class _uho_orm_schema
                     $root_paths = $this->loader->getRootPaths();
                     $errors = $this->loader->getLastError();
                     $message = '_uho_orm::JSON schema not found: ' . $filename . ' in ' . implode(', ', $root_paths) . ' ::: ' . $errors;
-                } else $message = '_uho_orm::JSON schema not foundd: ' . $filename;
+                } else $message = '_uho_orm::JSON schema not found: ' . $filename;
                 return ['result' => false, 'message' => $message];
             }
         }
@@ -592,6 +592,10 @@ class _uho_orm_schema
             'sortable' => ['type' => ['array']],
             'structure' => ['type' => ['array']],
         ];
+
+        if (empty($schema))
+            return ['errors' => ['Schema is empty']];
+            
 
         foreach ($properties as $property => $rules) {
             if (!empty($rules['required']) && !isset($schema[$property])) {

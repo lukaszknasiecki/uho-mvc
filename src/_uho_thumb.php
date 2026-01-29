@@ -320,7 +320,9 @@ class _uho_thumb
 
             if ($webp && $pic) {
                 @unlink($file2webp);
-                if (function_exists('imagewebp')) {
+                if (function_exists('imagewebp'))
+                {
+                    imagepalettetotruecolor($pic);      // to fix "palette images not supported in webp"
                     imagewebp($pic, $file2webp, 85);
                 }
             }
