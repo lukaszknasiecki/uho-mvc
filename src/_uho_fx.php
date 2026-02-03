@@ -907,8 +907,9 @@ class _uho_fx
             $r['long_time_noyear'] = str_replace($monthsPL1, $monthsPL2, $r['long_time_noyear']);
         }
 
-        if ($return_field) return $r[$return_field];
-        else  return $r;
+        if ($return_field && isset($r[$return_field])) return $r[$return_field];
+            elseif ($return_field) return "";
+            else return $r;
     }
 
     /**
