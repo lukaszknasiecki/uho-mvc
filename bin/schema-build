@@ -6,6 +6,18 @@ $GREEN = "\033[0;32m";
 $YELLOW = "\033[0;33m";
 $NC    = "\033[0m";
 
+// params
+
+$options = getopt('', ['create', 'verbose']);
+$create = isset($options['create']);
+
+// Filter argv to only keep positional arguments
+$positional = array_values(array_filter($argv, function($arg) {
+    return strpos($arg, '--') !== 0;
+}));
+
+$argv=$positional;
+
 echo "UHO-MVC builder...\n\n";
 $root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
@@ -100,7 +112,12 @@ $e = 0;
 $err = [];
 $created = 0;
 $updated = 0;
-$settings = ['create' => 'auto', 'update' => 'auto'];
+if ($create)
+    $settings = ['create' => 'auto', 'update' => 'auto'];
+    else
+        $settings = ['create' => 'info', 'update' => 'info'];
+
+$messages=[];
 
 foreach ($schemas as $section => $list)
     foreach ($list as $schema) {
@@ -131,6 +148,7 @@ foreach ($schemas as $section => $list)
                     Create / Update
                 */ {
                     $response = $orm->sqlCreator($schema, $settings);
+                    $messages = array_merge($messages,$response['messages']);
                     if (in_array('table_update', $response['actions'])) $updated++;
                     if (in_array('table_create', $response['actions'])) $created++;
                 }
@@ -139,13 +157,20 @@ foreach ($schemas as $section => $list)
     }
 
 
+if ($messages)
+{
+    echo "{$YELLOW}Messages (".count($messages)."){$NC}\n\n";
+    foreach ($messages as $nr => $message)
+        echo ($nr+1).'. '. $message."\n";
+    echo "\nUse --create to perform creation of missing schemas.\n\n";
+}
 
 if ($err)
 {
     echo "{$RED}Errors occurred (".count($err)."){$NC}\n\n";
     foreach ($err as $nr => $error)
-        echo ($nr+1).'. '. $error."\n";
-    echo "\n";
+        echo ($nr+1).'. '. $error."\n";    
+    echo "\n\n";
 }
 
 echo "Schemas (\e[31m" . count($err) . "\e[0m) invalid.\n";

@@ -186,6 +186,7 @@ class _uho_orm_schema_sql
 
     /**
      * Updates mySQL table based on UHO_ORM schema
+     * $action = 'alert' | 'auto' | 'info'
      */
     private function updateTable($schema, $action): array
     {
@@ -225,6 +226,7 @@ class _uho_orm_schema_sql
         $performed_action = null;
 
         if ($update || $add) {
+
             if ($action == 'alert') {
                 $html = '<h3>Schema for [<code>' . $schema['table'] . '</code>] needs to be updated.</h3><ul>';
                 foreach ($add as $v)
@@ -235,6 +237,17 @@ class _uho_orm_schema_sql
 
                 $html .= '</ul><form action="" method="POST"><input type="hidden" name="uho_orm_action" value="auto"><input type="submit" value="Proceed"></form>';
                 exit($html);
+            }
+
+            if ($action == 'info') {
+                $message = 'Schema for [' . $schema['table'] . '] needs to be updated.';
+                foreach ($add as $v)
+                    $message .= '- New field: ' . $v['Field'] . ' (' . $v['Type'] . ')';
+
+                foreach ($update as $v)
+                    $message .= '- Field to be updated: ' . $v['Field'] . ' (' . $v['OldType'] . ' -> ' . $v['Type'] . ')';
+
+                return ['action' => $performed_action,'message'=>$message];
             }
 
             if ($action == 'auto') {
@@ -285,7 +298,10 @@ class _uho_orm_schema_sql
         } else {
             if (isset($options) && !empty($options['update'])) {
                 $response = $this->updateTable($schema, $options['update']);
-                $messages[] = 'Table has been updated';
+
+                if (!empty($response['message'])) $messages[] = $response['message'];
+                    elseif ($response['action'] == 'table_update') $messages[] = 'Table has been updated';
+
                 if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_update';
         }
