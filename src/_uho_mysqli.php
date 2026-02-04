@@ -192,11 +192,12 @@ class _uho_mysqli
      * @param string $host
      * @param string $user
      * @param string $pass
-     * @param string $name
+     * @param string $name,
+     * @param string|null $socket
      * @return boolean
      */
 
-    public function init($host, $user, $pass, $name)
+    public function init($host, $user, $pass, $name, $socket = null)
     {
 
         $v = explode(':', $host);
@@ -207,7 +208,7 @@ class _uho_mysqli
             $port = null;
         }
         try {
-            $this->base_link = new \mysqli($host, $user, $pass, $name, $port);
+            $this->base_link = new \mysqli($host, $user, $pass, $name, $port, $socket);
         } catch (\Exception $e) {
             exit('SQL Connection Error.');
         }
