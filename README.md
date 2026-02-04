@@ -42,7 +42,15 @@ or
 `vendor/lukaszknasiecki/uho-mvc/bin/schema-build application_config/.env application_config/schemas.json`
 
 
-## 
+## Tests
+
+You can perform framework unit tests with:
+
+### Run all tests
+`composer test`
+
+### Or directly
+`vendor/bin/phpunit`
 
 ## Contact
 
