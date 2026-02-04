@@ -10,6 +10,7 @@ $NC    = "\033[0m";
 
 $options = getopt('', ['create', 'verbose']);
 $create = isset($options['create']);
+$analyzed=0;
 
 // Filter argv to only keep positional arguments
 $positional = array_values(array_filter($argv, function($arg) {
@@ -56,7 +57,9 @@ foreach ($required as $req) {
 
 $path = $root . '/application/models/json';
 
-if (isset($argv[2])) {
+// json file
+if (isset($argv[2]) && strpos($argv[2], '.json') !== false)
+{
     $schemas = @file_get_contents($root . '/' . $argv[2]);
     if (!$schemas) {
         echo ('Schemas file not found: ' . $root . '/' . $argv[2]);
@@ -74,7 +77,11 @@ if (isset($argv[2])) {
 
 } else {
 
+    if (isset($argv[2]))    
+        $path = $root . '/' . $argv[2];
+
     $files = glob($path . '/*.json');
+    $analyzed=count($files);
 
     if (!$files) {
         echo ('No JSON files found in: ' . $path . '/');
@@ -85,6 +92,7 @@ if (isset($argv[2])) {
         foreach ($files as $k => $file) {
             $files[$k] = explode('.', basename($file))[0];
         }
+        
         $schemas = ['schemas' => $files];
     }
 }
@@ -112,6 +120,7 @@ $e = 0;
 $err = [];
 $created = 0;
 $updated = 0;
+
 if ($create)
     $settings = ['create' => 'auto', 'update' => 'auto'];
     else
@@ -123,8 +132,10 @@ foreach ($schemas as $section => $list)
     foreach ($list as $schema) {
         $i++;
 
-        if (is_array($schema)) {
-            if (!empty($schema['schema']) && !empty($schema['sql'])) {
+        if (is_array($schema))
+        {
+            if (!empty($schema['schema']) && !empty($schema['sql']))
+            {
                 $model = $schema['schema'];
                 $settings['create_sql'] = $schema['sql'];
             } else {
@@ -162,7 +173,7 @@ if ($messages)
     echo "{$YELLOW}Messages (".count($messages)."){$NC}\n\n";
     foreach ($messages as $nr => $message)
         echo ($nr+1).'. '. $message."\n";
-    echo "\nUse --create to perform creation of missing schemas.\n\n";
+    if (!$create) echo "\nUse --create to perform creation of missing schemas.\n\n";
 }
 
 if ($err)
@@ -176,4 +187,6 @@ if ($err)
 echo "Schemas (\e[31m" . count($err) . "\e[0m) invalid.\n";
 echo "Schemas (\e[33m" . $created . "\e[0m) created.\n";
 echo "Schemas (\e[32m" . $updated . "\e[0m) updated.\n";
+echo "Schemas (\e[32m" . $analyzed . "\e[0m) analyzed.\n\n";
+
 exit(0);
