@@ -99,7 +99,8 @@ $sql->init(
     getenv('SQL_HOST'),
     getenv('SQL_USER'),
     getenv('SQL_PASS'),
-    getenv('SQL_BASE')
+    getenv('SQL_BASE'),
+    getenv('SQL_SOCKET')
 );
 
 $orm = new _uho_orm($sql, null, []);
