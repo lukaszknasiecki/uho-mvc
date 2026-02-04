@@ -6,20 +6,51 @@ $GREEN = "\033[0;32m";
 $YELLOW = "\033[0;33m";
 $NC    = "\033[0m";
 
-// params
-
-$options = getopt('', ['create', 'verbose']);
-$create = isset($options['create']);
-$analyzed=0;
-
 // Filter argv to only keep positional arguments
-$positional = array_values(array_filter($argv, function($arg) {
-    return strpos($arg, '--') !== 0;
+$positional = array_values(array_filter($argv, function($arg){
+    return strpos($arg, '--') !== 0 && strpos($arg, '-') !== 0;
 }));
 
+$params = [];
+foreach ($argv as $arg) {
+    if (strpos($arg, '--') === 0) {
+        $params[] = substr($arg, 2);
+    }
+}
+
+$create=in_array('create', $params);
 $argv=$positional;
 
-echo "UHO-MVC builder...\n\n";
+/*
+    Help / Documentation
+*/
+
+if (count($positional) < 2 || isset($options['help']) || isset($options['h'])) {
+    echo "{$GREEN}UHO-MVC Schema Builder{$NC}\n\n";
+    echo "{$YELLOW}Usage:{$NC}\n";
+    echo "  schema-build <env-file> [schemas.json|path] [output-path] [options]\n\n";
+    echo "{$YELLOW}Arguments:{$NC}\n";
+    echo "  {$GREEN}<env-file>{$NC}        Path to .env file containing database credentials\n";
+    echo "                   Required variables: SQL_HOST, SQL_BASE, SQL_USER, SQL_PASS\n\n";
+    echo "  {$GREEN}[schemas.json]{$NC}    (Optional) Path to JSON file with schema definitions\n";
+    echo "                   If not provided, scans application/models/json/*.json\n\n";
+    echo "  {$GREEN}[path]{$NC}            (Optional) Directory containing JSON schema files\n";
+    echo "                   Default: application/models/json/\n\n";
+    echo "{$YELLOW}Options:{$NC}\n";
+    echo "  {$GREEN}--create{$NC}          Automatically create/update tables in database\n";
+    echo "                   Without this flag, only shows what would be changed\n\n";
+    echo "  {$GREEN}--verbose{$NC}         Show detailed output\n\n";
+    echo "  {$GREEN}--help, -h{$NC}        Show this help message\n\n";
+    echo "{$YELLOW}Examples:{$NC}\n";
+    echo "  schema-build .env\n";
+    echo "  schema-build .env --create\n";
+    echo "  schema-build .env schemas.json\n";
+    echo "  schema-build .env application/models/json/\n";
+    echo "  schema-build .env schemas.json output/path/ --create\n\n";
+    exit(0);
+}
+
+echo "\n{$GREEN}UHO-MVC Schema Builder{$NC}\n\n";
 $root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
@@ -35,7 +66,8 @@ function validate_env() {}
 
 $env_path = @$argv[1];
 if (!$env_path || !file_exists($root . '/' . $env_path)) {
-    echo ('ENV file not found');
+    echo "{$RED}Error:{$NC} ENV file not found: $env_path\n";
+    echo "Run 'schema-build --help' for usage information.\n";
     exit(1);
 }
 
@@ -173,7 +205,8 @@ if ($messages)
     echo "{$YELLOW}Messages (".count($messages)."){$NC}\n\n";
     foreach ($messages as $nr => $message)
         echo ($nr+1).'. '. $message."\n";
-    if (!$create) echo "\nUse --create to perform creation of missing schemas.\n\n";
+    if (!$create) echo "\nUse --create to perform creation of missing schemas.\n";
+    echo "\n";
 }
 
 if ($err)

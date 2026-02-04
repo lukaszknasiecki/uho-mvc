@@ -1,14 +1,52 @@
 #!/usr/bin/env php
 <?php
 
-$RED   = "\033[0;31m";
-$GREEN = "\033[0;32m";
+$RED    = "\033[0;31m";
+$GREEN  = "\033[0;32m";
 $YELLOW = "\033[0;33m";
-$NC    = "\033[0m";
+$CYAN   = "\033[0;36m";
+$BOLD   = "\033[1m";
+$NC     = "\033[0m";
 
-echo "-------------------\n";
-echo "UHO-MVC validator...\n";
-echo "-------------------\n\n";
+// Show help if --help or -h flag is passed
+if (empty($argv[1]))
+{
+    echo "{$GREEN}UHO-MVC Schema Validator{$NC}\n\n";
+
+    echo "{$YELLOW}USAGE:{$NC}\n";
+    echo "  schema-validate [options] [schemas.json] [models_path]\n\n";
+
+    echo "{$YELLOW}DESCRIPTION:{$NC}\n";
+    echo "  Validates JSON schema files for UHO-MVC ORM models.\n";
+    echo "  Checks schema structure and reports any errors found.\n\n";
+
+    echo "{$YELLOW}ARGUMENTS:{$NC}\n";
+    echo "  {$CYAN}schemas.json{$NC}      Path to a JSON file containing schema definitions.\n";
+    echo "                    The file should contain an object with arrays of schema names.\n";
+    echo "                    Example: {\"schemas\": [\"user\", \"product\"]}\n\n";
+
+    echo "  {$CYAN}models_path{$NC}       Path to the directory containing JSON model files.\n";
+    echo "                    Only used when schemas.json is provided.\n\n";
+
+    echo "{$YELLOW}EXAMPLES:{$NC}\n";
+
+    echo "  {$GREEN}# Scan a specific folder for JSON schemas{$NC}\n";
+    echo "  schema-validate application/models/json\n\n";
+
+    echo "  {$GREEN}# Use a schemas config file{$NC}\n";
+    echo "  schema-validate config/schemas.json\n\n";
+
+    echo "  {$GREEN}# Use a schemas config file with custom models path{$NC}\n";
+    echo "  schema-validate config/schemas.json /custom/models/path\n\n";
+
+    echo "{$YELLOW}DEFAULT BEHAVIOR:{$NC}\n";
+    echo "  When run without arguments, scans {$CYAN}application/models/json/{$NC}\n";
+    echo "  for all *.json files and validates them.\n\n";
+
+    exit(0);
+}
+
+    echo "\n{$GREEN}UHO-MVC Schema Validator{$NC}\n\n";
 
 $root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
@@ -20,40 +58,35 @@ use Huncwot\UhoFramework\_uho_orm;
     otherwise we will scrap application/models/ folder
 */
 
-$path = $root.'/application/models/json';
+$path = $root . '/application/models/json';
 
-if (!empty($argv[1]) && strpos($argv[1],'.json'))
-{    
-    $schemas = @file_get_contents($root .'/'. $argv[1]);
+if (!empty($argv[1]) && strpos($argv[1], '.json'))
+{
+    $schemas = @file_get_contents($root . '/' . $argv[1]);
 
-    if (!$schemas)
-        {
-            echo('Schemas file not found: '.$root . '/'.$argv[1]);
-            exit(1);
-        }
+    if (!$schemas) {
+        echo ("{$RED}Error:{$NC} Schemas file not found: " . $root . '/' . $argv[1]."\n\n");
+        exit(1);
+    }
 
-    $schemas = @json_decode($schemas,true);
-    if (!$schemas)
-        {
-            echo('JSON invalid in: '.$root . '/'.$argv[1]);
-            exit(1);
-        }
+    $schemas = @json_decode($schemas, true);
+    if (!$schemas) {
+        echo ('JSON invalid in: ' . $root . '/' . $argv[1]);
+        exit(1);
+    }
 
     if (!empty($argv[2]))
-        $path = $root.'/'.$argv[2];
-
-}
- else {
-    
-     if (!empty($argv[1])) $path=$argv[1];
+        $path = $root . '/' . $argv[2];
+} elseif (!empty($argv[1]))
+{
+    if (!empty($argv[1])) $path = $argv[1];
 
     $files = glob($path . '/*.json');
 
-    if (!$files)
-        {
-            echo('No JSON files found in: '.$path . '/');
-            exit(1);
-        }
+    if (!$files) {
+        echo ("{$RED}Error:{$NC} No JSON files found in: " . $path . '/'."\n\n");
+        exit(1);
+    }
 
     if ($files) {
         foreach ($files as $k => $file) {
@@ -66,7 +99,7 @@ if (!empty($argv[1]) && strpos($argv[1],'.json'))
 $orm = new _uho_orm(null, null, [], true);
 $orm->setDebug(true);
 $orm->removeRootPaths();
-$path=str_replace('//','/',$path.'/');
+$path = str_replace('//', '/', $path . '/');
 
 $orm->addRootPath($path);
 
@@ -89,30 +122,27 @@ foreach ($schemas as $section => $list)
             }
         } else $model = $schema;
 
-        if ($model)
-        {
+        if ($model) {
             $schema = $orm->getSchema($model, null, ['return_error' => true]);
             if (@$schema['result'] === false) $err[] = $schema['message'];
             else {
                 $response = $orm->validateSchema($schema);
                 if ($response['errors']) {
-                    $err[] = $YELLOW.'[' . $model . ']'.$NC.'[enter][enter]' . implode('[enter]', $response['errors']).'[enter]';
+                    $err[] = $YELLOW . '[' . $model . ']' . $NC . '[enter][enter]' . implode('[enter]', $response['errors']) . '[enter]';
                 } else $valid++;
             }
         }
     }
 
-if ($err)
-{
-    echo "{$RED}Errors occurred (".count($err)."){$NC}\n\n";
-    foreach ($err as $nr => $error)
-    {
-        echo "{$RED}".($nr+1)."."."{$NC}".' ';
-        echo str_replace("[enter]","\n",$error)."\n";
+if ($err) {
+    echo "{$RED}Errors occurred (" . count($err) . "){$NC}\n\n";
+    foreach ($err as $nr => $error) {
+        echo "{$RED}" . ($nr + 1) . "." . "{$NC}" . ' ';
+        echo str_replace("[enter]", "\n", $error) . "\n";
     }
     echo "\n";
 }
 echo "Schemas (" . count($err) . ") invalid.\n";
 echo "Schemas (" . $valid . ") valid.\n";
-if (count($err)==0 && $valid>0) echo "{$GREEN}ALLGOOD{$NC}\n\n";
+if (count($err) == 0 && $valid > 0) echo "\n{$GREEN}ALL GOOD{$NC}\n\n";
 exit(0);
