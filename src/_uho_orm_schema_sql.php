@@ -288,13 +288,20 @@ class _uho_orm_schema_sql
 
         $exists = $this->orm->query("SHOW TABLES LIKE '" . $schema['table'] . "'", true);;
 
-        if (!$exists) {
-            if (isset($options) && !empty($options['create'])) {
+        if (!$exists)
+        {
+            /* create table */
+            if (isset($options) && !empty($options['create']) && in_array($options['create'], ['auto','alert']))
+            {
                 $sql = isset($options['create_sql']) ? $options['create_sql'] : null;
                 $response = $this->createTable($schema, $sql);
                 $messages[] = 'Table has been created';
                 if ($response['action']) $actions[] = $response['action'];
-            } else $actions[] = 'table_create';
+            } else
+            {
+                $actions[] = 'table_create';
+                $messages[]= 'Table ['.$schema['table'].'] needs to be created';
+            }
         } else {
             if (isset($options) && !empty($options['update'])) {
                 $response = $this->updateTable($schema, $options['update']);
