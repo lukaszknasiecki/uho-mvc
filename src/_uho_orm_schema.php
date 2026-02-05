@@ -124,14 +124,25 @@ class _uho_orm_schema
         }
 
 
-        // order ------------------------------------------------------------
-        if (isset($model['order']) && is_string($model['order'])) {
-            $asc = 'ASC';
-            if ($model['order'][0] == '!') {
+        // order as string, convert to object
+        if (isset($model['order']) && is_string($model['order']))
+        {
+            $orderStr = trim($model['order']);
+            // $upperOrder = strtoupper($orderStr);
+
+            // Check if order already ends with ASC or DESC
+            if (preg_match('/\s+(ASC|DESC)$/i', $orderStr, $matches))
+            {
+                $asc = strtoupper($matches[1]);
+                $field = trim(preg_replace('/\s+(ASC|DESC)$/i', '', $orderStr));
+            } elseif ($orderStr[0] == '!') {
                 $asc = 'DESC';
-                $model['order'] = substr($model['order'], 1);
+                $field = substr($orderStr, 1);
+            } else {
+                $asc = 'ASC';
+                $field = $orderStr;
             }
-            $model['order'] = ['field' => $model['order'], 'sort' => $asc];
+            $model['order'] = ['field' => $field, 'sort' => $asc];
         }
 
         // children object validation
