@@ -16,6 +16,8 @@ namespace SimplePHPCache;
 class Cache
 {
 
+  private $method='serialize'; // serialize|json
+
   /**
    * The path to the cache file folder
    *
@@ -93,7 +95,12 @@ class Cache
     } else {
       $dataArray = array($key => $storeData);
     }
+
+    if ($this->method == 'serialize')
+      $cacheData = serialize($dataArray);
+     else if ($this->method == 'json') 
     $cacheData = json_encode($dataArray);
+
     file_put_contents($this->getCacheDir(), $cacheData);
     return $this;
   }
@@ -204,6 +211,9 @@ class Cache
   {
     if (true === file_exists($this->getCacheDir())) {
       $file = @file_get_contents($this->getCacheDir());
+      if ($this->method == 'serialize')
+        return unserialize($file);
+       else if ($this->method == 'json')
       return json_decode($file, true);
     } else {
       return false;
