@@ -78,10 +78,11 @@ class _uho_orm_schema_sql
 
                     $type = 'int(11)';
 
-                    if (!empty($v['settings']['length'])) {
+                    if (!empty($v['settings']['length']))
+                    {
                         $type = 'varchar(' . $v['settings']['length'] . ')';
-                    } elseif (!empty($v['source']['model'])) {
-
+                    } elseif (!empty($v['source']['model']))
+                    {
                         $source_model = $this->orm->getSchema($v['source']['model']);
 
                         if ($source_model) {
@@ -91,7 +92,8 @@ class _uho_orm_schema_sql
                                 $type = 'varchar(' . $length . ')';
                             }
                         }
-                    } elseif (!empty($v['options'])) {
+                    } elseif (!empty($v['options']))
+                    {
                         $options = _uho_fx::array_extract($v['options'], 'value');
                         $type = "enum('" . implode("','", $options) . "')";
                     }
@@ -208,10 +210,13 @@ class _uho_orm_schema_sql
         $update = [];
         $add = [];
 
-        foreach ($sql_schema['fields_sql'] as $v) {
+        foreach ($sql_schema['fields_sql'] as $v)
+        {
+
             $find = _uho_fx::array_filter($columns, 'Field', $v['Field'], ['first' => true]);
             if ($find && isset($find['Type']) && $find['Type'] == $v['Type']);
-            elseif ($find) {
+            elseif ($find)
+            {
                 if (isset($the_same[$find['Type']]) && in_array($v['Type'], $the_same[$find['Type']]));
                 else {
                     $v['OldType'] = $find['Type'];
