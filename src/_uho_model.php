@@ -121,7 +121,20 @@ class _uho_model
         if (isset($_SERVER['HTTPS']) || isset($_SERVER['SSL_PROTOCOL'])) $this->http_server = 'https://';
         else $this->http_server = 'http://';
         $this->http_server .= $_SERVER['HTTP_HOST'];
-        $this->orm = new _uho_orm(
+
+
+        $orm_version = isset($params['orm_version']) ? $params['orm_version'] : 1;
+
+        switch ($orm_version) {
+            case 2:
+                $orm_class=__NAMESPACE__.'\\_uho_orm_v2';
+                break;
+            default:
+                $orm_class=__NAMESPACE__.'\\_uho_orm';
+                break;
+        }
+
+        $this->orm = new $orm_class(
             $this->sql,
             $this->lang,
             isset($params['keys']) ? $params['keys'] : []

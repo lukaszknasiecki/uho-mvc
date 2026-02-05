@@ -112,9 +112,9 @@ class _uho_orm
      * There is one current language ($lang/$lang_add)
      * and a list of all available languages ($langs)
      */
-    private $lang;
-    private $lang_add;
-    private $langs = [];
+    protected $lang;
+    protected $lang_add;
+    protected $langs = [];
 
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
@@ -137,7 +137,7 @@ class _uho_orm
     /**
      * array of query errors
      */
-    private $errors = [];
+    protected $errors = [];
 
     /* indicates if there is folder to be replaced for media assets */
     private $folder_replace = null;
@@ -158,7 +158,7 @@ class _uho_orm
     private _uho_orm_schema_sql $schemaSqlManager;
 
     /* _uho_sql object */
-    private $sql;
+    protected $sql;
 
     /* hashing keys */
     private $keys;
@@ -796,6 +796,7 @@ class _uho_orm
         elseif (!$limit) $query_limit = '';
         else $query_limit = 'LIMIT ' . $limit;
 
+        
         /**
          * Convert order to SQL query
          * ['type'=>'field', 'values'=>['title','date']]
@@ -949,7 +950,7 @@ class _uho_orm
      */
 
 
-    private function getUpdateRecords($model, $data)
+    protected function getUpdateRecords($model, $data)
     {
         foreach ($data as $k => $v) {
 
@@ -1318,11 +1319,16 @@ class _uho_orm
         /**
          * Update values by type
          */
+
+        $id=_uho_fx::array_filter($model['fields'],'type','id',array('first'=>true));
+        if (!$id) $model['fields'][]=['type'=>'integer','field'=>'id'];
+
         foreach ($data as $k => $v)
             foreach ($model['fields'] as $v2)
                 if (isset($v2['field']) && isset($v[$v2['field']]))
                     switch ($v2['type']) {
                         case "integer":
+                        case "order":
                             $data[$k][$v2['field']] = intval($data[$k][$v2['field']]);
                             break;
                         case "float":
@@ -1347,7 +1353,7 @@ class _uho_orm
      * Update records - automatic media fields
      */
 
-    private function getUpdateRecordsMedia($model, $data, $fields_auto)
+    protected function getUpdateRecordsMedia($model, $data, $fields_auto)
     {
 
         foreach ($data as $k => $v)
@@ -1582,10 +1588,10 @@ class _uho_orm
 
     /*
         Each model can have predefined URL schema,
-        here we are filling it with values so it can 
+        here we are filling it with values so it can
         be later converted via Router class to the final URL
     */
-    private function getUpdateUrls($url_schema, array $records, array $additionalParams)
+    protected function getUpdateUrls($url_schema, array $records, array $additionalParams)
     {
         foreach ($records as $kk => $vv) {
             if (isset($additionalParams) && $additionalParams) $vv = $vv + $additionalParams;
@@ -2295,7 +2301,7 @@ class _uho_orm
     /**
      * Checks mySQL connection
      */
-    private function sqlCheckConnection(string|null $message = null): void
+    protected function sqlCheckConnection(string|null $message = null): void
     {
         if (!$this->sql) $this->halt('_uho_orm::No SQL defined::' . $message);
     }

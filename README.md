@@ -46,11 +46,8 @@ or
 
 You can perform framework unit tests with:
 
-### Run all tests
+`composer require --dev phpunit/phpunit`
 `composer test`
-
-### Or directly
-`vendor/bin/phpunit`
 
 ## Contact
 

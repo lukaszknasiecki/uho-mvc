@@ -192,6 +192,7 @@ class _uho_application
                 'params' => @$this->application_params['params'],
                 'files_decache' => @$this->application_params['files_decache'],
                 'keys' => @$this->application_params['keys'],
+                'orm_version' => empty($this->application_params['orm_version']) ? 1 : $this->application_params['orm_version'],
                 'api_keys' => @$this->application_params['api_keys'],
                 'languages' => @$this->application_params['application_languages'],
                 'upload_server' => @$this->application_params['upload_server'],
@@ -353,6 +354,7 @@ class _uho_application
         if ($this->application_params['sql_host']) {
             $this->sql = new _uho_mysqli(null, false);
             if (!empty($this->application_params['sql_debug'])) $this->sql->setDebug(true);
+            
             if (!$this->sql->init(
                 $this->application_params['sql_host'],
                 $this->application_params['sql_user'],

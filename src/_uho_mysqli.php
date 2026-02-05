@@ -283,27 +283,347 @@ class _uho_mysqli
 
     public function queryPrepared($query, $params, $first=false)
     {
+
         if (!empty($this->base_link)) {
 
             $stmt = $this->base_link->prepare($query);
 
-            $types = '';
-            $values = [];
-            foreach ($params as $p) {
-                $types  .= $p[0];
-                $values[] = $p[1];
+            if ($stmt === false) {
+                $error = $this->base_link->error;
+                $errno = $this->base_link->errno;
+                throw new \Exception("SQL Prepare failed [{$errno}]: {$error}\nQuery: {$query}");
             }
 
-            $stmt->bind_param($types, ...$values);
-            $stmt->execute();
+            if ($params && count($params) > 0) {
+                $types = '';
+                $values = [];
+                foreach ($params as $p) {
+                    $types  .= $p[0];
+                    $values[] = $p[1];
+                }
+
+                $stmt->bind_param($types, ...$values);
+            }
+
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $errno = $stmt->errno;
+                throw new \Exception("SQL Execute failed [{$errno}]: {$error}\nQuery: {$query}");
+            }
+
             $result = $stmt->get_result();
 
-            if ($result) {                                
+            if ($result) {
                 $result = $this->fetchQuery($result);
                 if ($first && is_array($result)) $result=$result[0];
             }
             return $result;
         }
+    }
+
+    /**
+     * Runs prepared INSERT query
+     * @param string $table - table name
+     * @param array $params - array of [type, value, field_name] tuples
+     * @return int|false - returns insert_id on success, false on failure
+     */
+    public function insertPrepared(string $table, array $params)
+    {
+        if (empty($this->base_link) || empty($params)) {
+            return false;
+        }
+
+        $fields = [];
+        $placeholders = [];
+        $types = '';
+        $values = [];
+
+        foreach ($params as $p) {
+            $fields[] = '`' . $p[2] . '`';
+            $placeholders[] = '?';
+            $types .= $p[0];
+            $values[] = $p[1];
+        }
+
+        $query = 'INSERT INTO `' . $table . '` (' . implode(',', $fields) . ') VALUES (' . implode(',', $placeholders) . ')';
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return false;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $this->errorAdd($query . ' ... ' . $stmt->error);
+            return false;
+        }
+
+        return $this->base_link->insert_id;
+    }
+
+    /**
+     * Runs prepared INSERT query for multiple records
+     * @param string $table - table name
+     * @param array $fields - array of field names
+     * @param array $records - array of records, each record is array of [type, value] tuples
+     * @return int|false - returns last insert_id on success, false on failure
+     */
+    public function insertMultiplePrepared(string $table, array $fields, array $records)
+    {
+        if (empty($this->base_link) || empty($fields) || empty($records)) {
+            return false;
+        }
+
+        $fieldList = [];
+        foreach ($fields as $f) {
+            $fieldList[] = '`' . $f . '`';
+        }
+
+        $placeholders = [];
+        $types = '';
+        $values = [];
+
+        foreach ($records as $record) {
+            $rowPlaceholders = [];
+            foreach ($record as $p) {
+                $rowPlaceholders[] = '?';
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+            $placeholders[] = '(' . implode(',', $rowPlaceholders) . ')';
+        }
+
+        $query = 'INSERT INTO `' . $table . '` (' . implode(',', $fieldList) . ') VALUES ' . implode(',', $placeholders);
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return false;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $this->errorAdd($query . ' ... ' . $stmt->error);
+            return false;
+        }
+
+        return $this->base_link->insert_id;
+    }
+
+    /**
+     * Runs prepared UPDATE query
+     * @param string $table - table name
+     * @param array $setParams - array of [type, value, field_name] tuples for SET clause
+     * @param array $whereParams - array of [type, value, field_name] tuples for WHERE clause
+     * @param string $whereClause - optional custom WHERE clause with placeholders
+     * @return bool
+     */
+    public function updatePrepared(string $table, array $setParams, array $whereParams = [], string $whereClause = '')
+    {
+        if (empty($this->base_link) || empty($setParams)) {
+            return false;
+        }
+
+        $setFields = [];
+        $types = '';
+        $values = [];
+
+        foreach ($setParams as $p) {
+            $setFields[] = '`' . $p[2] . '`=?';
+            $types .= $p[0];
+            $values[] = $p[1];
+        }
+
+        $query = 'UPDATE `' . $table . '` SET ' . implode(',', $setFields);
+
+        if ($whereClause) {
+            $query .= ' ' . $whereClause;
+            foreach ($whereParams as $p) {
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+        } elseif (!empty($whereParams)) {
+            $whereFields = [];
+            foreach ($whereParams as $p) {
+                $whereFields[] = '`' . $p[2] . '`=?';
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+            $query .= ' WHERE ' . implode(' AND ', $whereFields);
+        }
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return false;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $this->errorAdd($query . ' ... ' . $stmt->error);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Runs prepared DELETE query
+     * @param string $table - table name
+     * @param array $whereParams - array of [type, value, field_name] tuples for WHERE clause
+     * @param string $whereClause - optional custom WHERE clause with placeholders
+     * @return bool
+     */
+    public function deletePrepared(string $table, array $whereParams = [], string $whereClause = '')
+    {
+        if (empty($this->base_link)) {
+            return false;
+        }
+
+        $types = '';
+        $values = [];
+
+        $query = 'DELETE FROM `' . $table . '`';
+
+        if ($whereClause) {
+            $query .= ' ' . $whereClause;
+            foreach ($whereParams as $p) {
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+        } elseif (!empty($whereParams)) {
+            $whereFields = [];
+            foreach ($whereParams as $p) {
+                $whereFields[] = '`' . $p[2] . '`=?';
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+            $query .= ' WHERE ' . implode(' AND ', $whereFields);
+        }
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return false;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $this->errorAdd($query . ' ... ' . $stmt->error);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Runs prepared SELECT query
+     * @param string $table - table name
+     * @param array $fields - array of field names to select
+     * @param array $whereParams - array of [type, value, field_name, operator] tuples for WHERE clause
+     * @param string $whereClause - optional custom WHERE clause with placeholders
+     * @param string $orderBy - optional ORDER BY clause
+     * @param string $limit - optional LIMIT clause
+     * @param bool $single - return single result
+     * @return array|null
+     */
+    public function selectPrepared(string $table, array $fields = ['*'], array $whereParams = [], string $whereClause = '', string $orderBy = '', string $limit = '', bool $single = false)
+    {
+        if (empty($this->base_link)) {
+            return null;
+        }
+
+        $types = '';
+        $values = [];
+
+        $fieldList = implode(',', array_map(function($f) {
+            return $f === '*' ? $f : '`' . $f . '`';
+        }, $fields));
+
+        $query = 'SELECT ' . $fieldList . ' FROM `' . $table . '`';
+
+        if ($whereClause) {
+            $query .= ' ' . $whereClause;
+            foreach ($whereParams as $p) {
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+        } elseif (!empty($whereParams)) {
+            $whereFields = [];
+            foreach ($whereParams as $p) {
+                $operator = isset($p[3]) ? $p[3] : '=';
+                $whereFields[] = '`' . $p[2] . '`' . $operator . '?';
+                $types .= $p[0];
+                $values[] = $p[1];
+            }
+            $query .= ' WHERE ' . implode(' AND ', $whereFields);
+        }
+
+        if ($orderBy) {
+            $query .= ' ORDER BY ' . $orderBy;
+        }
+
+        if ($limit) {
+            $query .= ' LIMIT ' . $limit;
+        }
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return null;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result) {
+            $result = $this->fetchQuery($result);
+            if ($single && is_array($result) && isset($result[0])) {
+                $result = $result[0];
+            }
+        }
+
+        return $result;
     }
 
 
@@ -320,7 +640,6 @@ class _uho_mysqli
 
     public function query($query, $single = false, $stripslashes = true, $key = null, $force_sql_cache = false)
     {
-
         if ($this->memQuery) {
             if (!isset($this->memcache[$query])) {
                 $this->memcache[$query] = $this->queryReal($query, $single, $stripslashes, $key);
