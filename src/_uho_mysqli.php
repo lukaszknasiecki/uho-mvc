@@ -57,7 +57,7 @@ class _uho_mysqli
      * default charset
      */
     private $charset = 'utf8mb4'; //utf8';
-
+    
     /**
      * Constructor
      * @param boolean $df debug true/false
@@ -870,6 +870,7 @@ class _uho_mysqli
 
     private function cacheGet($query)
     {
+        
         if ($this->cache) {
             $this->cache->setCache(md5($query));
             $result = $this->cache->retrieve('sql');

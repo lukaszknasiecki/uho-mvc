@@ -1,0 +1,177 @@
+#!/usr/bin/env php
+<?php
+
+$RED   = "\033[0;31m";
+$GREEN = "\033[0;32m";
+$YELLOW = "\033[0;33m";
+$NC    = "\033[0m";
+
+/*
+    Help / Documentation
+*/
+
+if (count($argv) <= 1) {
+    echo "{$GREEN}UHO-MVC Application Schema Clear{$NC}\n\n";
+    echo "Removes CMS-related fields from schemas\n\n";
+    echo "{$YELLOW}Usage:{$NC}\n";
+    echo "  schema-build [schemas.json|path]\n\n";
+    echo "{$YELLOW}Arguments:{$NC}\n\n";
+    echo "  {$GREEN}[schemas.json]{$NC}    Path to JSON file with schema definitions\n";
+    echo "                   If not provided, scans application/models/json/*.json\n\n";
+    echo "  {$GREEN}[path]{$NC}            Directory containing JSON schema files\n";
+    echo "                   Default: application/models/json/\n\n";
+    echo "{$YELLOW}Examples:{$NC}\n";
+    echo "  schema-app-clear application/models/json/\n";
+    echo "  schema-app-clear application/models/schemas.json\n";
+    exit(0);
+}
+
+echo "\n{$GREEN}UHO-MVC Application Schema Clear{$NC}\n\n";
+$root = $_SERVER['DOCUMENT_ROOT'] = $_SERVER['PWD'];
+require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
+
+use Huncwot\UhoFramework\_uho_orm;
+use Huncwot\UhoFramework\_uho_load_env;
+use Huncwot\UhoFramework\_uho_mysqli;
+
+/*
+    Schemas read
+*/
+
+// json file
+if (isset($argv[1]) && strpos($argv[1], '.json') !== false)
+{
+    $schemas = @file_get_contents($root . '/' . $argv[1]);
+    if (!$schemas) {
+        echo ('Schemas file not found: ' . $root . '/' . $argv[1]);
+        exit(1);
+    }
+    $schemas = @json_decode($schemas, true);
+    if (!$schemas) {
+        echo ('JSON invalid in: ' . $root . '/' . $argv[1]);
+        exit(1);
+    }
+
+} else {
+
+    $path = $root . '/' . $argv[1];
+
+    $files = glob($path . '/*.json');
+    $analyzed=count($files);
+
+    if (!$files) {
+        echo ('No JSON files found in: ' . $path . '/');
+        exit(1);
+    }
+
+    if ($files) {
+        foreach ($files as $k => $file) {
+            $files[$k] = explode('.', basename($file))[0];
+        }
+        
+        $schemas = ['schemas' => $files];
+    }
+}
+
+if (!$schemas) {
+    echo 'Error: cannot read ' . $argv[1] . '/schemas.json, either no jsons found in ' . $path_original . " or invalid format.\n";
+    exit(1);
+}
+
+$i=0;
+$err = [];
+$messages=[];
+$updated = 0;
+
+foreach ($schemas as $section => $list)
+    foreach ($list as $schema)
+    {
+        $i++;
+        $schema_file = $path . $schema.'.json';
+        $schema_json = @file_get_contents($schema_file);
+        if (!$schema_json) {
+            $err[] = "Schema file not found: " . $schema_file;
+            continue;  
+        }
+        else
+        {
+            $schema_json = @json_decode($schema_json, true);
+            if (!$schema_json) {
+                $err[] = "Invalid JSON in schema file: " . $schema_file;
+                continue;
+            }
+            $updated_schema=clear_schema($schema_json);
+            if ($updated_schema!=$schema_json)
+            {
+                $messages[] = "Schema updated: " . $schema;
+                $updated++;
+                $updated_schema_json=json_encode($updated_schema, JSON_PRETTY_PRINT);
+                if (file_put_contents($schema_file, $updated_schema_json))
+                    $updated++;
+                else
+                    $err[] = "Failed to write updated schema to file: " . $schema_file;
+            }
+        }
+    }
+
+
+if ($messages)
+{
+    echo "{$YELLOW}Messages (".count($messages)."){$NC}\n\n";
+    foreach ($messages as $nr => $message)
+        echo ($nr+1).'. '. $message."\n";
+    echo "\n";
+}
+
+if ($err)
+{
+    echo "{$RED}Errors occurred (".count($err)."){$NC}\n\n";
+    foreach ($err as $nr => $error)
+        echo ($nr+1).'. '. $error."\n";    
+    echo "\n\n";
+}
+
+echo "Schemas (\e[31m" . count($err) . "\e[0m) invalid.\n";
+echo "Schemas (\e[32m" . $updated . "\e[0m) updated.\n";
+echo "Schemas (\e[32m" . $analyzed . "\e[0m) analyzed.\n\n";
+
+exit(0);
+
+function clear_schema($schema)
+{
+    $fields = $schema['fields'] ?? [];
+    $updated = false;
+
+    $remove=[
+        'label',
+        'layout',
+        'filters',
+        'buttons_edit',
+        'buttons_page',
+    ];
+
+    foreach ($remove as $field)
+    {
+        if (isset($schema[$field]))
+        {
+            unset($schema[$field]);
+            $updated = true;
+        }
+    }
+
+    $remove_fields=[
+        'cms'
+    ];
+
+    foreach ($fields as $key => $field)
+        foreach ($remove_fields as $remove_field)
+        {
+            if (isset($field[$remove_field]))
+            {
+                unset($schema['fields'][$key][$remove_field]);
+                $updated = true;
+            }
+        }
+
+    return $schema;
+}

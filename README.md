@@ -29,6 +29,14 @@ or
 `vendor/lukaszknasiecki/uho-mvc/bin/schema-validate application_config`
 `vendor/lukaszknasiecki/uho-mvc/bin/schema-validate cms/application/models/_schemas.json cms/application/models/json`
 
+## CMS Schema Clear
+
+If you want to clear schemas from UHO-CMS related objects, you can use `schema-app-clear` script:
+
+`./vendor/lukaszknasiecki/uho-mvc/bin/schema-app-clear application/models/json/`
+
+Warning - don't use it for CMS schemas as they will be stripped of CMS-dedicated objects.
+
 ## Model Building
 
 Now, you can build/update your initial SQL tables for models with defined schemas. First parameter should be filename of your `.env` file. By default script with validate all schemas from `application/models/json` folder. You also define list of models to validate in `/application_config/schemas.json` by using `application_config` folder as the second parameter of the command, and an optional folder to look for schemas as a thirs parameter.
