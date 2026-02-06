@@ -105,8 +105,13 @@ class _uho_route
 
         if (!isset($this->urlArray[0])) {
             $this->urlArray = null;
+        } elseif (!empty($this->cfg['strict_url_parts'])) {
+            foreach ($this->urlArray as $k => $v) {
+                $this->urlArray[$k] = $this->sanitizeUrlPart($v);
+            }
+            $this->urlString=implode('/', $this->urlArray);
         }
-
+ 
         // ==============================================================================================================
         // no language set or bad language - redirect to default page with language
 
@@ -788,4 +793,14 @@ class _uho_route
         }
         return $html;
     }
+
+    // [a-zA-Z0-9_-]
+
+    private function sanitizeUrlPart($part)
+    {
+        $cleaned = preg_replace('/[^a-zA-Z0-9_-]/', '', $part);
+        return $cleaned;
+    }
+
+
 }
