@@ -409,9 +409,9 @@ class _uho_orm_v2 extends _uho_orm
      * @param array $filters
      * @param boolean $multiple
      * @param array $params
-     * @return boolean
+     * @return int|bool Number of affected rows on success (for single updates), true for multiple updates, false on failure
      */
-    public function put($model, $data, $filters = null, $multiple = false, $params = [])
+    public function put($model, $data, $filters = null, $multiple = false, $params = []): int|bool
     {
         if (is_string($model)) {
             if (isset($params['page_update'])) {
@@ -555,7 +555,7 @@ class _uho_orm_v2 extends _uho_orm
             return false;
         }
 
-        return true;
+        return $this->getAffectedRows();
     }
 
     /**
@@ -563,9 +563,9 @@ class _uho_orm_v2 extends _uho_orm
      * @param string|array $model
      * @param array|int|string $filters
      * @param bool $multiple
-     * @return bool
+     * @return int|bool Number of affected rows on success, false on failure
      */
-    public function delete($model, $filters, bool $multiple = false): bool
+    public function delete($model, $filters, bool $multiple = false): int|bool
     {
         if (!is_array($filters)) {
             $filters = ['id' => $filters];
@@ -606,7 +606,7 @@ class _uho_orm_v2 extends _uho_orm
             return false;
         }
 
-        return true;
+        return $this->getAffectedRows();
     }
 
     /**

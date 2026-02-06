@@ -1840,6 +1840,16 @@ class _uho_orm
     }
 
     /**
+     * Gets number of affected rows from last query
+     * @return int
+     */
+
+    public function getAffectedRows()
+    {
+        return $this->sql->affected_rows();
+    }
+
+    /**
      * Truncates model
      */
 
@@ -1855,9 +1865,10 @@ class _uho_orm
 
     /**
      * Deletes object(s)
+     * @return int|bool Number of affected rows on success, false on failure
      */
 
-    public function delete($model, $filters, bool $multiple = false): bool
+    public function delete($model, $filters, bool $multiple = false): int|bool
     {
 
         if (!is_array($filters)) $filters = ['id' => $filters];
@@ -1866,17 +1877,26 @@ class _uho_orm
             $filters = $this->getFilters($model, $filters);
         }
 
-        $model = $this->getSchema($model, true);
-        if (!$model) return false;
+        $schema = $this->getSchema($model, true);
+        if (!$schema || empty($schema['table']))
+        {
+            $this->errors[] = 'delete:: schema error:: ' . $model;
+            return false;
+        }
 
-        if (is_array($filters)) $filters = $this->buildOutputQuery($model, $filters, ' && ');
+        if (is_array($filters)) $filters = $this->buildOutputQuery($schema, $filters, ' && ');
 
-        $query = 'DELETE FROM ' . $model['table'] . ' WHERE ' . $filters;
+        $query = 'DELETE FROM ' . $schema['table'] . ' WHERE ' . $filters;
         $query = str_replace('WHERE WHERE', 'WHERE', $query);
 
         $r = $this->queryOut($query);
-        if (!$r) $this->errors[] = 'delete:: ' . $query;
-        return $r;
+
+        if (!$r) {
+            $this->errors[] = 'delete:: ' . $query;
+            return false;
+        }
+
+        return $this->getAffectedRows();
     }
 
     /**
@@ -1934,10 +1954,10 @@ class _uho_orm
      * @param array $data
      * @param array $filters
      * @param boolean $multiple
-     * @return boolean
+     * @return int|bool Number of affected rows on success (for single updates), true for multiple updates, false on failure
      */
 
-    public function put($model, $data, $filters = null, $multiple = false, $params = [])
+    public function put($model, $data, $filters = null, $multiple = false, $params = []): int|bool
     {
         if (isset($params['page_update']))
             $schema = $this->getSchemaWithPageUpdate($model, true);
@@ -2057,9 +2077,10 @@ class _uho_orm
         if ($set) {
             $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
             $r = $this->queryOut($query);
-            return $r;
+            if (!$r) return false;
+            return $this->getAffectedRows();
         } else {
-                    
+
             $this->errors[] = 'mysql error:: buildOutputQuery empty for table: ' . $model['table'];
             return false;
         }
