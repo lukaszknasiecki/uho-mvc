@@ -798,6 +798,11 @@ class _uho_route
 
     private function sanitizeUrlPart($part)
     {
+        if (class_exists('Transliterator'))
+        {
+            $trans = \Transliterator::create('Any-Latin; Latin-ASCII');
+            $part = $trans->transliterate($part);
+        }
         $cleaned = preg_replace('/[^a-zA-Z0-9_-]/', '', $part);
         return $cleaned;
     }
