@@ -8,6 +8,7 @@
                 "hidden": "boolean",
                 "hr": "boolean",
                 "header": "string",
+                "change_uid_on_upload": "string",
                 "label": "string",
                 "label_PL": "string",
                 "label_EN": "string",
@@ -143,7 +144,7 @@
                 "filename": "string",
                 "folder": "string",
                 "extensions": "array",
-                "extension_field": "string",
+                "extension_field": "string",                
                 "field_exists": "string",
                 "sizes": "string",
                 "webp": "boolean"
