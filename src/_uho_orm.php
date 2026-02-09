@@ -115,6 +115,7 @@ class _uho_orm
     protected $lang;
     protected $lang_add;
     protected $langs = [];
+    private $twig=null;
 
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
@@ -262,11 +263,12 @@ class _uho_orm
      */
 
     public function getTwigFromHtml(string $html, array $data): string|null
-    {
+    {        
         if (!$html) return null;
-        $twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
-        if ($twig) {
-            $template = $twig->createTemplate($html);
+        if (!$this->twig) 
+            $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
+        if ($this->twig) {
+            $template = $this->twig->createTemplate($html);
             $html = $template->render($data);
         }
         return $html;
@@ -639,6 +641,7 @@ class _uho_orm
          * to take model name (.table) from this array, this will be removed in the future
          */
 
+    
         $keep_existing_vars = true;
         $predefined_schema = null;
 
@@ -844,7 +847,7 @@ class _uho_orm
         if ($return_query) return $query;
 
         $data = $this->query($query);
-
+        
         /**
          * Return system COUNT(*) and AVG()
          */
@@ -1597,6 +1600,7 @@ class _uho_orm
             if (isset($additionalParams) && $additionalParams) $vv = $vv + $additionalParams;
 
             $records[$kk]['url'] = $url = $url_schema;
+            
             foreach ($url as $k => $v)
                 if (is_string($v)) {
                     // % pattern

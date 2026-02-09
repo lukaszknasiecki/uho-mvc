@@ -56,7 +56,7 @@ class _uho_application
         if (!isset($_SESSION)) {
             session_start();
         }
-
+        
         $app_path = $root_path . 'application/';
         $this->development=$development;
         $this->root_path = $root_path;
@@ -183,6 +183,7 @@ class _uho_application
         $this->view->setLang($lang);
         $this->view->setDebug($development);
 
+
         $this->cms = new $model_class(
             $this->sql,
             $lang,
@@ -205,7 +206,6 @@ class _uho_application
             ]
         );
 
-
         if (isset($this->application_params['keys'])) {
             $this->cms->setKeys($this->application_params['keys']);
         }
@@ -213,7 +213,6 @@ class _uho_application
         // get CONTROLLER class  ----------------------------------------
 
         $controller_class = 'controller_' . $app_class . '_' . $this->route->getRouteClass();
-
         require_once($app_path . "controllers/" . $controller_class . '.php');
 
         $this->controller = new $controller_class($this->application_params, $this->cms, $this->view, $this->route);
