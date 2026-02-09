@@ -116,6 +116,7 @@ class _uho_orm
     protected $lang_add;
     protected $langs = [];
     private $twig=null;
+    private $twig_templates=[];
 
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
@@ -263,16 +264,52 @@ class _uho_orm
      */
 
     public function getTwigFromHtml(string $html, array $data): string|null
-    {        
+    {                
         if (!$html) return null;
         if (!$this->twig) 
             $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
         if ($this->twig) {
-            $template = $this->twig->createTemplate($html);
-            $html = $template->render($data);
+            // don't mem cache large templates            
+            if (strlen($html)>100)
+                {
+                    $template = $this->twig->createTemplate($html);
+                    $html = $template->render($data);
+                }
+            else
+            {
+                $name = hash('xxh3', $html);
+                if (empty($this->twig_templates[$name]))
+                {
+                    $this->twig_templates[$name] = $this->twig->createTemplate($html);
+                }
+                $html = $this->twig_templates[$name]->render($data);
+            }
         }
         return $html;
     }
+
+/*
+public function getTwigFromHtml(string $html, array $data): ?string
+{
+    if ($html === '') return null;
+
+    if (!$this->twig) {
+        $this->twig = new Environment(
+            new StringKeyArrayLoader(),
+            [
+                'cache' => __DIR__ . '/var/twig-cache', // pick a writable dir
+                'auto_reload' => false,
+                'strict_variables' => false,
+            ]
+        );
+    }
+
+    // Use the hash as the template "name" so it becomes the cache key
+    $name = hash('xxh3', $html); // fast hash (PHP 8.1+ usually has it)
+    $this->twig->getLoader()->setTemplate($name, $html);
+
+    return $this->twig->render($name, $data);
+}        */
 
     /**
      * Renders twig from file
