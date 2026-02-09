@@ -870,7 +870,6 @@ class _uho_mysqli
 
     private function cacheGet($query)
     {
-        
         if ($this->cache) {
             $this->cache->setCache(md5($query));
             $result = $this->cache->retrieve('sql');

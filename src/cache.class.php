@@ -97,11 +97,16 @@ class Cache
     }
 
     if ($this->method == 'serialize')
+    {
       $cacheData = serialize($dataArray);
-     else if ($this->method == 'json') 
-    $cacheData = json_encode($dataArray);
+      file_put_contents($this->getCacheDir(), $cacheData);
+    } else if ($this->method == 'json')
+    {
+      $cacheData = json_encode($dataArray);
+      file_put_contents($this->getCacheDir(), $cacheData);
+      //$this->writeArrayJson($this->getCacheDir(), $dataArray);
+    }
 
-    file_put_contents($this->getCacheDir(), $cacheData);
     return $this;
   }
 
@@ -213,8 +218,8 @@ class Cache
       $file = @file_get_contents($this->getCacheDir());
       if ($this->method == 'serialize')
         return unserialize($file);
-       else if ($this->method == 'json')
-      return json_decode($file, true);
+      else if ($this->method == 'json')
+        return json_decode($file, true);
     } else {
       return false;
     }
@@ -360,5 +365,21 @@ class Cache
   public function getSalt()
   {
     return $this->_salt;
+  }
+
+  private function writeArrayJson($filename, $bigArray)
+  {
+    $file = fopen($filename, 'w');
+    fwrite($file, "[");
+    $first = true;
+    foreach ($bigArray as $item) {
+      if (!$first) {
+        fwrite($file, ",");
+      }
+      fwrite($file, json_encode($item));
+      $first = false;
+    }
+    fwrite($file, "]");
+    fclose($file);
   }
 }
