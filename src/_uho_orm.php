@@ -1604,7 +1604,8 @@ class _uho_orm
             foreach ($url as $k => $v)
                 if (is_string($v)) {
                     // % pattern
-                    while (strpos(' ' . $v, '%')) {
+                    while (strpos(' ' . $v, '%'))
+                    {
                         $i = strpos($v, '%');
                         $j = strpos($v, '%', $i + 1);
                         if (!$j) $j = strlen($v) - 1;
@@ -1624,6 +1625,7 @@ class _uho_orm
                         $records[$kk]['url'][$k] = $v;
                     }
                     // twig pattern
+                    if (isset($url_schema['twig']) && $url_schema['twig'] === false) continue;
                     $records[$kk]['url'][$k] = $this->getTwigFromHtml($records[$kk]['url'][$k], $vv);
                 }
         }

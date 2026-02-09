@@ -286,6 +286,20 @@ Paths is a routing object used by `_uho_route` class to build final URLs based o
 
 Which is automatically rebuilt using `route_app.json` and returning URL string, i.e. `/news/my-news/`. The Paths object simply gets allowed input variables defined in `input` array and parses it using the TWIG `value` template.
 
+You can also use standard %variable% schema to avoid Twig, which may slower the process
+for huge models.
+
+```json
+{
+    "url": {
+        "type": "news",
+        "twig": false,
+        "slug": "%slug%"
+    }
+}
+```
+
+
 ### Language Routing
 
 If `application_languages_url` is enabled, URLs include language prefix:
