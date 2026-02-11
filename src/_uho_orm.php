@@ -115,6 +115,8 @@ class _uho_orm
     protected $lang;
     protected $lang_add;
     protected $langs = [];
+    private $twig=null;
+    private $twig_templates=[];
 
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
@@ -262,15 +264,52 @@ class _uho_orm
      */
 
     public function getTwigFromHtml(string $html, array $data): string|null
-    {
+    {                
         if (!$html) return null;
-        $twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
-        if ($twig) {
-            $template = $twig->createTemplate($html);
-            $html = $template->render($data);
+        if (!$this->twig) 
+            $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
+        if ($this->twig) {
+            // don't mem cache large templates            
+            if (strlen($html)>100)
+                {
+                    $template = $this->twig->createTemplate($html);
+                    $html = $template->render($data);
+                }
+            else
+            {
+                $name = hash('xxh3', $html);
+                if (empty($this->twig_templates[$name]))
+                {
+                    $this->twig_templates[$name] = $this->twig->createTemplate($html);
+                }
+                $html = $this->twig_templates[$name]->render($data);
+            }
         }
         return $html;
     }
+
+/*
+public function getTwigFromHtml(string $html, array $data): ?string
+{
+    if ($html === '') return null;
+
+    if (!$this->twig) {
+        $this->twig = new Environment(
+            new StringKeyArrayLoader(),
+            [
+                'cache' => __DIR__ . '/var/twig-cache', // pick a writable dir
+                'auto_reload' => false,
+                'strict_variables' => false,
+            ]
+        );
+    }
+
+    // Use the hash as the template "name" so it becomes the cache key
+    $name = hash('xxh3', $html); // fast hash (PHP 8.1+ usually has it)
+    $this->twig->getLoader()->setTemplate($name, $html);
+
+    return $this->twig->render($name, $data);
+}        */
 
     /**
      * Renders twig from file
@@ -639,6 +678,7 @@ class _uho_orm
          * to take model name (.table) from this array, this will be removed in the future
          */
 
+    
         $keep_existing_vars = true;
         $predefined_schema = null;
 
@@ -844,7 +884,7 @@ class _uho_orm
         if ($return_query) return $query;
 
         $data = $this->query($query);
-
+        
         /**
          * Return system COUNT(*) and AVG()
          */
@@ -1597,10 +1637,12 @@ class _uho_orm
             if (isset($additionalParams) && $additionalParams) $vv = $vv + $additionalParams;
 
             $records[$kk]['url'] = $url = $url_schema;
+            
             foreach ($url as $k => $v)
                 if (is_string($v)) {
                     // % pattern
-                    while (strpos(' ' . $v, '%')) {
+                    while (strpos(' ' . $v, '%'))
+                    {
                         $i = strpos($v, '%');
                         $j = strpos($v, '%', $i + 1);
                         if (!$j) $j = strlen($v) - 1;
@@ -1620,6 +1662,7 @@ class _uho_orm
                         $records[$kk]['url'][$k] = $v;
                     }
                     // twig pattern
+                    if (isset($url_schema['twig']) && $url_schema['twig'] === false) continue;
                     $records[$kk]['url'][$k] = $this->getTwigFromHtml($records[$kk]['url'][$k], $vv);
                 }
         }
