@@ -270,6 +270,7 @@
                 "fields": "boolean",
                 "format": "string",
                 "function": "string",
+                "cols":"integer",
                 "header": "array"
             },
             "cms": {
