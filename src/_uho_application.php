@@ -40,7 +40,7 @@ class _uho_application
 
     private $application_params;
     private $route;
-    private $development=false;
+    private $development = false;
 
     /**
      * Application constructor
@@ -53,12 +53,9 @@ class _uho_application
 
     public function __construct($root_path, $development, $config_folder = null, $force_ssl = false)
     {
-        if (!isset($_SESSION)) {
-            session_start();
-        }
-        
+
         $app_path = $root_path . 'application/';
-        $this->development=$development;
+        $this->development = $development;
         $this->root_path = $root_path;
         $root_doc = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/';
 
@@ -68,38 +65,41 @@ class _uho_application
         if (!defined("development")) define("development", 0);
 
         // application config ----------------------------------------
-        if (is_array($config_folder) && !empty($config_folder['pre']))
-        {
-            $this->application_params = $this->getConfig($config_folder['main'],$config_folder['pre']);
-            $config_folder=$config_folder['main'];
+        if (is_array($config_folder) && !empty($config_folder['pre'])) {
+            $this->application_params = $this->getConfig($config_folder['main'], $config_folder['pre']);
+            $config_folder = $config_folder['main'];
         }
         // predefined object
-        elseif (is_array($config_folder))
-        {
+        elseif (is_array($config_folder)) {
             $this->application_params = $config_folder;
             $config_folder = '';
         }
         // single file
-        else if ($config_folder)
-        {
+        else if ($config_folder) {
             $this->application_params = $this->getConfig($config_folder);
         } else {
             $this->application_params = ['application_title' => 'app', 'application_class' => 'app', 'nosql' => true];
         }
 
+        if (empty($this->application_params['no_session'])) {
+            if (!isset($_SESSION)) {
+                session_start();
+            }
+        }
+
+
         // $this->application_title = @$this->application_params['application_title'];
 
         $app_class = $this->application_params['application_class'];
 
-        $src_routing_config=$app_path.'routes/route_'.$app_class.'.json';        
+        $src_routing_config = $app_path . 'routes/route_' . $app_class . '.json';
 
-        if (file_exists($src_routing_config))
-        {
-            $routing_config=file_get_contents($src_routing_config);
-            if ($routing_config) $routing_config=json_decode($routing_config,true);
-        } else $routing_config=null;
+        if (file_exists($src_routing_config)) {
+            $routing_config = file_get_contents($src_routing_config);
+            if ($routing_config) $routing_config = json_decode($routing_config, true);
+        } else $routing_config = null;
 
-        if (!$routing_config) exit('No ROUTING config found at: '.$src_routing_config);
+        if (!$routing_config) exit('No ROUTING config found at: ' . $src_routing_config);
 
         $overwriteUrl = false;
 
@@ -117,8 +117,9 @@ class _uho_application
             'langEmpty' => @$this->application_params['application_languages_empty'],
             'urlPrefix' => @$this->application_params['application_url_prefix'],
             'strict_url_parts' => @$this->application_params['strict_url_parts'],
-            'routeArray' => [$routing_config['controllers'], isset($routing_config['headers']) ? $routing_config['headers'] : [] ],
-            'pathArray' => $routing_config['paths'], [],
+            'routeArray' => [$routing_config['controllers'], isset($routing_config['headers']) ? $routing_config['headers'] : []],
+            'pathArray' => $routing_config['paths'],
+            [],
             'overwriteUrl' => $overwriteUrl
         ];
 
@@ -159,7 +160,7 @@ class _uho_application
         if (!@$this->application_params['nosql']) $this->sql_init();
 
         $class = $this->route->getRouteClass();
-        
+
         if (!$class) exit('_uho_application::error::no-routing-class');
         $model_class = 'model_' . $app_class . '_' . $class;
         $view_class = 'view_' . $app_class;
@@ -178,11 +179,10 @@ class _uho_application
         } else {
             $lang_model = null;
         }
-        
-        $this->view = new $view_class($root_path,'/application/views/');
+
+        $this->view = new $view_class($root_path, '/application/views/');
         $this->view->setLang($lang);
         $this->view->setDebug($development);
-
 
         $this->cms = new $model_class(
             $this->sql,
@@ -232,7 +232,7 @@ class _uho_application
      * $folder (string) - application config folder
      * @return array config object
      */
-    private function getConfig(string $folder = 'application_config',$pre_additional_cfg_files=[])
+    private function getConfig(string $folder = 'application_config', $pre_additional_cfg_files = [])
     {
         if (file_exists($folder . '/.env')) {
             require_once('_uho_load_env.php');
@@ -241,32 +241,29 @@ class _uho_application
         }
 
         // pre - config.php
-        $pre=[];
-        foreach ($pre_additional_cfg_files as $v)
-        {
-            $cfg=[];
+        $pre = [];
+        foreach ($pre_additional_cfg_files as $v) {
+            $cfg = [];
             include($v . '/config.php');
-            if (!empty($cfg)) $pre=$cfg+$pre;
+            if (!empty($cfg)) $pre = $cfg + $pre;
         }
 
         if ($folder[0] == '/') {
             include($folder . '/config.php');
-            $hosts_folder=$folder;            
+            $hosts_folder = $folder;
             $additional = @file_get_contents($folder . '/config_additional.json');
-        } else
-        {
+        } else {
             include($this->root_path . $folder . '/config.php');
-            $hosts_folder=$this->root_path . $folder;
+            $hosts_folder = $this->root_path . $folder;
             $additional = @file_get_contents($this->root_path . $folder . '/config_additional.json');
         }
-        
-        if ($pre) $cfg = $cfg+$pre;
+
+        if ($pre) $cfg = $cfg + $pre;
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
         // load hosts
-        foreach ($pre_additional_cfg_files as $v)
-        {
-            if (file_exists($v.'/hosts.php')) include($v . '/hosts.php');
+        foreach ($pre_additional_cfg_files as $v) {
+            if (file_exists($v . '/hosts.php')) include($v . '/hosts.php');
         }
         include($hosts_folder . '/hosts.php');
 
@@ -302,8 +299,7 @@ class _uho_application
             $cfg_domains['application_domain'] = $_SERVER['HTTP_HOST'];
         }
         // found domain by strictname
-        elseif (isset($cfg_domains[$_SERVER['HTTP_HOST']]))
-        {
+        elseif (isset($cfg_domains[$_SERVER['HTTP_HOST']])) {
             $cfg_domains = $cfg_domains[$_SERVER['HTTP_HOST']];
             $cfg_domains['application_domain'] = $_SERVER['HTTP_HOST'];
         }
@@ -354,7 +350,7 @@ class _uho_application
         if ($this->application_params['sql_host']) {
             $this->sql = new _uho_mysqli(null, false);
             if (!empty($this->application_params['sql_debug'])) $this->sql->setDebug(true);
-            
+
             if (!$this->sql->init(
                 $this->application_params['sql_host'],
                 $this->application_params['sql_user'],

@@ -754,7 +754,8 @@ class _uho_fx
 
         $ff = ['%B' => 'MMMM', '%b' => 'MMM'];
 
-        if (function_exists('datefmt_create') && isset($ff[$format])) {
+        if (function_exists('datefmt_create') && isset($ff[$format]))
+        {
             $format = $ff[$format];
             $date = date_create($d);
             $locale = $lang . '_' . strtoupper($lang) . '.utf-8';
@@ -923,8 +924,10 @@ class _uho_fx
      * @param string|null $format Specific format to return, or null for full array
      * @return array|string Array of formatted dates or specific format value
      */
+
     public static function getDate($date1, $date2 = null, $lang = 'pl', $format = null)
     {
+        
         $years_same = (substr($date1, 0, 4) == substr($date2, 0, 4));
         $months_same = (substr($date1, 0, 7) == substr($date2, 0, 7));
         $date01 = $date1;
@@ -1445,6 +1448,10 @@ class _uho_fx
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_TIMEOUT, $params['timeout']);
+        
+        if (isset($params['follow_location'])) 
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        
 
         $header = [];
         if (isset($params['accept'])) $header[] = 'accept: ' . $params['accept'];
