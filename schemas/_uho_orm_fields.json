@@ -111,6 +111,7 @@
             },
             "settings": {
                 "filename": "string",
+                "filename_original": "string",
                 "folder": "string",
                 "hashable": "boolean",
                 "extension": "string"
@@ -270,6 +271,7 @@
                 "fields": "boolean",
                 "format": "string",
                 "function": "string",
+                "cols":"integer",
                 "header": "array"
             },
             "cms": {
