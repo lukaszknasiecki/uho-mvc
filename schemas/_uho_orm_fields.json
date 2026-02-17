@@ -107,7 +107,8 @@
         "field": false,
         "allowed": {
             "cms": {
-                "metadata": "array"
+                "metadata": "array",
+                "auto":"array"
             },
             "settings": {
                 "filename": "string",
