@@ -215,10 +215,9 @@ class _uho_rest
     Helper: Google Captcha
   */
 
-    public static function captcha($captcha)
+    public static function captcha($captcha, $secret)
     {
         if (!$captcha) return ['header' => 400, 'message' => 'Captcha missing'];
-        $secret = $this->getApiKey('google_recaptcha', 'private');
         if (!$secret) return ['header' => 500, 'message' => 'Captcha key fot found'];
 
         $data = array(
