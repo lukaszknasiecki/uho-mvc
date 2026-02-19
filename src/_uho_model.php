@@ -316,9 +316,14 @@ class _uho_model
      * @return string
      */
 
-    public function  getApiKeys($section)
+    public function getApiKeys($section)
     {
-        return @$this->api_keys[$section];
+        return $this->api_keys[$section] ?? null;
+    }
+
+    public function getApiKey($section, $key)
+    {
+        return $this->api_keys[$section][$key] ?? null;
     }
 
     public function getOrm()
