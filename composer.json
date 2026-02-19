@@ -24,7 +24,10 @@
         "psr-4": {
             "Huncwot\\UhoFramework\\": "src/",
             "SimplePHPCache\\": "library/Simple-PHP-Cache/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
