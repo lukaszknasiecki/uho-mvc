@@ -51,7 +51,6 @@ class _uho_controller_api extends _uho_controller
             $method,
             $action,
             $data,
-            $path,
             $this->cfg
         );
         $this->data['content'] = $this->route->updatePaths($this->data['content']);

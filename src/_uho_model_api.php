@@ -42,7 +42,7 @@ class _uho_model_api extends _uho_model
         $this->models_path=$path;
     }
 
-    public function request($method, $action, $data, $url, $cfg)
+    public function request($method, $action, $data, $cfg)
     {
         if (!empty($cfg['debug'])) $this->sql->setDebug($cfg['debug']);
         $captcha = isset($data['captcha']) ? $data['captcha'] : null;
@@ -62,6 +62,7 @@ class _uho_model_api extends _uho_model
         $input = _uho_fx::resolveRoute($action, $this->routing['no_auth']);
         if (!$input) $input = _uho_fx::resolveRoute($method . '.' . $action, $this->routing['no_auth']);
 
+        $input_auth = null;
         if ($user_id) {
             $input_auth = _uho_fx::resolveRoute($action, $this->routing['auth']);
             if (!$input_auth) $input_auth = _uho_fx::resolveRoute($method . '.' . $action, $this->routing['auth']);
@@ -73,6 +74,7 @@ class _uho_model_api extends _uho_model
         {
             $rest=[
                 'class'=>$input_auth['class'],
+                'params'=>$input_auth['params'],
                 'captcha'=>$this->captcha['auth']
             ];
         }
@@ -80,27 +82,37 @@ class _uho_model_api extends _uho_model
             {
               $rest=[
                 'class'=>$input['class'],
+                'params'=>$input['params'],
                 'captcha'=>$this->captcha['no_auth']
-                ];  
-            }        
+                ];
+            }
 
         if ($rest)
         {
+            // Check legacy captcha list (before class name transformation)
+            $requires_captcha = in_array($rest['class'], $rest['captcha']);
 
-            if (in_array($rest['class'], $rest['captcha']))
+            $rest['class'] = str_replace('-', '_', $rest['class']);
+            require_once($this->models_path."model_app_api_" . $rest['class'] . ".php");
+            $class_name = 'model_app_api_' . $rest['class'];
+            $object = new $class_name($this, null);
+
+            // Check #[RequiresCaptcha] attribute on the specific HTTP method
+            if (!$requires_captcha && method_exists($object, $method)) {
+                $reflection = new \ReflectionMethod($object, $method);
+                $requires_captcha = !empty($reflection->getAttributes(\Huncwot\UhoFramework\Attributes\RequiresCaptcha::class));
+            }
+
+            if ($requires_captcha)
             {
-                $result = _uho_rest::captcha($captcha);
+                $result = _uho_rest::captcha($captcha, $this->getApiKey('google_recaptcha', 'private'));
                 $allowed = ($result === true);
             } else $allowed = true;
 
             if ($allowed)
             {
-                $rest['class'] = str_replace('-', '_', $rest['class']);
-                require_once($this->models_path."model_app_api_" . $rest['class'] . ".php");
-                $class_name = 'model_app_api_' . $rest['class'];
-                $object = new $class_name($this, null);
                 if (method_exists($object,$method))
-                    $result = $object->$method(null, $input['params'], $data, $cfg);
+                    $result = $object->$method(null, $rest['params'], $data, $cfg);
                     else $result = ['result' => false, 'header' => '404', 'error' => 'Method not supported'];
             } else $result = ['result' => false, 'header' => '404', 'error' => 'Captcha missing'];
         } else
