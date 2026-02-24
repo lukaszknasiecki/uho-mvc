@@ -115,8 +115,8 @@ class _uho_orm
     protected $lang;
     protected $lang_add;
     protected $langs = [];
-    private $twig=null;
-    private $twig_templates=[];
+    private $twig = null;
+    private $twig_templates = [];
 
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
@@ -129,9 +129,9 @@ class _uho_orm
     private $addImageSizes = false;
 
     /* method to GET source based fields */
-    private $getElementsMethod='aggregate'; // Available methods: aggregate|iterate
-    private $getCheckboxesMethod='aggregate'; // Available methods: aggregate|iterate
-    private $getSelectMethod='aggregate'; // Available methods: aggregate|iterate
+    private $getElementsMethod = 'aggregate'; // Available methods: aggregate|iterate
+    private $getCheckboxesMethod = 'aggregate'; // Available methods: aggregate|iterate
+    private $getSelectMethod = 'aggregate'; // Available methods: aggregate|iterate
 
     /* indicates if for elements_double fields we should use integer is only one value is set */
     private $elements_double_first_integer = false;
@@ -150,12 +150,12 @@ class _uho_orm
     /* Upload Manager for handling file and image upload operations */
     private _uho_orm_upload $uploadManager;
 
-    /* Schema Loader for handling schema file path management and JSON loading */    
+    /* Schema Loader for handling schema file path management and JSON loading */
     private _uho_orm_schema_loader $schemaLoader;
 
     /* Schema Manager for handling schema operations */
     public _uho_orm_schema $schemaManager;
-    
+
     /* Schema SQL Manager for handling SQL table creation and updates */
     private _uho_orm_schema_sql $schemaSqlManager;
 
@@ -264,22 +264,18 @@ class _uho_orm
      */
 
     public function getTwigFromHtml(string $html, array $data): string|null
-    {                
+    {
         if (!$html) return null;
-        if (!$this->twig) 
+        if (!$this->twig)
             $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
         if ($this->twig) {
             // don't mem cache large templates            
-            if (strlen($html)>100)
-                {
-                    $template = $this->twig->createTemplate($html);
-                    $html = $template->render($data);
-                }
-            else
-            {
+            if (strlen($html) > 100) {
+                $template = $this->twig->createTemplate($html);
+                $html = $template->render($data);
+            } else {
                 $name = hash('xxh3', $html);
-                if (empty($this->twig_templates[$name]))
-                {
+                if (empty($this->twig_templates[$name])) {
                     $this->twig_templates[$name] = $this->twig->createTemplate($html);
                 }
                 $html = $this->twig_templates[$name]->render($data);
@@ -436,8 +432,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
      */
     public function fileSetCacheBuster($q): void
     {
-        if (is_string($q) && in_array($q, ['standard', 'medium']))
-        {
+        if (is_string($q) && in_array($q, ['standard', 'medium'])) {
             $this->files_cache_buster_style = $q;
             $q = 1;
         }
@@ -477,19 +472,29 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     break;
 
                 case "datetime":
+                case "timestamp":
 
-                    if (!empty($field['settings']['format']))
-                        switch ($field['settings']['format']) {
-                            case "ISO8601":
-                            case "UTC":
-                                try {
-                                    $dt = new \DateTime($value, new \DateTimeZone('UTC'));
-                                    $value = $dt->format('Y-m-d\TH:i:s\Z');
-                                } catch (\Exception $e) {
-                                    $value = null;
-                                }
-                                break;
-                        }
+                    $format = $field['settings']['format'] ?? null;
+                    if ($field_type == 'timestamp') $format = "USER";
+
+                    switch ($format) {
+                        case "USER":
+
+                            $value = (new \DateTimeImmutable($value, new \DateTimeZone('UTC')))
+                                ->setTimezone(new \DateTimeZone(date_default_timezone_get()))
+                                ->format('Y-m-d H:i:s');
+
+                            break;
+                        case "ISO8601":
+                        case "UTC":
+                            try {
+                                $dt = new \DateTime($value, new \DateTimeZone('UTC'));
+                                $value = $dt->format('Y-m-d\TH:i:s\Z');
+                            } catch (\Exception $e) {
+                                $value = null;
+                            }
+                            break;
+                    }
                     break;
 
                 case "table":
@@ -615,23 +620,21 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     public function getDeep(array $params)
     {
-        $result=$this->get($params);
-        $schema=$this->getSchema($params['schema']);
+        $result = $this->get($params);
+        $schema = $this->getSchema($params['schema']);
 
-        if ($result && !empty($schema['children']) && empty($schema['first']))
-            {
-                foreach ($result as $k=>$record)
-                    foreach ($schema['children'] as $child_name => $child_definition)
-                    {
-                        $filters=empty($child_definition['filters']) ? [] : $child_definition['filters'];
-                        $filters[$child_definition['parent']]=$record[$child_definition['id']];
+        if ($result && !empty($schema['children']) && empty($schema['first'])) {
+            foreach ($result as $k => $record)
+                foreach ($schema['children'] as $child_name => $child_definition) {
+                    $filters = empty($child_definition['filters']) ? [] : $child_definition['filters'];
+                    $filters[$child_definition['parent']] = $record[$child_definition['id']];
 
-                        $result[$k][$child_name]=$this->getDeep([
-                            'schema'=>$child_definition['schema'],
-                            'filters'=>$filters
-                        ]);
-                    }
-            }
+                    $result[$k][$child_name] = $this->getDeep([
+                        'schema' => $child_definition['schema'],
+                        'filters' => $filters
+                    ]);
+                }
+        }
 
         return $result;
     }
@@ -678,7 +681,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * to take model name (.table) from this array, this will be removed in the future
          */
 
-    
+
         $keep_existing_vars = true;
         $predefined_schema = null;
 
@@ -714,20 +717,19 @@ public function getTwigFromHtml(string $html, array $data): ?string
         $this->sqlCheckConnection('get::' . $name_string);
 
         // set default fields to read if not set in the query
-        if ($single && !$fields_to_read) $fields_to_read='_single';
-        elseif (!$fields_to_read) $fields_to_read='_multiple';
+        if ($single && !$fields_to_read) $fields_to_read = '_single';
+        elseif (!$fields_to_read) $fields_to_read = '_multiple';
 
         // create sql-compliant limit params from paging array
 
-        if (is_array($limit) && count($limit)==2)
-        {
-            $limit_page=intval($limit[0]);
-            $limit_perpage=intval($limit[1]);
+        if (is_array($limit) && count($limit) == 2) {
+            $limit_page = intval($limit[0]);
+            $limit_perpage = intval($limit[1]);
 
-            if ($limit_page>0 && $limit_perpage>0)
+            if ($limit_page > 0 && $limit_perpage > 0)
                 $limit = ($limit_page - 1) * $limit_perpage . ',' . $limit_perpage;
-                else $limit='';
-        } elseif (is_array($limit)) $limit='';
+            else $limit = '';
+        } elseif (is_array($limit)) $limit = '';
 
         /**
          * get model schema
@@ -836,7 +838,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         elseif (!$limit) $query_limit = '';
         else $query_limit = 'LIMIT ' . $limit;
 
-        
+
         /**
          * Convert order to SQL query
          * ['type'=>'field', 'values'=>['title','date']]
@@ -884,7 +886,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if ($return_query) return $query;
 
         $data = $this->query($query);
-        
+
         /**
          * Return system COUNT(*) and AVG()
          */
@@ -951,13 +953,12 @@ public function getTwigFromHtml(string $html, array $data): ?string
             remove unwanted fields
         */
 
-        if ($fields_to_read && !empty($model['fields_to_read']))
-            {
-                foreach ($data as $k=>$record)
-                    foreach ($record as $field=>$val)
-                        if (!in_array($field,$fields_to_read))
-                            unset($data[$k][$field]);
-            }
+        if ($fields_to_read && !empty($model['fields_to_read'])) {
+            foreach ($data as $k => $record)
+                foreach ($record as $field => $val)
+                    if (!in_array($field, $fields_to_read))
+                        unset($data[$k][$field]);
+        }
 
         /*
          update records urls
@@ -981,7 +982,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if ($count) return count($data);
         else return $data;
-        
     }
 
     /**
@@ -1041,7 +1041,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                  * elements type with source.model
                  * get model on each iteration
                  */
-                elseif ($this->getElementsMethod=='iterate' && $v2['type'] == 'elements' && isset($v2['source']['model'])) {
+                elseif ($this->getElementsMethod == 'iterate' && $v2['type'] == 'elements' && isset($v2['source']['model'])) {
 
                     $f = explode(',', $v[$v2['field']]);
 
@@ -1063,7 +1063,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                  * checkboxes type with source.model
                  * get model on each iteration
                  */
-                elseif ($this->getCheckboxesMethod=='iterate' && $v2['type'] == 'checkboxes' && isset($v2['source']['model'])) {
+                elseif ($this->getCheckboxesMethod == 'iterate' && $v2['type'] == 'checkboxes' && isset($v2['source']['model'])) {
 
                     $f = explode(',', $v[$v2['field']]);
                     $f4 = array();
@@ -1096,8 +1096,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 /**
                  * select type with source.model
                  */
-                elseif ($this->getSelectMethod=='iterate' && @$v2['type'] == 'select' && !empty($v2['source']['model']))
-                {
+                elseif ($this->getSelectMethod == 'iterate' && @$v2['type'] == 'select' && !empty($v2['source']['model'])) {
 
                     if (isset($v2['source']['filters'])) {
                         $f = array($v2['source']['filters']);
@@ -1116,39 +1115,33 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 /**
                  * Select fields with source.model & aggregate method
                  */
-                elseif (@$v2['source'] && (in_array($v2['type'],['elements','select','checkboxes'])))
-                    {
+                elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes']))) {
 
                     /**
                      * Create Source.Data if needed - all elements to choose from
                      */
 
-                    if (!@$v2['source']['data'])
-                    {
+                    if (!@$v2['source']['data']) {
 
-                        if (@$v2['source']['model'])
-                        {
+                        if (@$v2['source']['model']) {
 
                             $ids = [];
                             foreach ($data as $v5)
-                            if (isset($v2['field']))
-                            {
-                                if (is_string($v5[$v2['field']]))
-                                    $id_vals=explode(',',$v5[$v2['field']]);
-                                    else $id_vals=[];
-                                foreach ($id_vals as $id_val)
-                                {
-                                     if (empty($v2['settings']['output']) || $v2['settings']['output'] != 'string')
-                                        $id_val=intval($id_val);
-                                    if (!in_array($id_val, $ids))
-                                    {
-                                        $ids[] = $id_val;
+                                if (isset($v2['field'])) {
+                                    if (is_string($v5[$v2['field']]))
+                                        $id_vals = explode(',', $v5[$v2['field']]);
+                                    else $id_vals = [];
+                                    foreach ($id_vals as $id_val) {
+                                        if (empty($v2['settings']['output']) || $v2['settings']['output'] != 'string')
+                                            $id_val = intval($id_val);
+                                        if (!in_array($id_val, $ids)) {
+                                            $ids[] = $id_val;
+                                        }
                                     }
                                 }
-                            }
 
                             if (isset($v2['source']['id'])) $id_field = $v2['source']['id'];
-                                else  $id_field = 'id';
+                            else  $id_field = 'id';
 
                             if (!empty($v2['source']['model_fields'])) $params0 = ['fields' => $v2['source']['model_fields']];
                             else $params0 = [];
@@ -1163,7 +1156,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 foreach ($v4 as $k6 => $_) $v4[$k6] = $v4[$k6][$v2['source']['field']];
 
                             $v2['source']['data'] = $model['fields'][$k2]['source']['data'] = $v4;
-
                         } else {
 
                             if (!$v2['source']['fields']) $this->halt('_uho_model::error No source fields for ' . $v2['field']);
@@ -1192,15 +1184,14 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             if (isset($v2['source']['data'][$id0]))
                                 $data[$k][$v2['field']] = $v[$v2['field']] = $v2['source']['data'][$id0];
                             break;
-                            
+
                         case 'elements':
                         case 'checkboxes':
 
                             $elements = explode(',', $v[$v2['field']]);
 
                             foreach ($elements as $k3 => $v3)
-                                if (intval($v3) || (isset($v2['output']) && $v2['output'] == 'string' && $v3))
-                                {
+                                if (intval($v3) || (isset($v2['output']) && $v2['output'] == 'string' && $v3)) {
                                     $v3 = explode(':', $v3);
                                     if (isset($v3[1])) $v3 = $v3[1];
                                     else $v3 = $v3[0];
@@ -1208,8 +1199,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                     if (isset($v2['output']) && $v2['output'] == 'string')
                                         $elements[$k3] = $v2['source']['data'][($v3)];
                                     elseif (isset($v2['source']['data'][intval($v3)]))
-                                         $elements[$k3] = $v2['source']['data'][intval($v3)];
-                                            else unset($elements[$k3]);
+                                        $elements[$k3] = $v2['source']['data'][intval($v3)];
+                                    else unset($elements[$k3]);
                                 } else unset($elements[$k3]);
 
                             $data[$k][$v2['field']] = $v[$v2['field']] = $elements;
@@ -1360,8 +1351,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * Update values by type
          */
 
-        $id=_uho_fx::array_filter($model['fields'],'type','id',array('first'=>true));
-        if (!$id) $model['fields'][]=['type'=>'integer','field'=>'id'];
+        $id = _uho_fx::array_filter($model['fields'], 'type', 'id', array('first' => true));
+        if (!$id) $model['fields'][] = ['type' => 'integer', 'field' => 'id'];
 
         foreach ($data as $k => $v)
             foreach ($model['fields'] as $v2)
@@ -1461,8 +1452,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                         $m = array();
 
-                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']]))
-                        {
+                        if (!empty($v2['settings']['field_exists']) && empty($v[$v2['settings']['field_exists']])) {
                             $data[$k][$v2['field']] = null;
                         } else {
 
@@ -1525,7 +1515,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 */
                                 else {
                                     $this->fileAddCacheBuster($m[$image_id]);
-
                                 }
 
                                 if ($sizes) {
@@ -1637,12 +1626,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
             if (isset($additionalParams) && $additionalParams) $vv = $vv + $additionalParams;
 
             $records[$kk]['url'] = $url = $url_schema;
-            
+
             foreach ($url as $k => $v)
                 if (is_string($v)) {
                     // % pattern
-                    while (strpos(' ' . $v, '%'))
-                    {
+                    while (strpos(' ' . $v, '%')) {
                         $i = strpos($v, '%');
                         $j = strpos($v, '%', $i + 1);
                         if (!$j) $j = strlen($v) - 1;
@@ -1717,9 +1705,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         break;
 
                     case 'boolean':
-
                         if ($v === true || $v === 'on' || $v === 1 || $v === '1') $v = 1;
                         else $v = 0;
+                        break;
+                    case "timestamp":
+                        $v = (new \DateTimeImmutable($v, new \DateTimeZone(date_default_timezone_get())))
+                                ->setTimezone(new \DateTimeZone('UTC'))
+                                ->format('Y-m-d H:i:s');
                         break;
                     case "float":
                         $v = floatval($v);
@@ -1921,8 +1913,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         }
 
         $schema = $this->getSchema($model, true);
-        if (!$schema || empty($schema['table']))
-        {
+        if (!$schema || empty($schema['table'])) {
             $this->errors[] = 'delete:: schema error:: ' . $model;
             return false;
         }
@@ -2135,11 +2126,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     public function fileRemoveCacheBuster(string $f): string
     {
-        if ($this->files_cache_buster)
-            {
-                $f=explode('?',$f);
-                $f=$f[0];
-            }
+        if ($this->files_cache_buster) {
+            $f = explode('?', $f);
+            $f = $f[0];
+        }
         return $f;
     }
 
@@ -2154,8 +2144,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         */
 
         if ($this->isS3()) {
-            if ($this->files_cache_buster)
-            {
+            if ($this->files_cache_buster) {
                 $time = $this->s3Manager->getFileTime($f);
                 if ($time) $f .= '?' . $time;
                 else $f = '';
@@ -2560,9 +2549,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
             }
         $data = array_values($data);
         return $data;
-    }    
+    }
 
-        /**
+    /**
      * Adds field structure to bare record, based on sources
      * @param array $schema
      * @param array $record
@@ -2572,22 +2561,18 @@ public function getTwigFromHtml(string $html, array $data): ?string
     public function updateRecordSources($schema, $record)
     {
         foreach ($schema['fields'] as $v)
-            if (isset($v['source']) && isset($record[$v['field']]))
-            {
+            if (isset($v['source']) && isset($record[$v['field']])) {
                 $value = $record[$v['field']];
-                if ($v['source']['model'])
-                {
-                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes')
-                    {
+                if ($v['source']['model']) {
+                    if ($v['type'] == 'elements' || $v['type'] == 'checkboxes') {
                         if (!is_array($value)) $value = explode(',', $value);
                         else
                             foreach ($value as $kk => $vv)
                                 if (is_array($vv) && @$vv['id']) $value[$kk] = $vv['id'];
 
                         $value = $this->get($v['source']['model'], ['id' => $value]);
-                    } else
-                    {
-                        if (is_array($value)) $value=$value['id'];
+                    } else {
+                        if (is_array($value)) $value = $value['id'];
                         $value = $this->get($v['source']['model'], ['id' => $value], true);
                     }
                 }

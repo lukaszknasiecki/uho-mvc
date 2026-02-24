@@ -48,7 +48,8 @@
     "datetime": {
         "allowed": {
             "cms": {
-                "default": "string"
+                "default": "string",
+                "auto": "string"
             },
             "settings": {
                 "default": "string",
@@ -108,7 +109,7 @@
         "allowed": {
             "cms": {
                 "metadata": "array",
-                "auto":"array"
+                "auto": "array"
             },
             "settings": {
                 "filename": "string",
@@ -146,7 +147,7 @@
                 "filename": "string",
                 "folder": "string",
                 "extensions": "array",
-                "extension_field": "string",                
+                "extension_field": "string",
                 "field_exists": "string",
                 "sizes": "string",
                 "webp": "boolean"
@@ -272,13 +273,20 @@
                 "fields": "boolean",
                 "format": "string",
                 "function": "string",
-                "cols":"integer",
+                "cols": "integer",
                 "header": "array"
             },
             "cms": {
                 "wide": "boolean",
                 "counter": "boolean",
                 "style": "string"
+            }
+        }
+    },
+    "timestamp": {
+        "allowed": {
+            "cms": {
+                "auto": "string"
             }
         }
     },

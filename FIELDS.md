@@ -55,6 +55,7 @@ some work only with specified field types.
 * `json`: JSON data (JSON/TEXT)
 * `string`: String (VARCHAR)
 * `text`: Text (TEXT)
+* `timestamp`: Timestamp (DATETIME) in UTC
 
 ### Selection Types
 

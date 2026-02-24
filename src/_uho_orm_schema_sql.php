@@ -45,6 +45,9 @@ class _uho_orm_schema_sql
                 case "datetime":
                     $type = 'datetime';
                     break;
+                case "timestamp":
+                    $type = 'datetime';
+                    break;
                 case "integer":
                     $type = 'int(11)';
                     break;
