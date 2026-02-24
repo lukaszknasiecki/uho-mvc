@@ -15,7 +15,8 @@
 11. [Security](#security)
 12. [Features](#features)
 13. [API Reference](#api-reference)
-14. [Examples](#examples)
+14. [Google reCAPTCHA](#google-recaptcha)
+15. [Examples](#examples)
 
 
 ## Overview
@@ -989,6 +990,55 @@ Utility functions class.
 * `getGet($param, $default)`: Get GET parameter
 * `getPost($param, $default)`: Get POST parameter
 * `getGetArray()`: Get all GET parameters
+
+
+## Google reCAPTCHA
+
+Protect API endpoints with Google reCAPTCHA v2 using the `#[RequiresCaptcha]` attribute. The framework verifies the token automatically — no manual checking needed in your API models.
+
+The frontend is expected to pass the reCAPTCHA token in the `captcha` field of the request. The backend validates it against Google's `siteverify` endpoint using the private secret key.
+
+### Mark a method as requiring CAPTCHA
+
+Add `use Huncwot\UhoFramework\Attributes\RequiresCaptcha;` at the top of the file, then apply the `#[RequiresCaptcha]` attribute to the method:
+
+```php
+<?php
+
+use Huncwot\UhoFramework\Attributes\RequiresCaptcha;
+
+class model_app_api_contact extends \Huncwot\UhoFramework\_uho_model_api
+{
+    #[RequiresCaptcha]
+    public function post($user_id, $params, $data, $cfg)
+    {
+        // only runs after successful CAPTCHA verification
+    }
+}
+```
+
+The frontend must pass the one-time reCAPTCHA token in the `captcha` field of the request.
+
+### Configure hosts.php
+
+```php
+'api_keys' => [
+    'google_recaptcha' => [
+        'public'  => getenv('GOOGLE_RECAPTCHA_PUBLIC'),
+        'private' => getenv('GOOGLE_RECAPTCHA_PRIVATE')
+    ]
+],
+```
+
+### Environment variables
+
+```
+GOOGLE_RECAPTCHA_PUBLIC=your-site-key-here
+GOOGLE_RECAPTCHA_PRIVATE=your-secret-key-here
+```
+
+* `GOOGLE_RECAPTCHA_PUBLIC` — site key, used in frontend HTML only
+* `GOOGLE_RECAPTCHA_PRIVATE` — secret key, used by the backend only, never exposed to clients
 
 
 ## Examples
