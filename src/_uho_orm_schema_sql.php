@@ -91,7 +91,7 @@ class _uho_orm_schema_sql
                         if ($source_model) {
                             $ids = _uho_fx::array_filter($source_model['fields'], 'field', 'id', ['first' => true]);
                             if ($ids && $ids['type'] == 'string') {
-                                $length = empty($ids['settings']['length']) ? 256 : $ids['settings']['length'];
+                                $length = empty($ids['settings']['length']) ? 255 : $ids['settings']['length'];
                                 $type = 'varchar(' . $length . ')';
                             }
                         }
@@ -112,7 +112,7 @@ class _uho_orm_schema_sql
 
                 case "string":
 
-                    $length = empty($v['settings']['length']) ? 256 : $v['settings']['length'];
+                    $length = empty($v['settings']['length']) ? 255 : $v['settings']['length'];
                     if (!empty($v['settings']['static_length'])) $type = 'char(' . $length . ')';
                     else $type = 'varchar(' . $length . ')';
                     break;
