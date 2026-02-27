@@ -1152,12 +1152,7 @@ chmod +x bin/schema-validate
 
 This validates all JSON model definitions in the specified directory.
 
-
 ## Best Practices
-
-
-
-
 
  1. **Always use ORM methods** instead of raw SQL when possible
  2. **Validate user input** before processing

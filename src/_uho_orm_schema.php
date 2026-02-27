@@ -242,10 +242,6 @@ class _uho_orm_schema
                             $v['settings']['folder'] = $v['folder'];
                             unset($v['folder']);
                         }
-                        if (isset($v['folder_preview'])) {
-                            $v['settings']['folder_preview'] = $v['folder_preview'];
-                            unset($v['folder_preview']);
-                        }
                         $model['fields'][$k] = $v;
 
 
