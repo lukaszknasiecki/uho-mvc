@@ -234,6 +234,8 @@ class _uho_application
      */
     private function getConfig(string $folder = 'application_config', $pre_additional_cfg_files = [])
     {
+
+        // load .envs
         if (file_exists($folder . '/.env')) {
             require_once('_uho_load_env.php');
             $env_loader = new _uho_load_env($folder . '/.env');
@@ -258,7 +260,7 @@ class _uho_application
             $additional = @file_get_contents($this->root_path . $folder . '/config_additional.json');
         }
 
-        if ($pre) $cfg = $cfg + $pre;
+        if ($pre) $cfg = array_replace_recursive($pre,$cfg);
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
         // load hosts

@@ -143,6 +143,9 @@
     "image": {
         "field": false,
         "allowed": {
+            "cms": {
+                "color_background": "string"
+            },
             "settings": {
                 "filename": "string",
                 "folder": "string",
