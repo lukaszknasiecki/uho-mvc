@@ -244,24 +244,16 @@ Create `application/routes/route_app.json`:
 ```json
 {
     "controllers": {
-        "": "home",
-        "about": "about",
-        "contact": "contact"
+        "": "pages",
+        "404": "pages",
+        "api": "api"        
     },
     "headers": {
         "api": "api"
     },
     "paths": {
         "home": "/",
-        "about": "/about",
-        "contact": "/contact",
-        "news": {
-            "type": "twig",
-            "input": [
-                "slug"
-            ],
-            "value": "news{% if slug %}/{{slug}}/{% endif %}"
-        },
+        "about": "/about"
     }
 }
 ```
@@ -269,37 +261,12 @@ Create `application/routes/route_app.json`:
 ### Route Structure
 
 * **controllers**: Maps URL segments to controller classes
-* **headers**: Custom headers for specific routes
-* **paths**: URL path definitions
+* **headers**: If custom headers exists that can overwrite `controllers` for specific routes
+* **paths**: model URL path definitions
 
-Controllers match URLs with custom controller classes. Additionally if custom header is present (`headers`) additional layer of matching with controllers is added.
+Controllers match URLs with custom controller classes. Additionally if custom header is present (`headers`) additional layer of matching with controllers is added. Empty key ("") refers to any route, not defined in `controllers` array.
 
-Paths is a routing object used by `_uho_route` class to build final URLs based on models, for example, every model can have it's own `url` property, i.e:
-
-```json
-{
-    "url": {
-        "type": "news",
-        "slug": "{{slug}}"
-    }
-}
-```
-
-Which is automatically rebuilt using `route_app.json` and returning URL string, i.e. `/news/my-news/`. The Paths object simply gets allowed input variables defined in `input` array and parses it using the TWIG `value` template.
-
-You can also use standard %variable% schema to avoid Twig, which may slower the process
-for huge models.
-
-```json
-{
-    "url": {
-        "type": "news",
-        "twig": false,
-        "slug": "%slug%"
-    }
-}
-```
-
+Paths is a routing object used by `_uho_route` class to build final URLs based on models, (refer to [SCHEMA.md](SCHEMA.md))
 
 ### Language Routing
 
@@ -307,6 +274,15 @@ If `application_languages_url` is enabled, URLs include language prefix:
 
 * `/en/home` → English
 * `/es/home` → Spanish
+
+### Predefined controllers and models
+
+There are two predefined controllers (and models) for to most common routes - `pages` (rendering HTML website with set of HTML modules) and `api` for REST API related routes.
+
+* **pages** — `_uho_controller_pages` + `_uho_model_pages`: database-driven, module-based HTML page rendering. See [PAGES.md](PAGES.md) for full reference.
+* **api** — `_uho_controller_api` + `_uho_model_api`: REST API dispatcher with routing, authentication, and CAPTCHA support. See [API.md](API.md) for full reference.
+
+
 
 ### Accessing Route Information
 
@@ -318,7 +294,6 @@ $current_lang = $this->route->getLang();
 $url_array = $this->route->getUrlArray();
 $url_element = $this->route->e(1);
 ```
-
 
 ## Models and ORM
 
@@ -343,160 +318,7 @@ class model_app_home extends \Huncwot\UhoFramework\_uho_model
 
 ### JSON Schema Definitions
 
-Create `application/models/json/items.json`:
-
-```json
-{
-    "table": "items",
-    "filters": {
-        "active": 1
-    },
-    "order": "created_at DESC",
-    "fields": [
-        {
-            "field": "id",
-            "type": "integer"
-        },
-        {
-            "field": "title",
-            "type": "string",
-            "required": true
-        },
-        {
-            "field": "description",
-            "type": "text"
-        },
-        {
-            "field": "image",
-            "type": "file",            
-            "settings": {
-                "extensions": ["pdf"],
-                "folder": "/public/upload/items/"
-            }
-        },
-        {
-            "field": "active",
-            "type": "boolean",
-            "default": true
-        },
-        {
-            "field": "created_at",
-            "type": "datetime",
-            "default": "NOW()"
-        }
-    ]
-}
-```
-
-### Schema-Level Keys
-
-In addition to `table`, `fields`, and `order`, you can use these keys at the schema level:
-
-* `fields_to_read` (object): Defines sets of fields to be read via orm.get method, useful if you want to read just part of model values with something like `$model->get(['fields'=>'list'])`
-
-  ```json
-  "fields_to_read": {
-      "list": ["title", "author"],
-      "single": ["title", "author", "theme", "description"]
-  }
-  ```
-
-You can also set fields to be returned for every single-record and multi-record `get` used without `fields` param, by adding:
-
-```json
-  "fields_to_read": {
-      "_single": ["title", "author", "theme", "description"],
-      "_multiple": ["title", "author"]
-  }
-```
-
-* `filters` (object/array): Default filters applied to all queries for this model
-
-  ```json
-  "filters": {
-      "active": 1,
-      "published": true
-  }
-  ```
-
-  Filters can use dynamic values with Twig syntax: `"category_id": "{{id}}"`
-* `children` (object): For nested schemas
-
-  ```json
-  "children": {
-      "subitems": {
-        "id": "id",             // source id field
-        "schema": "submenu",    // children schema
-        "parent": "parent",     // children id field, to be matched with source id field
-        "filters": {"active":1} // children filters
-        }
-  }
-  ```
-
-  You can get nested models with ORM's `getDeep` method.
-* `order` (string/object): Default ordering for queries, can be formatted in couple of ways
-
-  ```json
-  "order": "created_at DESC"
-  ```
-
-```json
-  "order": {"type": "field", "values": ["title", "date"]}
-```
-
-```json
-  "order": {"field": "date", "sort": ["DESC"]}
-```
-
-Or use object format:
-
-```json
-"order": {
-    "field": "created_at",
-    "sort": "DESC"
-}
-```
-
-Prefix field with `!` for DESC: `"!created_at"` = `"created_at DESC"`
-
-* `url`: you can predefine URL for each model, which can be later converted to the final (string) URL via router class
-
-  ```json
-    "url":
-    {
-        "type": "news",
-        "slug": "{{slug}}"
-    }
-  ```
-
-### Field-Level Keys
-
-In addition to `type` and `field` keys, you can use:
-
-* `source` (object): Populate options from another model or table
-
-  ```json
-  {
-      "field": "category_id",
-      "type": "select",
-      "source": {
-          "model": "categories",
-          "filters": {
-              "active": 1
-          },
-          "order": "title ASC",
-          "label": "{{title}}"
-      }
-  }
-  ```
-  * `model`: Name of JSON model to use
-  * `table`: Direct table name (alternative to model)
-  * `fields`: Array of fields to select from table
-  * `filters`: Filters to apply when fetching options
-  * `order`: Ordering for options
-  * `settings`: Twig template for option label (default: `"{{label}}"`)
-* `filters` (object/array): Field-specific filters (used in source)
-* `order` (string): Field-specific ordering (used in source)
+For a full reference of the JSON schema structure — including schema-level keys (`table`, `fields`, `filters`, `order`, `children`, `url`, `fields_to_read`) and field-level keys (`source`, `options`, `settings`, etc.) — see [SCHEMA.md](SCHEMA.md).
 
 ### ORM Methods
 
@@ -955,6 +777,63 @@ Base controller class.
 * `getData()`: Override to set data
 * `getOutput($type)`: Get output
 * `get404($url)`: Handle 404
+
+### _uho_controller_pages
+
+Built-in controller for HTML page rendering. Extends `_uho_controller`.
+
+See [PAGES.md](PAGES.md) for full documentation.
+
+**Methods:**
+
+* `getData()`: Fetch page data and resolve URL paths
+* `getContentData()`: Build and return the page data array (content, head, ajax flag, view name)
+* `actionBefore($post, $get)`: Pre-render hook; delegates to model
+
+### _uho_model_pages
+
+Built-in model for the pages system. Extends `_uho_model`.
+
+See [PAGES.md](PAGES.md) for full documentation.
+
+**Methods:**
+
+* `getContentData($params)`: Resolve URL to page + modules; falls back to 404 page
+* `setPathModules($path)`: Set directory path for module class files
+* `setParentVar($key, $value)`: Set a shared variable accessible by all modules
+* `getParentVar($key)`: Get a shared variable set during module processing
+* `set404()`: Force 404 response
+* `is404()`: Check if 404 has been triggered
+* `ogGet()`: Get assembled OG/head meta array
+* `ogSet($title, $description, $image)`: Set OG/head meta values
+
+### _uho_controller_api
+
+Built-in controller for REST API endpoints. Extends `_uho_controller`. Always outputs JSON.
+
+See [API.md](API.md) for full documentation.
+
+**Methods:**
+
+* `getData()`: Parse HTTP method and body, dispatch to model, set JSON output
+
+### _uho_model_api
+
+Built-in model for the API layer. Extends `_uho_model`.
+
+See [API.md](API.md) for full documentation.
+
+**Methods:**
+
+* `setRoutingNoAuth($items)`: Register routes accessible without authentication
+* `setRoutingAuth($items)`: Register routes requiring a valid bearer token
+* `setCaptchaNoAuth($items)`: Mark unauthenticated route classes as requiring CAPTCHA
+* `setCaptchaAuth($items)`: Mark authenticated route classes as requiring CAPTCHA
+* `setPathModels($path)`: Set directory path for API sub-model files
+* `request($method, $action, $data, $cfg)`: Main dispatch — resolve route, check auth/CAPTCHA, call sub-model
+* `validateUserToken($token)`: Validate a bearer token against `client_tokens` table
+* `cacheApiKill($dir)`: Delete `.cache` files from a directory
+* `allowOptionsHeader()`: Handle CORS preflight `OPTIONS` requests
 
 ### _uho_view
 

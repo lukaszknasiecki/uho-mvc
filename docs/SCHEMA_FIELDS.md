@@ -1,4 +1,4 @@
-# UHO-MVC Framework Documentation
+# UHO-MVC Schema (Model's FIELDS Definitions) Documentation
 
 ## Table of Contents
 
