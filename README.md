@@ -49,6 +49,15 @@ or
 
 `vendor/lukaszknasiecki/uho-mvc/bin/schema-build application_config/.env application_config/schemas.json`
 
+## Sample index.php
+
+<?php
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+(new \Huncwot\UhoFramework\_uho_mvc([
+    'config_folder' => 'application_config'
+]))->run();
 
 ## Tests
 
