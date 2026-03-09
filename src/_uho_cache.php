@@ -4,7 +4,7 @@ namespace Huncwot\UhoFramework;
 
 use SimplePHPCache\Cache;
 
-require_once "cache.class.php";
+require_once __DIR__ . "/../library/Simple-PHP-Cache/cache.class.php";
 
 /**
  * This class provides HTML caching

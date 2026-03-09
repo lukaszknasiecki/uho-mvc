@@ -97,6 +97,12 @@ class _uho_orm_schema_loader
         if (empty($json) && $loaded) $this->errors[] = 'JSON corrupted: ' . $filename;
         elseif (empty($json)) $this->errors[] = 'JSON not found:loadJsonSchema: ' . implode(', ', $tried);
 
+        if (!empty($json['include']))
+            {
+                $schema=$this->loadJsonSchema($json['include']);
+                $json=array_merge($schema,$json);
+            }
+
         if (!empty($json)) return $json;
         else return null;
     }

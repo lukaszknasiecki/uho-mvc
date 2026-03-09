@@ -5,7 +5,7 @@ namespace Huncwot\UhoFramework;
 use SimplePHPCache\Cache;
 use Huncwot\UhoFramework\_uho_fx;
 
-require_once "cache.class.php";
+require_once __DIR__ . "/../library/Simple-PHP-Cache/cache.class.php";
 
 /**
  * This is a class dedicated to direct mySQL connections
@@ -283,6 +283,10 @@ class _uho_mysqli
 
     public function queryPrepared($query, $params, $first=false)
     {
+
+        if ($this->debug && _uho_fx::getGet('dbg')) {
+            echo ('<!-- [sql-prepared] ' . $query . ' -->');
+        }
 
         if (!empty($this->base_link)) {
 

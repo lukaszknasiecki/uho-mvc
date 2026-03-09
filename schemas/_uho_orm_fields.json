@@ -203,13 +203,10 @@
     "plugin": {
         "field": false,
         "allowed": {
-            "settings": {
-                "plugin": "string"
-            }
-        },
-        "required": {
-            "settings": {
-                "plugin": "string"
+            "cms": {
+                "plugin": "string",
+                "page": "string",
+                "plugin_nr": "integer"
             }
         }
     },

@@ -51,7 +51,7 @@ class _uho_application
      * @return null
      */
 
-    public function __construct($root_path, $development, $config_folder = null, $force_ssl = false)
+    public function __construct($root_path, $development, $config_folder = null, $force_ssl = false, array $additional_params = [])
     {
 
         $app_path = $root_path . 'application/';
@@ -87,6 +87,8 @@ class _uho_application
             }
         }
 
+        $application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
+        $application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
 
         // $this->application_title = @$this->application_params['application_title'];
 
@@ -235,14 +237,12 @@ class _uho_application
     private function getConfig(string $folder = 'application_config', $pre_additional_cfg_files = [])
     {
 
-        // load .envs
-        if (file_exists($folder . '/.env')) {
-            require_once('_uho_load_env.php');
-            $env_loader = new _uho_load_env($folder . '/.env');
-            $env_loader->load();
-        }
+        // 1st PHASE: config.php
 
-        // pre - config.php
+        // load default config and additional configs
+
+        array_unshift($pre_additional_cfg_files,__DIR__. '/Configs');
+
         $pre = [];
         foreach ($pre_additional_cfg_files as $v) {
             $cfg = [];
@@ -250,12 +250,14 @@ class _uho_application
             if (!empty($cfg)) $pre = $cfg + $pre;
         }
 
+        // load custom app config
+
         if ($folder[0] == '/') {
             include($folder . '/config.php');
             $hosts_folder = $folder;
             $additional = @file_get_contents($folder . '/config_additional.json');
         } else {
-            include($this->root_path . $folder . '/config.php');
+            @include($this->root_path . $folder . '/config.php');
             $hosts_folder = $this->root_path . $folder;
             $additional = @file_get_contents($this->root_path . $folder . '/config_additional.json');
         }
@@ -263,11 +265,18 @@ class _uho_application
         if ($pre) $cfg = array_replace_recursive($pre,$cfg);
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
-        // load hosts
+print_r($cfg);
+        // 2nd PHASE: load hosts
+        $cfg_domains=[];
         foreach ($pre_additional_cfg_files as $v) {
             if (file_exists($v . '/hosts.php')) include($v . '/hosts.php');
         }
-        include($hosts_folder . '/hosts.php');
+
+        $pre_cfg_domains = $cfg_domains;
+        $cfg_domains=[];
+        @include($hosts_folder . '/hosts.php');
+
+        $cfg_domains = array_replace_recursive($pre_cfg_domains,$cfg_domains);
 
         $hostname = @gethostname();
 
@@ -337,9 +346,8 @@ class _uho_application
         if (isset($cfg['application_domain']))
             $cfg['cookie_alert'] = str_replace('.', '_', $cfg['application_domain']) . '_cookie_alert';
         else $cfg['cookie_alert'] = 'cookie_alert';
-        if (!$cfg['application_class']) {
-            $cfg['application_class'] = 'app';
-        }
+        
+        $cfg['application_class'] = 'app';
 
         return ($cfg);
     }

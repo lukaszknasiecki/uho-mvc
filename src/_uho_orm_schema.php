@@ -346,6 +346,7 @@ class _uho_orm_schema
 
         $model['fields'] = $fields;
 
+
         return $model;
     }
 
@@ -583,6 +584,7 @@ class _uho_orm_schema
             'fields' => ['type' => 'array'],
             'fields_to_read' => ['type' => 'array'],
             'filters' => ['type' => ['array']],
+            'include' => ['type' => ['string']],
             'label' => ['type' => ['string', 'array']],
             'layout' => ['type' => ['array']],
             'help' => ['type' => ['string']],
@@ -591,7 +593,7 @@ class _uho_orm_schema
             'model_name' => ['type' => ['string']],
             'order' => ['type' => ['array']],
             'page_update' => ['type' => ['string']],
-            'table' => ['type' => 'string', 'required' => true],
+            'table' => ['type' => 'string'],
             'url' => ['type' => ['string', 'array']],
             // uho-cms only
             'langs' => ['type' => ['array']],
@@ -602,7 +604,11 @@ class _uho_orm_schema
 
         if (empty($schema))
             return ['errors' => ['Schema is empty']];
-            
+
+        if (empty($schema['table']) && empty($schema['include']))
+        {
+            $errors[] = 'Missing required property [table] or [include].';
+        }   
 
         foreach ($properties as $property => $rules) {
             if (!empty($rules['required']) && !isset($schema[$property])) {

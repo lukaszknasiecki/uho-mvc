@@ -128,6 +128,8 @@ The framework follows the Model-View-Controller pattern:
 
 ## Configuration
 
+For the full configuration reference, see [CONFIG.md](CONFIG.md).
+
 ### Configuration File Structure
 
 Create `application_config/config.php`:

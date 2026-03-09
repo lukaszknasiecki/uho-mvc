@@ -16,7 +16,7 @@ namespace SimplePHPCache;
 class Cache
 {
 
-private $method='serialize'; // serialize|json
+  private $method='serialize'; // serialize|json
 
   /**
    * The path to the cache file folder
@@ -101,6 +101,7 @@ private $method='serialize'; // serialize|json
       $cacheData = json_encode($dataArray);
 
     file_put_contents($this->getCacheDir(), $cacheData);
+
     return $this;
   }
 
@@ -210,10 +211,10 @@ private $method='serialize'; // serialize|json
   {
     if (true === file_exists($this->getCacheDir())) {
       $file = @file_get_contents($this->getCacheDir());
-      if ($this->method === 'serialize') {
+      if ($this->method == 'serialize')
         return unserialize($file);
-      } else if ($this->method === 'json') {  
-      return json_decode($file, true);
+      else if ($this->method == 'json')
+        return json_decode($file, true);
     } else {
       return false;
     }
@@ -271,13 +272,17 @@ private $method='serialize'; // serialize|json
     $c = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . rtrim($this->getCachePath(), '/');
 
     if (!is_dir($c) && !mkdir($c, 0775, true)) {
-      //if (!is_dir($c) && !mkdir($c)) {
       throw new Exception('Unable to create cache directory ' . $c);
     } elseif (!is_readable($c) || !is_writable($c)) {
       if (!chmod($c, 0775)) {
         throw new Exception($c . ' must be readable and writeable');
       }
     }
+
+    if (!file_exists($c.'/.htaccess')) {
+      file_put_contents($c.'/.htaccess', "Deny from all");
+    }
+
     return true;
   }
 
@@ -359,5 +364,21 @@ private $method='serialize'; // serialize|json
   public function getSalt()
   {
     return $this->_salt;
+  }
+
+  private function writeArrayJson($filename, $bigArray)
+  {
+    $file = fopen($filename, 'w');
+    fwrite($file, "[");
+    $first = true;
+    foreach ($bigArray as $item) {
+      if (!$first) {
+        fwrite($file, ",");
+      }
+      fwrite($file, json_encode($item));
+      $first = false;
+    }
+    fwrite($file, "]");
+    fclose($file);
   }
 }
