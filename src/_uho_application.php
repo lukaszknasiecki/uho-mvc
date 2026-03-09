@@ -265,7 +265,6 @@ class _uho_application
         if ($pre) $cfg = array_replace_recursive($pre,$cfg);
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
-print_r($cfg);
         // 2nd PHASE: load hosts
         $cfg_domains=[];
         foreach ($pre_additional_cfg_files as $v) {
