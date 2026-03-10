@@ -9,6 +9,10 @@ To setup run:
 
 `composer install`
 
+Or for production environment:
+
+`composer install --no-dev`
+
 ## System requirements
 
 This project is using PHP8.2+ and mySQL
@@ -63,6 +67,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 You can perform framework unit tests with:
 
+`composer install`
 `composer require --dev phpunit/phpunit`
 `composer test`
 
