@@ -53,6 +53,25 @@ UHO-MVC is a PHP Model-View-Controller (MVC) framework designed for building web
 composer install
 ```
 
+Some libraries are optional, if you want to use Google/Facebook Auth, please add:
+
+```bash
+composer require "google/apiclient": "^2.12.1"
+composer require "facebook/graph-sdk": "^5.1"
+```
+
+For advanced S3 management (upload, cache), add:
+
+```bash
+composer require "aws/aws-sdk-php-resources": "^0.3.0"
+```
+
+_uho_mailer Gmail support:
+
+```bash
+composer require "league/oauth2-google": "^4.0.1"
+```
+
 ### 2. Project Structure
 
 A typical UHO-MVC application follows this structure:
