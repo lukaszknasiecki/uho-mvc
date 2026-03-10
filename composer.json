@@ -11,13 +11,15 @@
     ],
     "require": {
         "php": ">=8.1",
+        "james-heinrich/phpthumb": "^1.7.23",
         "twig/twig": "^3.3",
+        "phpmailer/phpmailer": "^6.7.1",
+        "google/analytics-data": "^0.10.1"
+    },
+    "suggest":{
         "google/apiclient": "^2.12.1",
         "aws/aws-sdk-php-resources": "^0.3.0",
-        "phpmailer/phpmailer": "^6.7.1",
         "league/oauth2-google": "^4.0.1",
-        "google/analytics-data": "^0.10.1",
-        "james-heinrich/phpthumb": "^1.7.23",
         "facebook/graph-sdk": "^5.1"
     },
     "autoload": {
