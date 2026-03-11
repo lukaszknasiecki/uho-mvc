@@ -125,6 +125,16 @@
             }
         }
     },
+    "blocks": {
+        "allowed": {
+            "cms": {
+                "wide": "boolean"
+            },
+            "settings": {
+                "media": "string"
+            }
+        }
+    },
     "html": {
         "allowed": {
             "cms": {

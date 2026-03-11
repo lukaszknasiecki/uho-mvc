@@ -1366,6 +1366,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             $data[$k][$v2['field']] = floatval($data[$k][$v2['field']]);
                             break;
                         case "json":
+                        case "blocks":
 
                             if (strpos(@$v2['field'], ':lang')) {
                                 $v3 = explode(':', $v2['field']);
@@ -1722,6 +1723,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $skip_safe = true;
                         break;
                     case "json":
+                    case "blocks":
                         if (is_array($v)) $v = json_encode($v, true);
                         break;
                     case "select":

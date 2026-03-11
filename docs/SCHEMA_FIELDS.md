@@ -73,6 +73,7 @@ some work only with specified field types.
 
 ### Special Types
 
+* `blocks`: Build content from blocks, using [editorjs](https://github.com/editor-js)
 * `html`: HTML content (TEXT)
 * `model`: Get external model
 * `order`: Ordering/sorting field
@@ -118,6 +119,8 @@ some work only with specified field types.
 
 Here is a list of field types and properties which work with these types:
 
+* `blocks`:
+  * `settings.media` (`string`)
 * `boolean`:
   * `settings.default` (`boolean` | `integer`)
 * `date`:

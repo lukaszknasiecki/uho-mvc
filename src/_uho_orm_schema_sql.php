@@ -52,7 +52,7 @@ class _uho_orm_schema_sql
                     $type = 'int(11)';
                     break;
                 case "blocks":
-                    $type = 'json';
+                    $type = 'longtext';
                     break;
                 case "uid":
                     $type = 'varchar(13)';
@@ -68,9 +68,10 @@ class _uho_orm_schema_sql
                 case "boolean":
                     $type = 'tinyint(4)';
                     break;
-                case "text":
-                case "html":
+
                 case "json":
+                case "text":
+                case "html":                
                 case "table":
                     $type = 'text';
                     if (!empty($v['settings']['long']) && $v['settings']['long'])
@@ -265,6 +266,7 @@ class _uho_orm_schema_sql
                     $query = 'ALTER TABLE `' . $schema['table'] . '` CHANGE `' . $v['Field'] . '` `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL'; else $query .= ' NOT NULL';
                     if ($v['Default']) $query .= ' DEFAULT '.$v['Default'];
+                    exit($query);
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                 }
 
