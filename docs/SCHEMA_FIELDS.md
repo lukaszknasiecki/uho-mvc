@@ -120,6 +120,7 @@ some work only with specified field types.
 Here is a list of field types and properties which work with these types:
 
 * `blocks`:
+  * `settings.decode` (`boolean|string`)
   * `settings.media` (`string`)
 * `boolean`:
   * `settings.default` (`boolean` | `integer`)

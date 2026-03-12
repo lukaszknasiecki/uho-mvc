@@ -931,6 +931,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         $data = $this->getUpdateRecords($model, $data);
         $data = $this->getUpdateRecordsMedia($model, $data, $fields_auto);
+        $data = $this->getUpdateRecordsBlocks($model, $data);
 
         /**
          * Update fields of type 'model'
@@ -1374,11 +1375,201 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             } else $field0 = @$v2['field'];
 
                             $data[$k][$field0] = @json_decode($v[$field0], true);
+
                             break;
                     }
 
 
         return $data;
+    }
+
+    protected function getUpdateRecordsBlocks($model, $data)
+    {
+
+
+
+        foreach ($data as $k => $v)
+            foreach ($model['fields'] as $v2) {
+
+                $field = $v2['field'] ?? null;
+
+                switch ($v2['type']) {
+
+                    case "blocks":
+
+                        if (!empty($v2['settings']['decode'])) {
+                            if (!empty($v2['settings']['media']))
+                                $media = $v[$v2['settings']['media']] ?? null;
+                            else $media = null;
+
+                            $data[$k][$field] = $this->getUpdateRecordsBlocksDecode(
+                                $data[$k][$field],
+                                $v2['settings']['decode'],
+                                $media
+                            );
+                        }
+
+                        break;
+                }
+            }
+
+        return $data;
+    }
+
+    private function getUpdateRecordsBlocksDecode($source, $decode_settings, $media)
+    {
+
+        if (empty($source)) return $source;
+
+        if (isset($source['time']) && is_array($source['blocks'])) $type = 'editorjs';
+        else $type = null;
+
+        if (!$type) return $source;
+
+        switch ($type) {
+            case "editorjs":
+                $source = $this->getUpdateRecordsBlocksEditorJsDecode(
+                    $source['blocks'],
+                    $media,
+                    [
+                        'html_convert' => true,
+                        'html_join' => true,
+                        'media_convert' => true
+                    ]
+                );
+
+                break;
+        }
+
+        return $source;
+    }
+
+    private function getUpdateRecordsBlocksEditorJsDecode($blocks, $media, $params)
+    {
+
+
+        // convert blocks to html
+
+        if (!empty($params['html_convert']))
+        {
+            foreach ($blocks as $k => $v) {
+                
+                switch ($v['type']) {
+                    case "paragraph":
+                        $html = '<p>' . $v['data']['text'] . '</p>';
+                        break;
+                    case "header":
+                        $html = '<h' . $v['data']['level'] . '>' . $v['data']['text'] . '</h' . $v['data']['level'] . '>';
+                        break;
+                    case "list":
+                        if ($v['data']['style'] == 'ordered') {
+                            $html = '<ol>';
+                            foreach ($v['data']['items'] as $v2) {
+                                $html .= '<li>' . $v2 . '</li>';
+                            }
+                            $html .= '</ol>';
+                        } else {
+                            $html = '<ul>';
+                            foreach ($v['data']['items'] as $v2) {
+                                $html .= '<li>' . $v2 . '</li>';
+                            }
+                            $html .= '</ul>';
+                        }
+
+                        break;
+                        default:
+                            $html = null;
+                }
+
+                if ($html)
+                    $blocks[$k] = [
+                        'id' => $v['id'],
+                        'type' => 'html',
+                        'data' => ['html' => $html]
+                    ];
+            }
+        }
+
+
+
+
+        // join HTML blocks
+    
+        if (!empty($params['html_join'])) {
+            foreach ($blocks as $k => $v)
+                if ($k > 0 && $v['type'] == 'html') {
+                    $v_prev = $blocks[$k - 1];
+                    if ($v_prev['type'] == 'html') {
+                        $blocks[$k]['data']['html'] = $v_prev['data']['html'].$blocks[$k]['data']['html'];
+                        unset($blocks[$k - 1]);
+                    }
+                }
+            $blocks = array_values($blocks);
+        }
+
+        // media
+
+        if (!empty($params['media_convert'])) {
+
+            foreach ($blocks as $k => $block) {
+
+                switch ($block['type'])
+                {
+
+                    case "image":
+
+                        $img = $block['data']['file']['url'];
+                        $img = basename($img);
+                        $img = explode('.', $img)[0];
+                        $media_item = _uho_fx::array_filter($media, 'uid', $img, ['first' => true]);
+                        if ($media_item) {
+                            $blocks[$k] = [
+                                'type' => 'image',
+                                'data' =>
+                                [
+                                    'caption' => $block['data']['caption'] ?? '',
+                                    'image' => $media_item['image']
+                                ]
+                            ];
+                        } else unset($blocks[$k]);
+                        
+                        break;
+
+                    case "carousel":
+
+                        $items = $block['data'];
+
+                        foreach ($items as $kk => $img_block) {
+                            $img = basename($img_block['url']);
+                            $img = explode('.', $img)[0];
+                            $media_item = _uho_fx::array_filter($media, 'uid', $img, ['first' => true]);
+                            if ($media_item) {
+                                $items[$kk] = ['type' => 'media', 'image' => $media_item['image'], 'caption' => $img_block['caption'] ?? ''];
+                            } else unset($items[$k]);
+                        }
+
+                        if ($items) {
+                            $blocks[$k] = [
+                                'type' => 'gallery',
+                                'data' =>
+                                [
+                                    'items' => array_values($items)
+                                ]
+                                ];
+                        } else unset($blocks[$k]);
+
+                        break;
+
+                        default:
+                            break;
+                }
+            }
+
+            $blocks = array_values($blocks);
+        }
+
+        
+        return $blocks;
     }
 
     /**
@@ -1711,8 +1902,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         break;
                     case "timestamp":
                         $v = (new \DateTimeImmutable($v, new \DateTimeZone(date_default_timezone_get())))
-                                ->setTimezone(new \DateTimeZone('UTC'))
-                                ->format('Y-m-d H:i:s');
+                            ->setTimezone(new \DateTimeZone('UTC'))
+                            ->format('Y-m-d H:i:s');
                         break;
                     case "float":
                         $v = floatval($v);

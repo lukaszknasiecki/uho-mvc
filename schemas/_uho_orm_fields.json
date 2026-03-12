@@ -131,7 +131,8 @@
                 "wide": "boolean"
             },
             "settings": {
-                "media": "string"
+                "media": "string",
+                "decode": "boolean|string"
             }
         }
     },
