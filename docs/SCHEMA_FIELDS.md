@@ -150,7 +150,7 @@ Here is a list of field types and properties which work with these types:
   * `settings.extensions` (`array`): array of available image extensions, if not defined only `jpg` is being used
   * `settings.extension_field` (`string`): points to an external field with image extension, if not specified `jpg` is being used, if value is blank, first extension from `settings.extensions` is taken
   * `settings.field_exists` (`string`): points to boolean field which marks if image exists and will be returned (true) or not (false)
-  * `settings.sizes` (`string`): points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`
+  * `settings.sizes` (`string|boolean`): if string - points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`, if boolean TRUE gets image sizes on-fly
   * `settings.webp` (`boolean`)
   * `images` (`array`): required, array with image sizes
   * `images.filename` (`string`): filename pattern, default is `{{uid}}.jpg`

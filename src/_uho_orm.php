@@ -1397,14 +1397,25 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                     case "blocks":
 
-                        if (!empty($v2['settings']['decode'])) {
+                        if (!empty($v2['settings']['decode']))
+                        {
+                            $default=[
+                                'html_convert' => true,
+                                'html_join' => true,
+                                'media_convert' => true
+                            ];
+
+                            if (is_array($v2['settings']['decode']))
+                                $decode_settings = array_merge($default, $v2['settings']['decode']);
+                                else $decode_settings = $default;
+
                             if (!empty($v2['settings']['media']))
                                 $media = $v[$v2['settings']['media']] ?? null;
                             else $media = null;
 
                             $data[$k][$field] = $this->getUpdateRecordsBlocksDecode(
                                 $data[$k][$field],
-                                $v2['settings']['decode'],
+                                $decode_settings,
                                 $media
                             );
                         }
@@ -1670,7 +1681,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             $v2['settings']['folder'] = $this->getTemplate($v2['settings']['folder'], $v);
 
                             /*
-                                optional: add image sizes
+                                optional: add image sizes via stored values in separate field
                             */
 
                             if ($this->addImageSizes && !empty($v2['settings']['sizes'])) {
@@ -1682,7 +1693,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 update filename patterns
                             */
 
-                            foreach ($v2['images'] as $v4) {
+                            foreach ($v2['images'] as $v4)
+                            {
 
                                 if (isset($v4['filename'])) {
                                     $filename0 = $this->getTemplate($v4['filename'], $v, true);
@@ -1697,9 +1709,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 $m[$image_id] = str_replace('//', '/', $m[$image_id]);
 
                                 /*
-                                    optional - add image size
-                                */
-                                if (isset($v4['size'])) {
+                                    optional - add image size on-fly
+                                */                                    
+                                if (
+                                    isset($v4['size']) || (!empty($v2['settings']['sizes']) && $v2['settings']['sizes']===true)
+                                    
+                                    )
+                                {
                                     $this->fieldImageAddSize($m[$image_id]);
                                 } elseif (isset($v2['server'])) $this->updateFieldImageAddServer($m[$image_id], $v2['server']);
                                 /*
