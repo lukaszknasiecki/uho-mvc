@@ -266,7 +266,6 @@ class _uho_orm_schema_sql
                     $query = 'ALTER TABLE `' . $schema['table'] . '` CHANGE `' . $v['Field'] . '` `' . $v['Field'] . '` ' . $v['Type'];
                     if ($v['Null']) $query .= ' NULL'; else $query .= ' NOT NULL';
                     if ($v['Default']) $query .= ' DEFAULT '.$v['Default'];
-                    exit($query);
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                 }
 
