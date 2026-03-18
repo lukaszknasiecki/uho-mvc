@@ -92,11 +92,28 @@ some work only with specified field types.
       "options":
       [
           { "value": "book" },
-          { "value": "record" }
+          { "value": "record" },
           { "value": "movie" }
       ]      
   }
   ```
+
+Alternative versions of `options` format:
+
+```json
+      "options": ["book","record","movie"]          
+  ```
+
+  ```json
+      "options":
+      {
+          "book":"Book",
+          "record": "Record",
+          "move": "Movie"
+      }
+  ```
+
+
 * `source (object)`: Populate options from another model or table, works with types: `select`, `elements`, `checkboxes`.
 
   ```json

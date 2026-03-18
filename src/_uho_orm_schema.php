@@ -189,11 +189,28 @@ class _uho_orm_schema
                     unset($model['fields'][$k2]['include']);
                 }
 
+
         // updating image/video fields  ------------------------------------------------------------
+        // normalizing settings to valid format
+
         $uid = false;
 
         if (isset($model['fields']) && is_array($model['fields']))
             foreach ($model['fields'] as $k => $v)
+            {
+
+                // options property format
+                //  { key1:value1}, {key2:value2} --> [ {key:key1,value:value1}, {..} ]
+                if (!empty($v['options']) && is_array($v['options']) && empty($v['options'][0]))
+                    {
+                        foreach ($v['options'] as $key=>$label)
+                            $v['options'][$key]=['value'=>$key,'label'=>$label];
+                        
+                        $model['fields'][$k]['options']=$v['options']=array_values($v['options']);
+                        
+                    }
+
+                // check by type
                 switch ($v['type']) {
 
                     case "checkboxes":
@@ -288,6 +305,7 @@ class _uho_orm_schema
 
                         break;
                 }
+            }
 
         if ($uid && !_uho_fx::array_filter($model['fields'], 'field', 'uid')) {
             $model['fields'][] = ['type' => 'uid', 'field' => 'uid', 'cms' => ['list' => 'read']];

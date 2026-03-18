@@ -138,13 +138,14 @@
     },
     "html": {
         "allowed": {
-            "cms": {
+            "cms": {                
                 "style": "string",
                 "width": "integer",
                 "wide": "boolean",
                 "rows": "integer"
             },
             "settings": {
+                "lang": "string",
                 "long": "boolean",
                 "media": "string",
                 "media_field": "string"
@@ -247,6 +248,7 @@
     "string": {
         "allowed": {
             "settings": {
+                "lang": "string",
                 "length": "integer",
                 "case": "boolean",
                 "hash": true
@@ -264,14 +266,15 @@
         }
     },
     "text": {
-        "allowed": {
+        "allowed": {            
             "cms": {
                 "rows": "integer",
                 "width": "integer",
                 "wide": "boolean",
-                "style": "string"
+                "style": "string"                
             },
             "settings": {
+                "lang": "string",
                 "long": "boolean",
                 "hash": "string",
                 "hashable": "boolean"
@@ -281,6 +284,7 @@
     "table": {
         "allowed": {
             "settings": {
+                "lang": "string",
                 "fields": "boolean",
                 "format": "string",
                 "function": "string",
