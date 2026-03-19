@@ -185,9 +185,10 @@ class _uho_view
     /**
      * Register all custom Twig filters.
      */
-    private function registerTwigFilters(): void
+
+    public function getUhoMvcTwigFilters(): array
     {
-        $filters = [
+        return [
             new TwigFilter('base64_encode', fn($string) => base64_encode($string)),
 
             new TwigFilter('ucwords', function ($string, $params) {
@@ -279,6 +280,11 @@ class _uho_view
             }, ['needs_context' => true]),
         ];
 
+    }
+
+    private function registerTwigFilters(): void
+    {
+        $filters = $this->getUhoMvcTwigFilters();
         foreach ($filters as $filter) {
             $this->twig->addFilter($filter);
         }
