@@ -29,17 +29,6 @@ Replaces `[` and `]` characters in a string with HTML tags or custom strings.
 
 ---
 
-## `date`
-
-Converts a date value to a localised long or short string via `_uho_fx::convertSingleDate()`. Uses the view's current language setting. The optional `format` parameter defaults to `'long'`.
-
-```twig
-{{ article.date | date }}
-{{ article.date | date('short') }}
-```
-
----
-
 ## `date_PL`
 
 Reformats a date string from `YYYY-MM-DD` to Polish dot notation `DD.MM.YYYY`.
@@ -161,6 +150,17 @@ Extracts the `HH:MM` portion from a datetime string (characters 12–16, i.e. `Y
 
 ```twig
 {{ event.datetime | time }}   {# "2024-03-19 14:30:00" → "14:30" #}
+```
+
+---
+
+## `uho_fx_date`
+
+Converts a date value to a localised long or short string via `_uho_fx::convertSingleDate()`. Uses the view's current language setting. The optional `format` parameter defaults to `'long'`.
+
+```twig
+{{ article.date | uho_fx_date }}
+{{ article.date | uho_fx_date('short') }}
 ```
 
 ---

@@ -258,7 +258,7 @@ class _uho_view
             ),
 
             new TwigFilter(
-                'date',
+                'uho_fx_date',
                 fn($value,$format='long') =>
                 _uho_fx::convertSingleDate($value,$this->lang,$format)
             ),
