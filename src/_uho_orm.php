@@ -86,6 +86,7 @@ use Huncwot\UhoFramework\_uho_orm_schema_sql;
  * 
  * FILE/IMAGE UPLOAD METHODS (Delegated to _uho_orm_upload)
  * - uploadBase64Image($model_name, $record_id, $field_name, $image)
+ * - uploadSrcImage($model_name, $record_id, $field_name, $image_src)
  * - uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
  * - removeImage($model_name, $record_id, $field_name)
  * - setTempPublicFolder($folder)
@@ -1397,9 +1398,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                     case "blocks":
 
-                        if (!empty($v2['settings']['decode']))
-                        {
-                            $default=[
+                        if (!empty($v2['settings']['decode'])) {
+                            $default = [
                                 'html_convert' => true,
                                 'html_join' => true,
                                 'media_convert' => true
@@ -1407,7 +1407,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                             if (is_array($v2['settings']['decode']))
                                 $decode_settings = array_merge($default, $v2['settings']['decode']);
-                                else $decode_settings = $default;
+                            else $decode_settings = $default;
 
                             if (!empty($v2['settings']['media']))
                                 $media = $v[$v2['settings']['media']] ?? null;
@@ -1461,10 +1461,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         // convert blocks to html
 
-        if (!empty($params['html_convert']))
-        {
+        if (!empty($params['html_convert'])) {
             foreach ($blocks as $k => $v) {
-                
+
                 switch ($v['type']) {
                     case "paragraph":
                         $html = '<p>' . $v['data']['text'] . '</p>';
@@ -1488,8 +1487,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         }
 
                         break;
-                        default:
-                            $html = null;
+                    default:
+                        $html = null;
                 }
 
                 if ($html)
@@ -1505,13 +1504,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
 
         // join HTML blocks
-    
+
         if (!empty($params['html_join'])) {
             foreach ($blocks as $k => $v)
                 if ($k > 0 && $v['type'] == 'html') {
                     $v_prev = $blocks[$k - 1];
                     if ($v_prev['type'] == 'html') {
-                        $blocks[$k]['data']['html'] = $v_prev['data']['html'].$blocks[$k]['data']['html'];
+                        $blocks[$k]['data']['html'] = $v_prev['data']['html'] . $blocks[$k]['data']['html'];
                         unset($blocks[$k - 1]);
                     }
                 }
@@ -1524,8 +1523,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             foreach ($blocks as $k => $block) {
 
-                switch ($block['type'])
-                {
+                switch ($block['type']) {
 
                     case "image":
 
@@ -1543,7 +1541,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 ]
                             ];
                         } else unset($blocks[$k]);
-                        
+
                         break;
 
                     case "carousel":
@@ -1566,20 +1564,20 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 [
                                     'items' => array_values($items)
                                 ]
-                                ];
+                            ];
                         } else unset($blocks[$k]);
 
                         break;
 
-                        default:
-                            break;
+                    default:
+                        break;
                 }
             }
 
             $blocks = array_values($blocks);
         }
 
-        
+
         return $blocks;
     }
 
@@ -1693,8 +1691,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                                 update filename patterns
                             */
 
-                            foreach ($v2['images'] as $v4)
-                            {
+                            foreach ($v2['images'] as $v4) {
 
                                 if (isset($v4['filename'])) {
                                     $filename0 = $this->getTemplate($v4['filename'], $v, true);
@@ -1710,12 +1707,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                                 /*
                                     optional - add image size on-fly
-                                */                                    
+                                */
                                 if (
-                                    isset($v4['size']) || (!empty($v2['settings']['sizes']) && $v2['settings']['sizes']===true)
-                                    
-                                    )
-                                {
+                                    isset($v4['size']) || (!empty($v2['settings']['sizes']) && $v2['settings']['sizes'] === true)
+
+                                ) {
                                     $this->fieldImageAddSize($m[$image_id]);
                                 } elseif (isset($v2['server'])) $this->updateFieldImageAddServer($m[$image_id], $v2['server']);
                                 /*
@@ -2608,6 +2604,16 @@ public function getTwigFromHtml(string $html, array $data): ?string
     {
         return $this->uploadManager->uploadBase64Image($model_name, $record_id, $field_name, $image);
     }
+
+    /**
+     * Add src image (filename) to the model
+     * Delegates to Upload Manager
+     */
+    public function uploadSrcImage($model_name, $record_id, $field_name, $image_src)
+    {
+        return $this->uploadManager->uploadSrcImage($model_name, $record_id, $field_name, $image_src);
+    }
+
 
     /**
      * Upload image to the model

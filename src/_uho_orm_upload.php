@@ -83,6 +83,23 @@ class _uho_orm_upload
     }
 
     /**
+     * Add src image to the model
+     */
+    public function uploadSrcImage($model_name, $record_id, $field_name, $image_src)
+    {
+        $schema = $this->orm->getSchema($model_name);
+        if ($image_src) $record = $this->orm->get($model_name, ['id' => $record_id], true);
+        else $record = null;
+
+        if ($schema && $record && isset($record[$field_name])) {
+            return $this->uploadImage($schema, $record, $field_name, null, $image_src);
+        }
+
+        return false;
+    }
+
+
+    /**
      * Upload image to the model
      * -- if $image is set - it's raw data source
      * -- if temp_filename - we are using this as a source
@@ -108,7 +125,8 @@ class _uho_orm_upload
         /* create original image */
 
         $extension = 'jpg';
-        $filename = str_replace($field['settings']['filename'], '%uid%', $record['uid']) . '.' . $extension;
+        $filename = $field['settings']['filename'] ?? '%uid%';
+        $filename = str_replace($filename, '%uid%', $record['uid']) . '.' . $extension;
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 
