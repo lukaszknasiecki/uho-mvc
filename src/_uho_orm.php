@@ -1052,7 +1052,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $v3 = explode(':', $v3);
                         if (isset($v3[1])) $v3 = $v3[1];
                         else $v3 = $v3[0];
-                        if (@$v2['output'] == 'string')
+                        if (@$v2['settings']['output'] == 'string')
                             $f4[$k3] = $v3;
                         else $f4[$k3] = intval($v3);
                     }
@@ -1073,7 +1073,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $v3 = explode(':', $v3);
                         if (isset($v3[1])) $v3 = $v3[1];
                         else $v3 = $v3[0];
-                        if (isset($v2['output']) && $v2['output'] == 'string') $f4[$k3] = $v3;
+                        if (isset($v2['settings']['output']) && $v2['settings']['output'] == 'string') $f4[$k3] = $v3;
                         else $f4[$k3] = intval($v3);
                     }
 
@@ -1193,12 +1193,12 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             $elements = explode(',', $v[$v2['field']]);
 
                             foreach ($elements as $k3 => $v3)
-                                if (intval($v3) || (isset($v2['output']) && $v2['output'] == 'string' && $v3)) {
+                                if (intval($v3) || (isset($v2['settings']['output']) && $v2['settings']['output'] == 'string' && $v3)) {
                                     $v3 = explode(':', $v3);
                                     if (isset($v3[1])) $v3 = $v3[1];
                                     else $v3 = $v3[0];
 
-                                    if (isset($v2['output']) && $v2['output'] == 'string')
+                                    if (isset($v2['settings']['output']) && $v2['settings']['output'] == 'string')
                                         $elements[$k3] = $v2['source']['data'][($v3)];
                                     elseif (isset($v2['source']['data'][intval($v3)]))
                                         $elements[$k3] = $v2['source']['data'][intval($v3)];
