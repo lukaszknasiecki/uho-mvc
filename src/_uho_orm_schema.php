@@ -364,7 +364,6 @@ class _uho_orm_schema
 
         $model['fields'] = $fields;
 
-
         return $model;
     }
 

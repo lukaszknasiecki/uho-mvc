@@ -752,7 +752,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if (empty($model['fields']))
             $this->halt('_uho_orm::get->.fields not found in schema [' . @$name . ']');
 
-
         /**
          * get from schema:
          * limits fields to read from schema.fields_to_read object if needed
@@ -887,6 +886,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if ($return_query) return $query;
 
         $data = $this->query($query);
+
 
         /**
          * Return system COUNT(*) and AVG()
@@ -1353,8 +1353,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * Update values by type
          */
 
-        $id = _uho_fx::array_filter($model['fields'], 'type', 'id', array('first' => true));
-        if (!$id) $model['fields'][] = ['type' => 'integer', 'field' => 'id'];
+        $id_name = _uho_fx::array_filter($model['fields'], 'field', 'id', array('first' => true));
+        $id_type = _uho_fx::array_filter($model['fields'], 'type', 'id', array('first' => true));
+
+        if (!$id_name && !$id_type) $model['fields'][] = ['type' => 'integer', 'field' => 'id'];
 
         foreach ($data as $k => $v)
             foreach ($model['fields'] as $v2)
