@@ -240,20 +240,51 @@ class model_app_api extends \Huncwot\UhoFramework\_uho_model_api
 
 ## API Sub-models
 
-Each route maps to a sub-model class file: `model_app_api_{class}.php`.
+Each route maps to final endpoint class file: `model_app_api_{class}.php` which
+should extend `_uho_model_api_endpoint` class.
 
 The class must implement methods named after HTTP verbs: `get`, `post`, `put`, `patch`, `delete`.
 
-### Method signature
+### Input validation
+
+Input sent via GET/POST or url can be validated and sanitized automatically using static variables:
 
 ```php
-public function get($user_id, $params, $data, $cfg): array
+    protected static $GET_ALLOWED_FIELDS = [
+        'id' => ['integer', 'string']
+    ];
+
+    protected static $GET_REQUIRED_FIELDS = [
+        'id'
+    ];
+
+    protected static $POST_ALLOWED_FIELDS = [
+        'title' => 'string',
+        'author' => 'string'
+    ];
+
+    protected static $POST_REQUIRED_FIELDS = [
+        'title'
+    ];
+```
+
+### Method signature
+
+For non-authorized requests use:
+
+```php
+public function get($data, $cfg): array
+```
+
+For authorized requests use:
+
+```php
+public function get($user_id, $data, $cfg): array
 ```
 
 | Parameter  | Type         | Description                                              |
 |------------|--------------|----------------------------------------------------------|
 | `$user_id` | int\|null    | Authenticated user ID, or `null` for unauthenticated requests |
-| `$params`  | array        | Wildcard URL segments captured from the route pattern    |
 | `$data`    | array        | Merged request data (query string + body)                |
 | `$cfg`     | array        | Application config                                       |
 
@@ -272,7 +303,7 @@ return ['header' => 400, 'result' => false, 'error' => 'Invalid input'];
 
 class model_app_api_products extends \Huncwot\UhoFramework\_uho_model
 {
-    public function get($user_id, $params, $data, $cfg): array
+    public function get($user_id, $data, $cfg): array
     {
         if (!empty($params[0])) {
             // GET /api/products/{id}
@@ -285,7 +316,7 @@ class model_app_api_products extends \Huncwot\UhoFramework\_uho_model
         return ['header' => 200, 'result' => true, 'items' => $items];
     }
 
-    public function post($user_id, $params, $data, $cfg): array
+    public function post($user_id, $data, $cfg): array
     {
         if (!$user_id) return ['header' => 401, 'result' => false, 'error' => 'Unauthorized'];
 

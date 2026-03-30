@@ -39,7 +39,7 @@ class _uho_model_api extends _uho_model
     }
     public function setPathModels($path)
     {
-        $this->models_path=$path;
+        $this->models_path = $path;
     }
 
     public function request($method, $action, $data, $cfg)
@@ -68,32 +68,29 @@ class _uho_model_api extends _uho_model
             if (!$input_auth) $input_auth = _uho_fx::resolveRoute($method . '.' . $action, $this->routing['auth']);
         }
 
-        $rest=[];
+        $rest = [];
 
-        if (!empty($input_auth['class']))
-        {
-            $rest=[
-                'class'=>$input_auth['class'],
-                'params'=>$input_auth['params'],
-                'captcha'=>$this->captcha['auth']
+        if (!empty($input_auth['class'])) {
+            $rest = [
+                'class' => $input_auth['class'],
+                'params' => $input_auth['params'],
+                'captcha' => $this->captcha['auth']
+            ];
+        } elseif (!empty($input['class'])) {
+            $rest = [
+                'class' => $input['class'],
+                'params' => $input['params'],
+                'captcha' => $this->captcha['no_auth']
             ];
         }
-        elseif (!empty($input['class']))
-            {
-              $rest=[
-                'class'=>$input['class'],
-                'params'=>$input['params'],
-                'captcha'=>$this->captcha['no_auth']
-                ];
-            }
 
-        if ($rest)
-        {
+        if ($rest) {
             // Check legacy captcha list (before class name transformation)
             $requires_captcha = in_array($rest['class'], $rest['captcha']);
 
             $rest['class'] = str_replace('-', '_', $rest['class']);
-            require_once($this->models_path."model_app_api_" . $rest['class'] . ".php");
+
+            require_once($this->models_path . "model_app_api_" . $rest['class'] . ".php");
             $class_name = 'model_app_api_' . $rest['class'];
             $object = new $class_name($this, null);
 
@@ -103,17 +100,37 @@ class _uho_model_api extends _uho_model
                 $requires_captcha = !empty($reflection->getAttributes(\Huncwot\UhoFramework\Attributes\RequiresCaptcha::class));
             }
 
-            if ($requires_captcha)
-            {
+            if ($requires_captcha) {
                 $result = _uho_rest::captcha($captcha, $this->getApiKey('google_recaptcha', 'private'));
                 $allowed = ($result === true);
             } else $allowed = true;
 
-            if ($allowed)
-            {
-                if (method_exists($object,$method))
-                    $result = $object->$method(null, $rest['params'], $data, $cfg);
-                    else $result = ['result' => false, 'header' => '404', 'error' => 'Method not supported'];
+            if ($allowed) {
+                if (method_exists($object, $method)) {
+
+                    // handle validation / required fields if defined
+
+                    if ($object instanceof _uho_model_api_endpoint)
+                    {
+                        $validation = _uho_rest::validateRequest([
+                            'sanitize' => [
+                                [
+                                    'value'     => $rest['params'],
+                                    'supported' => $object->getSupported($method),
+                                    'required'  => $object->getRequired($method)
+                                ]
+                            ]
+                        ]);
+
+                        if (!empty($validation['header'])) return $validation;
+
+                        $result = $object->$method($validation['sanitize'][0]['value'],$cfg);
+                        
+
+                    }
+                    else
+                        $result = $object->$method(null, $rest['params'], $data, $cfg);
+                } else $result = ['result' => false, 'header' => '404', 'error' => 'Method not supported'];
             } else $result = ['result' => false, 'header' => '404', 'error' => 'Captcha missing'];
         } else
         // unknown path

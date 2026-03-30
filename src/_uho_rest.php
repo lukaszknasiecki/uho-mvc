@@ -156,6 +156,9 @@ class _uho_rest
         foreach ($allowed as $key => $v)
             if (!empty($data[$key])) $result[$key] = $data[$key];
 
+
+        
+
         // sanitize
         return _uho_fx::sanitize_input($result, $allowed);
     }

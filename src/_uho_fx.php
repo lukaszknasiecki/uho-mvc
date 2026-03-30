@@ -194,12 +194,21 @@ class _uho_fx
         $output = [];
 
         foreach ($keys  as $k => $v) {
-            if (is_array($v) && isset($input[$k])) {
-                $output[$k] = [];
-                foreach ($input[$k] as $kk => $vv)
-                    $output[$k][$kk] = _uho_fx::sanitize_input($vv, $v[0]);
-            } else
-            if (isset($input[$k]))
+
+            // if type is array
+            if (is_array($v) && isset($input[$k]))
+            {
+                
+                $valid=null;
+                
+                foreach ($v as $k2 => $type)
+                {                    
+                    if (empty($valid[$k]))
+                        $valid = _uho_fx::sanitize_input($input, [$k=>$type]);
+                }
+                $output[$k]=$valid[$k];
+            }
+            elseif (isset($input[$k]))
                 switch ($v) {
                     case "string":
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
