@@ -3,10 +3,6 @@
 namespace Huncwot\UhoFramework;
 
 use Huncwot\UhoFramework\_uho_fx;
-use Huncwot\UhoFramework\_uho_social;
-use Huncwot\UhoFramework\_uho_controller;
-use Huncwot\UhoFramework\_uho_model;
-use Huncwot\UhoFramework\_uho_orm;
 use Huncwot\UhoFramework\_uho_route;
 use Huncwot\UhoFramework\_uho_mysqli;
 
@@ -86,6 +82,8 @@ class _uho_application
                 session_start();
             }
         }
+
+        $this->checkAccess();
 
         $application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
         $application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
@@ -241,7 +239,7 @@ class _uho_application
 
         // load default config and additional configs
 
-        array_unshift($pre_additional_cfg_files,__DIR__. '/Configs');
+        array_unshift($pre_additional_cfg_files, __DIR__ . '/Configs');
 
         $pre = [];
         foreach ($pre_additional_cfg_files as $v) {
@@ -262,20 +260,20 @@ class _uho_application
             $additional = @file_get_contents($this->root_path . $folder . '/config_additional.json');
         }
 
-        if ($pre) $cfg = array_replace_recursive($pre,$cfg);
+        if ($pre) $cfg = array_replace_recursive($pre, $cfg);
         if ($additional) $cfg = array_merge($cfg, json_decode($additional, true));
 
         // 2nd PHASE: load hosts
-        $cfg_domains=[];
+        $cfg_domains = [];
         foreach ($pre_additional_cfg_files as $v) {
             if (file_exists($v . '/hosts.php')) include($v . '/hosts.php');
         }
 
         $pre_cfg_domains = $cfg_domains;
-        $cfg_domains=[];
+        $cfg_domains = [];
         @include($hosts_folder . '/hosts.php');
 
-        $cfg_domains = array_replace_recursive($pre_cfg_domains,$cfg_domains);
+        $cfg_domains = array_replace_recursive($pre_cfg_domains, $cfg_domains);
 
         $hostname = @gethostname();
 
@@ -345,7 +343,7 @@ class _uho_application
         if (isset($cfg['application_domain']))
             $cfg['cookie_alert'] = str_replace('.', '_', $cfg['application_domain']) . '_cookie_alert';
         else $cfg['cookie_alert'] = 'cookie_alert';
-        
+
         $cfg['application_class'] = 'app';
 
         return ($cfg);
@@ -409,6 +407,33 @@ class _uho_application
             exit($message);
         } else {
             exit('System error. Please, try again later.');
+        }
+    }
+
+    /*
+        Ask for password if ENV.APP_PASSWORD is set
+        Format: username:hashed_password using Bcrypt (.htpasswd like)
+    */
+        
+    private function checkAccess()
+    {
+        $access = getenv('APP_PASSWORD');
+        if ($access) $access = explode(':', $access);
+        
+        if (count($access)==2 && !isset($_SESSION['uhomvc_auth']))
+        {
+            if (
+                isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) &&
+                $_SERVER['PHP_AUTH_USER'] === $access[0] &&
+                password_verify($_SERVER['PHP_AUTH_PW'], $access[1])
+            ) {
+                $_SESSION['uhomvc_auth'] = true;
+            } else {
+                header('WWW-Authenticate: Basic realm="Access protected area"');
+                header('HTTP/1.0 401 Unauthorized');
+                echo 'Auth required';
+                exit;
+            }
         }
     }
 }

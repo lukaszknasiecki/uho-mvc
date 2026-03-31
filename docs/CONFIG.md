@@ -26,9 +26,12 @@ Application settings, useful for debug, versioning and caching.
 | `APP_CACHE_MINUTES` | `24H` | Max time of cached items. |
 | `APP_CACHE_SALT` | `'uho'` | Encryption key for caching. |
 | `APP_DEV_MODE` | `0` | Development mode — shows errors. |
+| `APP_PASSWORD` | `user:password_bcrypt_hash` | Asks for a password before app runs. |
 | `APP_SQL_DEBUG` | `0` | SQL debug mode — shows SQL queries in comments. |
 | `APP_UPLOAD_SERVER` | null | Http server to read file uploads |
 | `APP_UHO_ORM` | `1` | ORM version (`1`/`2`). |
+
+For password hash you can use https://hostingcanada.org/htpasswd-generator/, choose Bcrypt.
 
 ## HOST based ENVs/Secrets
 
