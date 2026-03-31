@@ -418,7 +418,7 @@ class _uho_application
     private function checkAccess()
     {
         $access = getenv('APP_PASSWORD');
-        if ($access) $access = explode(':', $access);
+        if ($access) $access = explode(':', $access); else return;
         
         if (count($access)==2 && !isset($_SESSION['uhomvc_auth']))
         {
