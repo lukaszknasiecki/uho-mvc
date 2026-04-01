@@ -4,6 +4,7 @@ namespace Huncwot\UhoFramework;
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
+use Aws\Credentials\CredentialProvider;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\CloudFront\CloudFrontClient;
 use Huncwot\UhoFramework\_uho_orm;
@@ -82,6 +83,18 @@ class _uho_s3
                 'key' =>    $config['key'],
                 'secret' => $config['secret']
             ];
+        elseif (!empty($config['credentials']))
+        {
+            switch ($config['credentials'])
+            {
+                case 'ECS':
+
+                $provider = CredentialProvider::ecsCredentials();
+                $memoizedProvider = CredentialProvider::memoize($provider);
+                $cfg['credentials'] = $memoizedProvider;
+                break;
+            }
+        }
 
         if (!empty($config['compress'])) $this->setCompress($config['compress']);
         if (!empty($params['compress'])) $this->setCompress($params['compress']);
