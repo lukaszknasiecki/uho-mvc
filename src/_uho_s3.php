@@ -63,9 +63,9 @@ class _uho_s3
     {
         $validate = [
             'region',
-            'bucket',
-            'key',
-            'secret'
+            'bucket'
+            //'key',
+            //'secret'
         ];
 
         foreach ($validate as $v)
@@ -74,12 +74,14 @@ class _uho_s3
 
         $cfg = [
             'region' =>     $config['region'],
-            'version' =>    'latest',
-            'credentials' => [
+            'version' =>    'latest'
+        ];
+
+        if (isset($config['key']) && isset($config['secret']))
+            $cfg['credentials'] = [
                 'key' =>    $config['key'],
                 'secret' => $config['secret']
-            ]
-        ];
+            ];
 
         if (!empty($config['compress'])) $this->setCompress($config['compress']);
         if (!empty($params['compress'])) $this->setCompress($params['compress']);
@@ -115,7 +117,7 @@ class _uho_s3
                 $this->cache = $_SESSION['_uho_s3_cache'];            
             }
         }
-        
+     
     }
 
     public function ready(): bool
