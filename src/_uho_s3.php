@@ -77,7 +77,7 @@ class _uho_s3
             'version' =>    'latest'
         ];
 
-        if (isset($config['key']) && isset($config['secret']))
+        if (!empty($config['key']) && !empty($config['secret']))
             $cfg['credentials'] = [
                 'key' =>    $config['key'],
                 'secret' => $config['secret']
