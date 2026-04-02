@@ -31,6 +31,11 @@ Create `application/models/json/items.json`:
         "slug": "{{slug}}"
     },
     "order": "created_at DESC",
+    "search":
+    [
+        "id",
+        "title"
+    ],
     "fields": [
         {
             "field": "id",
@@ -73,12 +78,13 @@ Create `application/models/json/items.json`:
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
 | `table` | string | yes | Database table name this schema maps to |
-| `url` | object | no | URL pattern for each record, resolved by the router |
-| `order` | string/object | no | Default ordering for queries |
-| `filters` | object/array | no | Default filters applied to all queries |
 | `children` | object | no | Nested schemas fetched via `orm.getDeep` |
+| `filters` | object/array | no | Default filters applied to all queries |
 | `fields_to_read` | object | no | Named sets of fields returned by `orm.get` |
 | `fields` | array | yes | Array of field definitions |
+| `order` | string/object | no | Default ordering for queries |
+| `search` | array | no | Fields to be included into page search (filter button) |
+| `url` | object | no | URL pattern for each record, resolved by the router |
 
 ### `table` (string)
 
@@ -138,6 +144,32 @@ Default filters applied to all queries for this model:
 "filters": {
     "active": 1,
     "published": true
+}
+```
+
+### `search` (array)
+
+List of fields to be used if "filters" buttons is clicked, to search/filter through
+the records.
+
+```json
+"search": {
+    "title",
+    "name"
+}
+```
+
+You can also mark those fields with adding `cms.search=true` to any field.
+Please, note that this field needs to be listed in the page view, with `cms.list` property.
+
+```json
+{
+    "field": "title",
+    "cms": {
+        "label":"Title"
+        "list":"show",
+        "search":true
+    }
 }
 ```
 

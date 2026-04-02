@@ -222,7 +222,7 @@
             }
         }
     },
-    "order": {},
+    "order": {},    
     "select": {
         "allowed": {
             "cms": {

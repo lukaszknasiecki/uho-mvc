@@ -613,6 +613,7 @@ class _uho_orm_schema
             'table' => ['type' => 'string'],
             'url' => ['type' => ['string', 'array']],
             // uho-cms only
+            'search' => ['type' => ['array']],
             'langs' => ['type' => ['array']],
             'shortcuts' => ['type' => ['array']],
             'sortable' => ['type' => ['array']],
