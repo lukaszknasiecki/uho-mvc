@@ -440,8 +440,15 @@ class _uho_orm_schema
         foreach ($schema['fields'] as $k => $v)
             if (isset($v['source']['model'])) {
                 $model_schema = $this->getSchema($v['source']['model']);
+                // depreceated
                 if (isset($model_schema['model']))
                     foreach ($model_schema['model'] as $k2 => $v2)
+                        if (!isset($v['source'][$k2])) {
+                            $schema['fields'][$k]['source'][$k2] = $v2;
+                        }
+                // current
+                if (!empty($model_schema['cms']['output']))
+                    foreach ($model_schema['cms']['output'] as $k2 => $v2)
                         if (!isset($v['source'][$k2])) {
                             $schema['fields'][$k]['source'][$k2] = $v2;
                         }
@@ -472,9 +479,12 @@ class _uho_orm_schema
                 if (isset($v['source']['order'])) $order = 'ORDER BY ' . $v['source']['order'];
                 else $order = '';
 
-                if ($v['source']['model']) {
+                if ($v['source']['model'])
+                {
                     if (!empty($v['source']['model_fields'])) $params0 = ['fields' => $v['source']['model_fields']];
                     else $params0 = [];
+
+                    $params0['use_cms_order']=true;
 
                     $t = $this->orm->get(
                         $v['source']['model'],
@@ -592,32 +602,36 @@ class _uho_orm_schema
             Main Properties
         */
 
-        $properties = [
+        $properties_cms = [
             'buttons_edit' => ['type' => ['array']],
             'buttons_page' => ['type' => ['array']],
-            'children' => ['type' => ['array']],
-            'data' => ['type' => ['array']],
-            'disable' => ['type' => ['array']],
-            'fields' => ['type' => 'array'],
-            'fields_to_read' => ['type' => 'array'],
+            'disable' => ['type' => ['array']],            
             'filters' => ['type' => ['array']],
-            'include' => ['type' => ['string']],
-            'label' => ['type' => ['string', 'array']],
-            'layout' => ['type' => ['array']],
             'help' => ['type' => ['string']],
             'helper_models' => ['type' => ['array']],
-            'model' => ['type' => ['array']],
-            'model_name' => ['type' => ['string']],
-            'order' => ['type' => ['array']],
-            'page_update' => ['type' => ['string']],
-            'table' => ['type' => 'string'],
-            'url' => ['type' => ['string', 'array']],
-            // uho-cms only
+            'label' => ['type' => ['string', 'array']],
+            'layout' => ['type' => ['array']],
+            'order' => ['type' => ['array','string']],
+            'output' => ['type' => ['array']],
             'search' => ['type' => ['array']],
-            'langs' => ['type' => ['array']],
             'shortcuts' => ['type' => ['array']],
             'sortable' => ['type' => ['array']],
-            'structure' => ['type' => ['array']],
+            'langs' => ['type' => ['array']],       // added by the cms
+            'structure' => ['type' => ['array']],   // added by the cms
+        ];
+
+        $properties = [
+            'cms' => ['type' => ['array']],
+            'children' => ['type' => ['array']],
+            'data' => ['type' => ['array']],
+            'fields' => ['type' => 'array'],
+            'fields_to_read' => ['type' => 'array'],
+            "model_name" => ['type' => ['string']],
+            'order' => ['type' => ['array']],
+            'include' => ['type' => ['string']],
+            'page_update' => ['type' => ['string']],
+            'table' => ['type' => 'string'],
+            'url' => ['type' => ['string', 'array']]            
         ];
 
         if (empty($schema))
@@ -627,6 +641,8 @@ class _uho_orm_schema
         {
             $errors[] = 'Missing required property [table] or [include].';
         }   
+
+        // main properties
 
         foreach ($properties as $property => $rules) {
             if (!empty($rules['required']) && !isset($schema[$property])) {
@@ -646,6 +662,28 @@ class _uho_orm_schema
                 $errors[] = 'Property [' . $property . '] unknown.';
             }
         }
+
+        // cms properties        
+        foreach ($properties_cms as $property => $rules)
+        {
+            if (!empty($rules['required']) && !isset($schema['cms'][$property])) {
+                $errors[] = 'Missing required property [cms.' . $property . '].';
+            } elseif (isset($schema['cms'][$property]))
+            {
+                $expected_type = $rules['type'];
+                if (!is_array($expected_type)) $expected_type = [$expected_type];
+                $actual_type = gettype($schema['cms'][$property]);
+                if (!in_array($actual_type, $expected_type)) {
+                    $errors[] = 'Property [cms.' . $property . '] type invalid: expected ' . implode(' || ', $expected_type) . ', found ' . $actual_type . '.';
+                }
+            }
+        }
+
+        foreach ($schema['cms'] as $property => $value) {
+            if (!isset($properties_cms[$property])) {
+                $errors[] = 'CMS Property [' . $property . '] unknown.';
+            }
+        }        
 
 
         if (!empty($schema['fields']) && is_array($schema['fields'])) {

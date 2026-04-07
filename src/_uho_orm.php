@@ -712,7 +712,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         $name_string = $name;
 
-
         // checks if SQL connection has been established
 
         $this->sqlCheckConnection('get::' . $name_string);
@@ -746,11 +745,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 $this->halt($model['message']);
         }
 
-
         if (empty($model['table']))
             $this->halt('_uho_orm::get->.table not found in schema [' . @$name . ']');
         if (empty($model['fields']))
             $this->halt('_uho_orm::get->.fields not found in schema [' . @$name . ']');
+
+        if (empty($model['order']) && !empty($model['cms']['order']) && !empty($params['use_cms_order'])) 
+            $model['order'] = $model['cms']['order'];
 
         /**
          * get from schema:
