@@ -3,7 +3,7 @@
         "allowed": {
             "cms": {
                 "description": "string|array",
-                "edit": "boolean",
+                "edit": "boolean|array",
                 "help": "string|array",
                 "hidden": "boolean",
                 "hr": "boolean",
@@ -139,7 +139,7 @@
     },
     "html": {
         "allowed": {
-            "cms": {                
+            "cms": {
                 "style": "string",
                 "width": "integer",
                 "wide": "boolean",
@@ -213,6 +213,21 @@
             }
         }
     },
+    "model": {
+        "field":false,
+        "allowed": {
+            "cms":{
+                "table": "array",
+                "counter":"boolean"
+            },
+            "settings": {
+                "filters": "array",
+                "schema": "string",
+                "fields": "array",
+                "order":"string"
+            }
+        }
+    },
     "plugin": {
         "field": false,
         "allowed": {
@@ -223,7 +238,7 @@
             }
         }
     },
-    "order": {},    
+    "order": {},
     "select": {
         "allowed": {
             "cms": {
@@ -267,12 +282,12 @@
         }
     },
     "text": {
-        "allowed": {            
+        "allowed": {
             "cms": {
                 "rows": "integer",
                 "width": "integer",
                 "wide": "boolean",
-                "style": "string"                
+                "style": "string"
             },
             "settings": {
                 "lang": "string",

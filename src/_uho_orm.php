@@ -29,6 +29,7 @@ use Huncwot\UhoFramework\_uho_orm_schema_sql;
  * 
  * Twig utility methods
  * - getTwigFromHtml($html, $data)
+ * - getTwigFromModel($model, $data)
  * - getTwigFromFile($folder, $file, $data)
  * - getTemplate($vv, $v, $twig = false)
  * 
@@ -283,6 +284,19 @@ class _uho_orm
             }
         }
         return $html;
+    }
+
+    public function getTwigFromModel(array $model, array $data): array
+    {
+        if (empty($model)) return $model;
+
+        foreach ($model as $k => $v)
+            if (is_string($v))
+                $model[$k] = $this->getTwigFromHtml($v, $data);
+            elseif (is_array($v))
+                $model[$k] = $this->getTwigFromModel($v, $data);
+        
+        return $model;
     }
 
 /*
@@ -1032,7 +1046,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     if (empty($v2['settings']['order'])) $v2['settings']['order'] = '';
                     if (!empty($v2['settings']['filters']))
                         $v2['settings']['filters'] = _uho_fx::arrayReplace($v2['settings']['filters'], $v, '%', '%');
-                    $data[$k][$v2['field']] = $this->get($v2['settings']['schema'], $v2['settings']['filters'], false, $v2['settings']['order']);
+                    $data[$k][$v2['field']] = $this->get(
+                        [
+                            'schema' => $v2['settings']['schema'],
+                            'filters' => isset($v2['settings']['filters']) ? $this->getTwigFromModel($v2['settings']['filters'], $v) : null,
+                            'order' => $v2['settings']['order'] ?? null,
+                            'fields' => $v2['settings']['fields'] ?? null
+                        ]
+                    );
+                    
                 }
                 /**
                  * for fields with no field specified - doing nothing

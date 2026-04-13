@@ -180,6 +180,7 @@ Here is a list of field types and properties which work with these types:
 * `model`: Get external model
   * `settings.schema` (`string`): name of model's schema
   * `settings.filters` (`array`): array of filters
+  * `settings.fields` (`array`): array of fields to be read
   * `settings.order` (`string`): order of results
 * `select`:
   * `settings.default` (`integer|string`)
