@@ -2,6 +2,7 @@
     "_all": {
         "allowed": {
             "cms": {
+                "access": "string",
                 "description": "string|array",
                 "edit": "boolean|array",
                 "help": "string|array",

@@ -605,6 +605,7 @@ class _uho_orm_schema
         $properties_cms = [
             'buttons_edit' => ['type' => ['array']],
             'buttons_page' => ['type' => ['array']],
+            'access'=> ['type' => ['string']],
             'disable' => ['type' => ['array']],            
             'filters' => ['type' => ['array']],
             'help' => ['type' => ['string']],

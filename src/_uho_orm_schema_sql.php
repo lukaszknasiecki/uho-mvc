@@ -417,10 +417,10 @@ class _uho_orm_schema_sql
                             case "checkboxes":
 
                                 $iDigits = 8;
-                                if (@$field['output'] == '4digits') $iDigits = 4;
-                                if (@$field['output'] == '6digits') $iDigits = 6;
-                                if (@$field['output'] == '8digits') $iDigits = 8;
-                                if (@$field['output'] == 'string') $iDigits = 0;
+                                if (@$field['settings']['output'] == '4digits') $iDigits = 4;
+                                if (@$field['settings']['output'] == '6digits') $iDigits = 6;
+                                if (@$field['settings']['output'] == '8digits') $iDigits = 8;
+                                if (@$field['settings']['output'] == 'string') $iDigits = 0;
 
                                 if ($eq == '!=' && !$v) {
                                 // skipping standard !=''

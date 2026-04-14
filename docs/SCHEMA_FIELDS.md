@@ -147,11 +147,11 @@ Here is a list of field types and properties which work with these types:
   * `settings.default` (`string`)
   * `settings.format` (`string`): converts value to ISO8601 format in UTC timezone, accepts `ISO8601` or `UTC`
 * `checkboxes`:
-  * `settings.output` (`string`)
+  * `settings.output` (`string`): sets format of number stored, 8digits is default, available: 4digits, 6digits, string
 * `elements`:
   * `settings.length` (`integer`)
   * `settings.multiple_filters` (`string`): can be set to `&&` or `||` (default) to join filter values on GET
-  * `settings.output` (`string`)
+  * `settings.output` (`string`): sets format of number stored, 8digits is default, available: 4digits, 6digits, string
 * `file`:
   * `settings.filename` (`string`)
   * `settings.folder` (`string`)
