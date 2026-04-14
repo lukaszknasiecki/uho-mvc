@@ -14,6 +14,7 @@
                 "label_PL": "string",
                 "label_EN": "string",
                 "list": "string|array",
+                "nav": "array",
                 "position_after": "string",
                 "search": "boolean|string",
                 "tab": "string|array",

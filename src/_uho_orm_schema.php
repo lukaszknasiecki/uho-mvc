@@ -612,6 +612,7 @@ class _uho_orm_schema
             'helper_models' => ['type' => ['array']],
             'label' => ['type' => ['string', 'array']],
             'layout' => ['type' => ['array']],
+            'nav' => ['type' => ['array']],
             'order' => ['type' => ['array','string']],
             'output' => ['type' => ['array']],
             'search' => ['type' => ['array']],
