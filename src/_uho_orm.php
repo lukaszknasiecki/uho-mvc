@@ -751,7 +751,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if (!empty($predefined_schema))
             $model = $predefined_schema;
-        elseif (isset($params['page_update'])) {
+        elseif (isset($params['schema_update'])) {
             $model = $this->getSchemaWithPageUpdate($name);
         } else {
             $model = $this->getSchema($name, false, ['return_error' => true]);
@@ -2223,7 +2223,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     public function put($model, $data, $filters = null, $multiple = false, $params = []): int|bool
     {
-        if (isset($params['page_update']))
+        if (isset($params['schema_update']))
             $schema = $this->getSchemaWithPageUpdate($model, true);
         else $schema = $this->getSchema($model, true);
 

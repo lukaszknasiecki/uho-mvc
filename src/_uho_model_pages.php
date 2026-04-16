@@ -130,7 +130,7 @@ class _uho_model_pages extends _uho_model
 	*/
     private function updatePage($page, $urlArr, $getArr)
     {
-        $page['modules'] = $this->get('pages_modules', ['parent' => $page['id'], 'active' => 1], false, 'level', null, ['page_update' => true]);
+        $page['modules'] = $this->get('pages_modules', ['parent' => $page['id'], 'active' => 1], false, 'level', null, ['schema_update' => true]);
         $page['modules'] = $this->updateModules($page['modules'], $urlArr, $getArr);
         $page['title'] = $this->ogGet()['title'];
 

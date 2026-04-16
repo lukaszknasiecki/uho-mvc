@@ -49,7 +49,8 @@ class _uho_orm_schema
             $inital_names = [];
             $model = [];
             foreach ($name as $k => $v)
-                if ($v) {
+                if ($v)
+                {
                     if (is_array($v)) {
                         $name = $v['model'];
                         $position_after = @$v['position_after'];
@@ -59,8 +60,9 @@ class _uho_orm_schema
                     }
 
                     if (is_array($name)) $this->orm->halt('_uho_orm::getSchema::model as array');
-
+                    
                     $m = $this->loader->loadJsonSchema($name);
+                    
 
                     if ($k > 0 && isset($m['fields']))
                         foreach ($m['fields'] as $kk => $_) {
@@ -378,9 +380,10 @@ class _uho_orm_schema
     {
         $d = $this->getSchema($name, $lang);
 
-        if (isset($d['page_update'])) {
-            if (!is_array($d['page_update'])) $d['page_update'] = ['file' => $d['page_update']];
-            $pattern = $d['page_update']['file'];
+        if (isset($d['schema_update']))
+        {            
+            if (!is_array($d['schema_update'])) $d['schema_update'] = ['file' => $d['schema_update']];
+            $pattern = $d['schema_update']['file'];
 
             $models = [];
             $d = $this->updateSchemaSources($d);
@@ -614,7 +617,7 @@ class _uho_orm_schema
             'layout' => ['type' => ['array']],
             'nav' => ['type' => ['array']],
             'order' => ['type' => ['array','string']],
-            'output' => ['type' => ['array']],
+            'output' => ['type' => ['array']],            
             'search' => ['type' => ['array']],
             'shortcuts' => ['type' => ['array']],
             'sortable' => ['type' => ['array']],
@@ -631,7 +634,7 @@ class _uho_orm_schema
             "model_name" => ['type' => ['string']],
             'order' => ['type' => ['array']],
             'include' => ['type' => ['string']],
-            'page_update' => ['type' => ['string']],
+            'schema_update' => ['type' => ['string','array']],
             'table' => ['type' => 'string'],
             'url' => ['type' => ['string', 'array']]            
         ];

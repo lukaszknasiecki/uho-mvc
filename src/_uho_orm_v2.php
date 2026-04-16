@@ -414,7 +414,7 @@ class _uho_orm_v2 extends _uho_orm
     public function put($model, $data, $filters = null, $multiple = false, $params = []): int|bool
     {
         if (is_string($model)) {
-            if (isset($params['page_update'])) {
+            if (isset($params['schema_update'])) {
                 $schema = $this->getSchemaWithPageUpdate($model, true);
             } else {
                 $schema = $this->getSchema($model, true);
@@ -681,7 +681,7 @@ class _uho_orm_v2 extends _uho_orm
 
         if (!empty($predefined_schema)) {
             $model = $predefined_schema;
-        } elseif (isset($params['page_update'])) {
+        } elseif (isset($params['schema_update'])) {
             $model = $this->getSchemaWithPageUpdate($name);
         } else {
             $model = $this->getSchema($name, false, ['return_error' => true]);

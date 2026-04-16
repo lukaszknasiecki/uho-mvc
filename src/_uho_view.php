@@ -293,8 +293,11 @@ class _uho_view
     /**
      * Apply Polish typography filter (szewce).
      */
-    private function applySzewce(string $string): string
+    private function applySzewce($string): string
     {
+        if (!$string) {
+            return '';
+        }
         // Single letter conjunctions
         $value = preg_replace('/(\s([\w]{1})\s)/u', ' ${2}&nbsp;', $string);
 

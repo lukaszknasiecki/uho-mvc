@@ -14,7 +14,7 @@
                 "label_PL": "string",
                 "label_EN": "string",
                 "list": "string|array",
-                "nav": "array",
+                "nav": "array",                
                 "position_after": "string",
                 "search": "boolean|string",
                 "tab": "string|array",
@@ -65,6 +65,9 @@
             "cms": {
                 "auto": "array",
                 "style": "string"
+            },
+            "settings": {
+                "default": "string"
             }
         }
     },

@@ -525,5 +525,32 @@ class _uho_model
         }
     }
 
-    //============================================================================================
+        /**
+     * TWIG template util
+     * @param string $html
+     * @param array $data
+     * @return string
+     */
+
+    public function getTwigFromHtml($html, $data)
+    {
+        if ($html && is_string($html) && is_array($data)) {
+            $twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
+
+            // --- declination
+            $twig_filter_declination = new \Twig\TwigFilter('declination', function ($context, $string, $params) {
+                $result = $params[_uho_fx::utilsNumberDeclinationPL($string) - 1];
+                if ($params[3])
+                    $result = $string . ' ' . $result;
+                return $result;
+            }, ['needs_context' => true]);
+
+            $twig->addFilter($twig_filter_declination);
+
+
+            $template = $twig->createTemplate($html);
+            $html = $template->render($data);
+        }
+        return $html;
+    }
 }
