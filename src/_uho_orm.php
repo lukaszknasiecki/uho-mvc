@@ -1411,9 +1411,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     protected function getUpdateRecordsBlocks($model, $data)
     {
-
-
-
         foreach ($data as $k => $v)
             foreach ($model['fields'] as $v2) {
 
@@ -1439,7 +1436,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             else $media = null;
 
                             $data[$k][$field] = $this->getUpdateRecordsBlocksDecode(
-                                $data[$k][$field],
+                                $data[$k][$field] ?? [],
                                 $decode_settings,
                                 $media
                             );
