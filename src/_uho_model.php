@@ -88,7 +88,6 @@ class _uho_model
     public function __construct($sql, $lang, $salt = null, $lang_model = null, $params = null)
     {
         $this->sql = $sql;
-
         $this->lang = $lang;
         if ($lang_model === null && $lang) {
             $this->lang_add = '_' . strtoupper($lang);
@@ -121,7 +120,6 @@ class _uho_model
         if (isset($_SERVER['HTTPS']) || isset($_SERVER['SSL_PROTOCOL'])) $this->http_server = 'https://';
         else $this->http_server = 'http://';
         $this->http_server .= $_SERVER['HTTP_HOST'];
-
 
         $orm_version = isset($params['orm_version']) ? $params['orm_version'] : 1;
 

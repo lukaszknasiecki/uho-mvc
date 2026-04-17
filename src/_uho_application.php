@@ -85,8 +85,8 @@ class _uho_application
 
         $this->checkAccess();
 
-        $application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
-        $application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
+        $this->application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
+        $this->application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
 
         // $this->application_title = @$this->application_params['application_title'];
 

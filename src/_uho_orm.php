@@ -861,11 +861,20 @@ public function getTwigFromHtml(string $html, array $data): ?string
          */
 
         if (!empty($order)) {
-            if (is_array($order) && !empty($order['type']) && !empty($order['values']) && $order['type'] == 'field')
-                $order = 'FIELD (' . implode(',', $order['values']) . ')';
-            elseif (is_array($order) && !empty($order['field']) && !empty($order['sort']))
-                $order = $order['field'] . ' ' . $order['sort'];
-            elseif (!is_string($order)) $order = '';
+            $allowed_order_fields = ['id'];
+            foreach ($model['fields'] as $_of) {
+                if (!empty($_of['field'])) $allowed_order_fields[] = $_of['field'];
+            }
+
+            if (is_array($order) && !empty($order['type']) && !empty($order['values']) && $order['type'] == 'field') {
+                $safe_values = array_filter($order['values'], fn($v) => in_array($v, $allowed_order_fields, true));
+                $order = !empty($safe_values) ? 'FIELD (' . implode(',', $safe_values) . ')' : '';
+            } elseif (is_array($order) && !empty($order['field']) && !empty($order['sort'])) {
+                $sort = strtoupper($order['sort']);
+                if (in_array($order['field'], $allowed_order_fields, true) && in_array($sort, ['ASC', 'DESC'], true))
+                    $order = '`' . $order['field'] . '` ' . $sort;
+                else $order = '';
+            } elseif (!is_string($order)) $order = '';
         }
 
         if ($order) $query_order = ' ORDER BY ' . $order;
