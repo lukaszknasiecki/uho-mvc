@@ -295,7 +295,7 @@ class _uho_orm
                 $model[$k] = $this->getTwigFromHtml($v, $data);
             elseif (is_array($v))
                 $model[$k] = $this->getTwigFromModel($v, $data);
-        
+
         return $model;
     }
 
@@ -764,7 +764,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if (empty($model['fields']))
             $this->halt('_uho_orm::get->.fields not found in schema [' . @$name . ']');
 
-        if (empty($model['order']) && !empty($model['cms']['order']) && !empty($params['use_cms_order'])) 
+        if (empty($model['order']) && !empty($model['cms']['order']) && !empty($params['use_cms_order']))
             $model['order'] = $model['cms']['order'];
 
         /**
@@ -1063,7 +1063,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             'fields' => $v2['settings']['fields'] ?? null
                         ]
                     );
-                    
                 }
                 /**
                  * for fields with no field specified - doing nothing
@@ -1375,7 +1374,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     $field = array_shift($v3);
                 } else $field = @$v2['field'];
 
-                if (isset($data[$k][$field])) {
+                if (isset($k) && isset($field) && !empty($data[$k][$field])) {
                     $data[$k][$field] = $this->updateFieldValue($v2['type'], $data[$k][$field], $v2);
                 }
             }
@@ -2264,17 +2263,29 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             return true;
         }
-        // ---------------------------------------------------------------------------
-        // other version, older
-        if ($multiple) {
-            $f = [];
-            $fields = [];
-            foreach ($data as $v) {
-                foreach ($v as $k2 => $_)
-                    if (!in_array($k2, $fields)) $fields[] = $k2;
+        // other version, no filters
 
-                $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $v));
+        if ($multiple)
+        {
+
+            $f = [];
+
+            foreach ($data as $v)
+            {
+                $vv=[];
+                foreach ($v as $k2 => $val)
+                if (empty($params['uid']) || in_array($k2, $params['uid']))
+                {
+                    $vv[$k2] = $val;
+                }
+    
+                $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $vv));
             }
+
+            if (empty($params['uid'])) $fields=array_keys($data[0]);
+                else $fields=$params['uid'];
+
+        
             $exists = 'SELECT id,' . implode(',', $fields) . ' FROM ' . $schema['table'] . ' WHERE (' . implode(') || (', $f) . ')';
             $exists = $this->query($exists);
 
@@ -2282,11 +2293,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $update = [];
 
             if ($exists)
-                foreach ($insert as $k => $v) {
+                foreach ($insert as $k => $v)
+                {
                     $exact = false;
                     foreach ($exists as $k2 => $v2) {
                         unset($v2['id']);
-                        if ($v == $v2) {
+                        if (array_intersect_key($v,array_flip($fields))
+                            == array_intersect_key($v2,array_flip($fields))) {
                             $exact = true;
                             $id = $exists[$k2]['id'];
                         }
@@ -2299,17 +2312,19 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 }
 
 
-            if ($insert) $this->post($model, $insert, true);
-            if ($update) {
+
+            if ($insert) $result=$this->post($model, $insert, true); else $result=true;
+            if ($result!==false && $update)
+            {
                 foreach ($update as $k => $v) {
                     unset($v['id']);
                     $data = $this->buildOutputQuery($schema, $v);
                     $query = 'UPDATE ' . $schema['table'] . ' SET ' . $data . ' WHERE id=' . $update[$k]['id'];
 
-                    $this->queryOut($query);
+                    $result=$this->queryOut($query);
                 }
             }
-            return true;
+            return $result;
         } elseif ($filters) {
             $where = $this->getFilters($schema, $filters);
         } else {

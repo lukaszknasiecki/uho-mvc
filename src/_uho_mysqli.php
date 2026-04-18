@@ -432,6 +432,67 @@ class _uho_mysqli
     }
 
     /**
+     * Runs prepared INSERT ... ON DUPLICATE KEY UPDATE query (upsert)
+     * @param string $table - table name
+     * @param array $params - array of [type, value, field_name] tuples
+     * @param array $uniqueKeys - field names that are unique/primary keys (excluded from UPDATE clause)
+     * @return int|false - returns insert_id on success, false on failure
+     */
+    public function upsertPrepared(string $table, array $params, array $uniqueKeys = [])
+    {
+        if (empty($this->base_link) || empty($params)) {
+            return false;
+        }
+
+        $fields = [];
+        $placeholders = [];
+        $types = '';
+        $values = [];
+
+        foreach ($params as $p) {
+            $fields[] = '`' . $p[2] . '`';
+            $placeholders[] = '?';
+            $types .= $p[0];
+            $values[] = $p[1];
+        }
+
+        $updateFields = [];
+        foreach ($params as $p) {
+            if (!in_array($p[2], $uniqueKeys)) {
+                $updateFields[] = '`' . $p[2] . '`=VALUES(`' . $p[2] . '`)';
+            }
+        }
+
+        $query = 'INSERT INTO `' . $table . '` (' . implode(',', $fields) . ') VALUES (' . implode(',', $placeholders) . ')';
+
+        if (!empty($updateFields)) {
+            $query .= ' ON DUPLICATE KEY UPDATE ' . implode(',', $updateFields);
+        }
+
+        $this->addQueryLog($query);
+        $this->iQuery++;
+
+        $stmt = $this->base_link->prepare($query);
+        if (!$stmt) {
+            $this->errorAdd($query . ' ... ' . $this->base_link->error);
+            return false;
+        }
+
+        if (count($values) > 0) {
+            $stmt->bind_param($types, ...$values);
+        }
+
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $this->errorAdd($query . ' ... ' . $stmt->error);
+            return false;
+        }
+
+        return $this->base_link->insert_id;
+    }
+
+    /**
      * Runs prepared UPDATE query
      * @param string $table - table name
      * @param array $setParams - array of [type, value, field_name] tuples for SET clause
