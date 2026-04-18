@@ -1103,20 +1103,26 @@ class _uho_fx
         if (!$string) return $string;
         if ($extra_key) $secret_key = 'q' . $keys[0] . $extra_key;
         else $secret_key = 'q' . $keys[0] . '2';
-        $secret_iv = '4' . $keys[1] . 'x';
 
         $output = false;
         $encrypt_method = "AES-256-CBC";
-        // hash
         $key = hash('sha256', $secret_key);
 
-        // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
-        $iv = substr(hash('sha256', $secret_iv), 0, 16);
         if ($action == 'encrypt') {
-            $output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
-            $output = base64_encode($output);
+            $iv = random_bytes(16);
+            $raw = openssl_encrypt($string, $encrypt_method, $key, OPENSSL_RAW_DATA, $iv);
+            $output = 'v2|' . base64_encode($iv . $raw);
         } elseif ($action == 'decrypt') {
-            $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
+            if (substr($string, 0, 3) === 'v2|') {
+                $raw = base64_decode(substr($string, 3));
+                $iv = substr($raw, 0, 16);
+                $output = openssl_decrypt(substr($raw, 16), $encrypt_method, $key, OPENSSL_RAW_DATA, $iv);
+            } else {
+                // legacy: decrypt values encrypted before the random-IV migration
+                $secret_iv = '4' . $keys[1] . 'x';
+                $iv = substr(hash('sha256', $secret_iv), 0, 16);
+                $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
+            }
         }
         return $output;
     }

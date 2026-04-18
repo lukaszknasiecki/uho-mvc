@@ -178,12 +178,16 @@ class _uho_model_api extends _uho_model
     {
         if (empty($token)) $token = _uho_rest::getBearerToken();
 
+        /* test disabled */
+        /*
         if (!empty($token) && $token == 'test') {
             $token = $this->get('client_tokens', ['type' => 'session', 'user' => 1], true);
         } elseif (substr($token, 0, 5) == 'user_') {
             return ['header' => 200, 'result' => true, 'message' => 'TEST Authorization valid', 'user' => intval(substr($token, 5))];
         } else
-    if (!empty($token))
+        */
+    
+        if (!empty($token))
             $token = $this->get('client_tokens', ['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
 
         if (!empty($token))
