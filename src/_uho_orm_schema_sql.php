@@ -405,7 +405,12 @@ class _uho_orm_schema_sql
                     $or = null;
 
                     if (isset($field['settings']['hash']) && !$this->orm->getKeys()) $this->orm->halt('_uho_orm::getFiltersQueryArray::nokeys');
-                    if (isset($field['settings']['hash'])) $v = _uho_fx::encrypt($v, $this->orm->getKeys(), $field['settings']['hash']);
+                    if (isset($field['settings']['hash']))
+                    {
+                        if ($field['settings']['hash'][0]=='~')
+                            $v = _uho_fx::encrypt($v, $this->orm->getKeys(), substr($field['settings']['hash'],1), true);
+                             else $v = _uho_fx::encrypt($v, $this->orm->getKeys(), $field['settings']['hash']);
+                    }
 
                     if ($field)
                         switch (@$field['type']) {

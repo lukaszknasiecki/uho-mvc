@@ -20,6 +20,8 @@ class _uho_model_api extends _uho_model
         'auth' => []
     ];
     private $models_path = '';
+    private $allow_form_bearer_token=false;
+
 
     public function setRoutingAuth($items)
     {
@@ -41,9 +43,14 @@ class _uho_model_api extends _uho_model
     {
         $this->models_path = $path;
     }
+    public function setFormBearerToken(bool $allow)
+    {
+        $this->allow_form_bearer_token = $allow;
+    }
 
     public function request($method, $action, $data, $cfg)
     {
+     
         if (!empty($cfg['debug'])) $this->sql->setDebug($cfg['debug']);
         $captcha = isset($data['captcha']) ? $data['captcha'] : null;
         $this->allowOptionsHeader();
@@ -51,6 +58,8 @@ class _uho_model_api extends _uho_model
         // check Auth
         $user_id = null;
         $bearer_token = _uho_rest::getBearerToken();
+        
+        if ($this->allow_form_bearer_token && !$bearer_token && !empty($data['token'])) $bearer_token = $data['token'];
 
         if ($bearer_token) {
             $result = $this->validateUserToken($bearer_token);
@@ -106,6 +115,7 @@ class _uho_model_api extends _uho_model
             } else $allowed = true;
 
             if ($allowed) {
+
                 if (method_exists($object, $method)) {
 
                     // handle validation / required fields if defined
@@ -115,7 +125,7 @@ class _uho_model_api extends _uho_model
                         $validation = _uho_rest::validateRequest([
                             'sanitize' => [
                                 [
-                                    'value'     => $rest['params'],
+                                    'value'     => $data,//rest['params'],
                                     'supported' => $object->getSupported($method),
                                     'required'  => $object->getRequired($method)
                                 ]
@@ -129,7 +139,9 @@ class _uho_model_api extends _uho_model
 
                     }
                     else
+                    {
                         $result = $object->$method(null, $rest['params'], $data, $cfg);
+                    }
                 } else $result = ['result' => false, 'header' => '404', 'error' => 'Method not supported'];
             } else $result = ['result' => false, 'header' => '404', 'error' => 'Captcha missing'];
         } else

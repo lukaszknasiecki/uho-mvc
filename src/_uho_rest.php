@@ -140,7 +140,7 @@ class _uho_rest
     public static function validateRequiredInput($data = null, $required = [])
     {
         foreach ($required as $k => $v)
-            if (empty($data[$v])) return false;
+            if (!isset($data[$v])) return false;
         return true;
     }
 
@@ -154,13 +154,11 @@ class _uho_rest
 
         // filter by allowed keys
         foreach ($allowed as $key => $v)
-            if (!empty($data[$key])) $result[$key] = $data[$key];
-
-
-        
+            if (isset($data[$key])) $result[$key] = $data[$key];
 
         // sanitize
-        return _uho_fx::sanitize_input($result, $allowed);
+        $result = _uho_fx::sanitize_input($result, $allowed);
+        return $result;
     }
 
 
@@ -198,17 +196,22 @@ class _uho_rest
             return ['header' => 405, 'error' => 'Invalid method'];
 
         // sanitize request data
-
-        if (!empty($data['sanitize'])) {
-            foreach ($data['sanitize'] as $k => $v) {
+        if (!empty($data['sanitize']))
+        {
+            foreach ($data['sanitize'] as $k => $v)
+            {
                 $data['sanitize'][$k]['value'] = _uho_rest::sanitizeInput($v['value'], $v['supported']);
+                
                 // required
-                if (!empty($v['required'])) {
+                if (!empty($v['required']))
+                {
                     $val = isset($data['sanitize'][$k]['value']) ? $data['sanitize'][$k]['value'] : null;
+                
                     if (!_uho_rest::validateRequiredInput($val, $v['required']))
                         return ['header' => 401, 'error' => 'Missing required params'];
                 }
             }
+            
         }
 
         return $data;

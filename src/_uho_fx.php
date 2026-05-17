@@ -1098,7 +1098,7 @@ class _uho_fx
      * @param string|null $extra_key Optional additional key for encryption
      * @return string|false Encrypted/decrypted string or false on failure
      */
-    public static function encrypt_decrypt($action, $string, $keys, $extra_key = null)
+    public static function encrypt_decrypt($action, $string, $keys, $extra_key = null, $deterministic = false)
     {
         if (!$string) return $string;
         if ($extra_key) $secret_key = 'q' . $keys[0] . $extra_key;
@@ -1108,10 +1108,14 @@ class _uho_fx
         $encrypt_method = "AES-256-CBC";
         $key = hash('sha256', $secret_key);
 
-        if ($action == 'encrypt') {
-            $iv = random_bytes(16);
+        if ($action == 'encrypt')
+        {
+            if ($deterministic) $iv=substr(md5($keys[0].$extra_key.$keys[1]), 0, 16);
+                else $iv = random_bytes(16);
+                
             $raw = openssl_encrypt($string, $encrypt_method, $key, OPENSSL_RAW_DATA, $iv);
             $output = 'v2|' . base64_encode($iv . $raw);
+
         } elseif ($action == 'decrypt') {
             if (substr($string, 0, 3) === 'v2|') {
                 $raw = base64_decode(substr($string, 3));
@@ -1135,9 +1139,9 @@ class _uho_fx
      * @param string|null $extra_key Optional additional key for encryption
      * @return string|false Encrypted string or false on failure
      */
-    public static function encrypt($string, $keys, $extra_key = null)
+    public static function encrypt($string, $keys, $extra_key = null, $deterministic = false)
     {
-        return _uho_fx::encrypt_decrypt('encrypt', $string, $keys, $extra_key);
+        return _uho_fx::encrypt_decrypt('encrypt', $string, $keys, $extra_key, $deterministic);
     }
 
     /**

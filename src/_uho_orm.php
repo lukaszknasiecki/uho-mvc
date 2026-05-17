@@ -801,6 +801,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             if (!empty($filters)) $model['filters'] = array_merge($model['filters'], $filters);
 
             $sql_query_filters = $this->schemaSqlManager->getFiltersQueryArray($model);
+
             if ($sql_query_filters) $sql_query_filters = 'WHERE ' . implode(' && ', $sql_query_filters);
             else $sql_query_filters = '';
         } elseif ($filters) $sql_query_filters = 'WHERE ' . $filters;
@@ -1027,7 +1028,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
             foreach ($model['fields'] as $k2 => $v2) {
 
                 if (isset($v2['settings']['hash']) && isset($data[$k][$v2['field']])) {
-                    $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['settings']['hash']);
+                    if ($v2['settings']['hash'][0]=='~')
+                        $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, substr($v2['settings']['hash'],1));
+                        else $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['settings']['hash']);
                 }
 
                 if (isset($v2['source']) && $k == 0 && @is_array($v2['source']['fields'])) {
@@ -1984,7 +1987,14 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 if (isset($v['type']) && $v['type'] == 'sql') {
                     $data[$k] = '`' . $k . '`=' . $v['value'];
                 } else {
-                    if (isset($field['settings']['hash'])) $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
+                    if (isset($field['settings']['hash']))
+                    {
+                        if ($field['settings']['hash'][0]=='~')
+                        {
+                            $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, substr($field['settings']['hash'],1), true) . '"';
+                        }
+                            else $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
+                    }
                     elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
                     elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
                     elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';

@@ -697,9 +697,10 @@ class _uho_route
                     $input = [];
 
                     if (isset($path['input']) && is_array($path['input']))
-                        foreach ($path['input'] as $vp) {
-                            if (isset($v[$vp])) {
 
+                        foreach ($path['input'] as $vp) {
+
+                            if (isset($v[$vp])) {
                                 $input[$vp] = $v[$vp];
 
                                 if (isset($path['input_format'][$vp])) {
