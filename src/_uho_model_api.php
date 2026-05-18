@@ -125,7 +125,7 @@ class _uho_model_api extends _uho_model
                         $validation = _uho_rest::validateRequest([
                             'sanitize' => [
                                 [
-                                    'value'     => $data,//rest['params'],
+                                    'value'     => array_merge($data,$rest['params']),
                                     'supported' => $object->getSupported($method),
                                     'required'  => $object->getRequired($method)
                                 ]

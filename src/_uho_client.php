@@ -1344,7 +1344,8 @@ class _uho_client
         $pass = $this->hashPass(trim($pass) . $this->salt['value']);
         break;
       case "double":
-        $pass = $this->hashPass(trim($pass . $this->salt['value'] . $salt));
+        $pass=trim($pass . $this->salt['value'] . $salt);
+        $pass = $this->hashPass($pass);
         break;
     }
 
