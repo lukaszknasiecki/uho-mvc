@@ -225,6 +225,7 @@ class _uho_application
 
         $this->controller->actionBefore($_POST, _uho_fx::getGetArray());
         $this->controller->getAppData();
+        
     }
 
     /**

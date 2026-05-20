@@ -253,7 +253,8 @@ class _uho_orm_schema
                         // migrating depreceated properties to settings
                         $v = $model['fields'][$k];
                         if (empty($v['settings'])) $v['settings'] = [];
-                        if (isset($v['filename'])) {
+                        
+                        if (empty($v['settings']['filename']) && isset($v['filename'])) {
                             $v['settings']['filename'] = $v['filename'];
                             unset($v['filename']);
                         }
@@ -261,8 +262,9 @@ class _uho_orm_schema
                             $v['settings']['folder'] = $v['folder'];
                             unset($v['folder']);
                         }
-                        $model['fields'][$k] = $v;
+                        unset($v['filename']);
 
+                        $model['fields'][$k] = $v;
 
                         break;
 
@@ -280,7 +282,7 @@ class _uho_orm_schema
                         // migrating depreceated properties to settings
                         $v = $model['fields'][$k];
                         if (empty($v['settings'])) $v['settings'] = [];
-                        if (isset($v['filename'])) {
+                        if (empty($v['settings']['filename']) && isset($v['filename'])) {
                             $v['settings']['filename'] = $v['filename'];
                             unset($v['filename']);
                         }
@@ -292,6 +294,8 @@ class _uho_orm_schema
                             $v['settings']['extension'] = $v['extension'];
                             unset($v['extension']);
                         }
+
+                        unset($v['filename']);
                         $model['fields'][$k] = $v;
 
                         break;

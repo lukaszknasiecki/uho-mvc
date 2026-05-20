@@ -750,11 +750,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
          */
 
         if (!empty($predefined_schema))
-            $model = $predefined_schema;
+        {
+            $model = $predefined_schema;            
+        }
         elseif (isset($params['schema_update'])) {
-            $model = $this->getSchemaWithPageUpdate($name);
+            $model = $this->getSchemaWithPageUpdate($name);            
         } else {
-            $model = $this->getSchema($name, false, ['return_error' => true]);
+            $model = $this->getSchema($name, false, ['return_error' => true]);            
             if (isset($model['result']) && !$model['result'])
                 $this->halt($model['message']);
         }
@@ -954,7 +956,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /**
          * Re-working all returned records
          */
-
         $data = $this->getUpdateRecords($model, $data);
         $data = $this->getUpdateRecordsMedia($model, $data, $fields_auto);
         $data = $this->getUpdateRecordsBlocks($model, $data);
@@ -1728,8 +1729,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                                 if (isset($v4['filename'])) {
                                     $filename0 = $this->getTemplate($v4['filename'], $v, true);
-                                } elseif (isset($v2['filename'])) {
-                                    $filename0 = $this->getTemplate($v2['filename'], $v, true);
+                                } elseif (isset($v2['settings']['filename'])) {
+                                    $filename0 = $this->getTemplate($v2['settings']['filename'], $v, true);
                                 } else $filename0 = $this->getTemplate('%uid%', $v);
 
                                 if (@$v4['id']) $image_id = $v4['id'];
