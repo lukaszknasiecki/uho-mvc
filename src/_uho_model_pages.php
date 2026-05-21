@@ -29,6 +29,7 @@ class _uho_model_pages extends _uho_model
     private $is404;
     private $path_modules = '';
     private $parent_vars = [];
+    public $preview_module = false;
 
     var $head = [
         'app_title' => '',
@@ -44,6 +45,17 @@ class _uho_model_pages extends _uho_model
 
         $url = empty($params['url']) ? "/" : $params['url'];
         $urlArr = explode('/', $url);
+
+        /*
+            Module Preview
+        */
+        if (!empty($_SESSION['login_session_id']) && !empty($urlArr[0]) && $urlArr[0] == 'module-preview' && !empty($urlArr[1])) {
+            $this->preview_module = true;
+            $page = ['title' => 'Module Preview'];
+            $page['modules'] = $this->get('pages_modules', ['id' => intval($urlArr[1])]);
+            $page['modules'] = $this->updateModules($page['modules'], $urlArr, []);
+            return $page;
+        }
 
         /*
 			Get page by URL
@@ -154,7 +166,7 @@ class _uho_model_pages extends _uho_model
             $modules = new _uho_model_pages_modules($this, $this->path_modules);
             $i = 0;
             foreach ($m as $k => $v) {
-                $v=$this->updateModuleCustom($v, $url, $get);
+                $v = $this->updateModuleCustom($v, $url, $get);
                 $m[$k] = $modules->updateModule($v, $url, $get);
                 if (empty($m[$k])) unset($m[$k]);
             }
@@ -240,9 +252,5 @@ class _uho_model_pages extends _uho_model
         if ($image) $this->head['image'] = $image;
     }
 
-    public function actionBefore($action, $get)
-    {
-
-    }
-
+    public function actionBefore($action, $get) {}
 }

@@ -16,6 +16,16 @@ class _uho_controller_pages extends _uho_controller
         $this->data = $this->route->updatePaths($this->data);
     }
 
+    public function getAppData(): void
+    {
+        $this->getData();
+        $this->data['global'] = [
+            'preview_module' => $this->model->preview_module
+        ];
+        $this->data['lang'] = $this->model->lang;
+    }
+
+
     /*
         gets data for <article> secition, built from modules
     */
