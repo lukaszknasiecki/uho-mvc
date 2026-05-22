@@ -313,6 +313,7 @@
                 "header": "array"
             },
             "cms": {
+                "height": "integer",
                 "wide": "boolean",
                 "counter": "boolean",
                 "style": "string"
