@@ -37,6 +37,15 @@ class _uho_model_pages extends _uho_model
     ];
 
     /*
+        Checks if UHO-CMS is open
+    */
+
+    private function isCmsSession()
+    {
+        return !empty($_SESSION['login_session_id']);
+    }
+
+    /*
 		Gets Page model based on params.url
 	*/
 
@@ -49,7 +58,7 @@ class _uho_model_pages extends _uho_model
         /*
             Module Preview
         */
-        if (!empty($_SESSION['login_session_id']) && !empty($urlArr[0]) && $urlArr[0] == 'module-preview' && !empty($urlArr[1])) {
+        if ($this->isCmsSession() && !empty($urlArr[0]) && $urlArr[0] == 'module-preview' && !empty($urlArr[1])) {
             $this->preview_module = true;
             $page = ['title' => 'Module Preview'];
             $page['modules'] = $this->get('pages_modules', ['id' => intval($urlArr[1])]);
@@ -93,7 +102,10 @@ class _uho_model_pages extends _uho_model
         $path = explode('/', $path);
         if (empty($path[0])) $path = ['home'];
 
-        $q = 'SELECT id,path FROM pages WHERE active=1 && (path LIKE ? || path LIKE ?)';
+        if ($this->isCmsSession())
+            $q = 'SELECT id,path FROM pages WHERE (path LIKE ? || path LIKE ?)';
+            else $q = 'SELECT id,path FROM pages WHERE active=1 && (path LIKE ? || path LIKE ?)';
+
         $p = $this->sql->queryPrepared($q, [
             ['s', '%;' . $path[0] . '%'],
             ['s', $path[0] . '%']
