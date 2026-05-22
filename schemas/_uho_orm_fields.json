@@ -14,7 +14,7 @@
                 "label_PL": "string",
                 "label_EN": "string",
                 "list": "string|array",
-                "nav": "array",                
+                "nav": "array",
                 "position_after": "string",
                 "search": "boolean|string",
                 "tab": "string|array",
@@ -219,17 +219,17 @@
         }
     },
     "model": {
-        "field":false,
+        "field": false,
         "allowed": {
-            "cms":{
+            "cms": {
                 "table": "array",
-                "counter":"boolean"
+                "counter": "boolean"
             },
             "settings": {
                 "filters": "array",
                 "schema": "string",
                 "fields": "array",
-                "order":"string"
+                "order": "string"
             }
         }
     },
@@ -244,6 +244,15 @@
         }
     },
     "order": {},
+    "preview": {
+        "field": false,
+        "allowed": {
+            "cms": {
+                "url_preview": "string",
+                "url_edit": "string"
+            }
+        }
+    },
     "select": {
         "allowed": {
             "cms": {
