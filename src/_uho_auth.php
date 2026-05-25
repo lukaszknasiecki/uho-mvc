@@ -119,6 +119,32 @@ class _uho_auth
     return $this->current_token;
   }
 
+  /**
+   * Updates user's profile with new data
+   * @param int $user_id user's id
+   * @param array $data data to be updated
+   * @return boolean returns true if any user exists
+   */
+
+  public function update($user_id = 0, $data = null)
+  {
+    if (!$user_id) $user_id = $this->getUserId();
+
+    $data['id'] = $user_id;
+    $result = $this->orm->put($this->clientModel, $data);
+ 
+    /*
+    $client = $this->getUser();
+    if (@$data['image'] == '[remove]')
+      $this->removeImage($client['uid']);
+    elseif (isset($data['image']))
+      $this->setImageFromUrl($data['image'], $user_id, $client['uid']);    
+    $this->getData(true);
+        */
+
+    return $result!==false;
+  }
+
 
   // -------------------------------------------------------------------------
   // Registration
@@ -242,13 +268,12 @@ class _uho_auth
 
     $data['uid'] = $this->uniqid();
 
-    if (isset($data['password']))
-    {
+    if (isset($data['password'])) {
       $pass_params = $this->encodePasswordParams($data['password']);
       $data[$this->fields['password_salt']] = $pass_params['salt'];
       $data[$this->fields['password']] = $pass_params['password'];
     }
-    
+
     $result = $this->orm->post($this->clientModel, $data);
 
     if ($result) {
