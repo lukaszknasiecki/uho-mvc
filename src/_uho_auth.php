@@ -75,15 +75,28 @@ class _uho_auth
    *
    * @param string $email
    * @param string $password plain-text password
+   * * @param string $params alternative params
    * @return array{user: array, token: string}|false user data and token on success, false on failure
    */
-  public function login($email, $password)
+  public function login($email, $password, array $params = [])
   {
-    $user = $this->getUserByParams([
-      $this->fields['password'] => $password,
-      $this->fields['email']    => $email,
-      'status'                  => 'confirmed',
-    ]);
+    $f=[];
+    $skip_pass_check=true;
+
+    if ($email && $password)
+    {
+      $f[$this->fields['password']] = $password;
+      $f[$this->fields['email']]    = $email;
+      $skip_pass_check = false;
+    }
+
+    if ($params) $f= array_merge($f, $params);
+
+    if (!$f) return false;
+
+    $f['status'] = 'confirmed';
+
+    $user = $this->getUserByParams($f, $skip_pass_check);
 
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
@@ -170,7 +183,7 @@ class _uho_auth
     if (!isset($data['lang'])) $data['lang'] = $this->lang;
     if (!isset($data['status'])) $data['status'] = 'submitted';
 
-    $exists = $this->getUserByParams([$this->fields['login'] => $data[$this->fields['login']]], false, true);
+    $exists = $this->getUserByParams([$this->fields['login'] => $data[$this->fields['login']]], true);
 
     $fields = [];
 
@@ -338,11 +351,10 @@ class _uho_auth
    * the plain-text password against the stored hash unless $skip_pass_check is true.
    *
    * @param array $params          field => value filters; may include 'password'
-   * @param bool  $skip_provider   reserved for SSO flows (unused internally)
    * @param bool  $skip_pass_check skip password verification (e.g. auto-login via cookie)
    * @return array|null user row, or null when not found or credentials are wrong
    */
-  public function getUserByParams(array $params, $skip_provider = false, $skip_pass_check = false)
+  public function getUserByParams(array $params, $skip_pass_check = false)
   {
     $filters = $params;
     $pass = isset($filters['password']) ? $filters['password'] : null;
@@ -350,9 +362,9 @@ class _uho_auth
 
     $t = $this->orm->get($this->clientModel, $filters, true);
 
-    if ($t) {
+    if ($t && !$skip_pass_check) {
       $pass = trim($pass . $this->salt['value'] . $t[$this->salt['field']]);
-      if (!$skip_pass_check && (!$pass || !password_verify($pass, $t['password']))) $t = null;
+      if (!$pass || !password_verify($pass, $t['password'])) $t = null;
     }
 
     if ($t) return $t;
@@ -501,7 +513,7 @@ class _uho_auth
       if ($token) {
         $this->current_token = $token;
         $user_id = $this->getUserIdByToken($token, 'session');
-        $this->user = $this->getUserByParams(['id' => $user_id], false, true);
+        $this->user = $this->getUserByParams(['id' => $user_id], true);
       }
     }
   }

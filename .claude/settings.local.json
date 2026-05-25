@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/lukasz/Projekty/sunship/uho-mvc -name \"*.php\" -type f -exec grep -l \"setRouting\\\\|_uho_model_api\" {} \\\\;)",
+      "Read(//Users/lukasz/Projekty/sunship/**)",
+      "Bash(grep -n '$_GET\\\\|$_POST\\\\|$_REQUEST' /Users/lukasz/Projekty/sunship/uho-mvc/src/_uho_rest.php)",
+      "Bash(grep -n 'order.*$data\\\\|$data.*order\\\\|\\\\['\\\\''order'\\\\''\\\\].*$data\\\\|order.*GET\\\\|order.*POST\\\\|order.*REQUEST' '/Users/lukasz/Projekty/sunship/uho-mvc/src/*.php')",
+      "Bash(grep -r '$_GET\\\\|$_POST\\\\|json_decode' /Users/lukasz/Projekty/sunship/uho-mvc/src/_uho_model_api.php)",
+      "Bash(grep -B100 'if \\(!empty\\($order\\)\\)' /Users/lukasz/Projekty/sunship/uho-mvc/src/_uho_orm.php)",
+      "Bash(grep -A100 'if \\(!$order && !empty\\($model\\\\['\\\\''order'\\\\''\\\\]\\)\\)')",
+      "Bash(grep -n '$query_order' /Users/lukasz/Projekty/sunship/uho-mvc/src/_uho_orm.php)",
+      "Bash(grep -rn '$data\\\\[' /Users/lukasz/Projekty/sunship/uho-mvc/src/_uho_model_api.php)",
+      "Bash(xargs grep *)"
+    ]
+  }
+}
