@@ -128,7 +128,7 @@ class _uho_model_pages extends _uho_model
             if (count($path) != count($v['path'])) unset($pages[$k]);
             else
                 foreach ($path as $k2 => $v2)
-                    if ($pages[$k]) {
+                    if (!empty($pages[$k])) {
 
                         $power = 0;
                         if ($v['path'][$k2] == $v2) $power = 10;

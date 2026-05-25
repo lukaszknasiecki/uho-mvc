@@ -9,6 +9,8 @@ use Huncwot\UhoFramework\_uho_auth;
 
 class _uho_auth
 {
+  use _uho_auth_google;
+
   private $orm;
 
   private $clientModel = 'client_users';
@@ -41,6 +43,7 @@ class _uho_auth
     $this->orm = $orm;
     if (isset($settings['mailer'])) $this->mailer = new _uho_mailer(['smtp' => $settings['mailer']['smtp']]);
     $this->oauth = isset($settings['oauth']) ? $settings['oauth'] : null;
+
     $this->website = isset($settings['website']) ? $settings['website'] : null;
     $this->salt = ['type' => 'double', 'field' => 'salt', 'value' => $settings['salt'] ?? ''];
     $this->settings = [
@@ -239,11 +242,13 @@ class _uho_auth
 
     $data['uid'] = $this->uniqid();
 
-    $pass_params = $this->encodePasswordParams($data['password']);
-
-    $data[$this->fields['password_salt']] = $pass_params['salt'];
-    $data[$this->fields['password']] = $pass_params['password'];
-
+    if (isset($data['password']))
+    {
+      $pass_params = $this->encodePasswordParams($data['password']);
+      $data[$this->fields['password_salt']] = $pass_params['salt'];
+      $data[$this->fields['password']] = $pass_params['password'];
+    }
+    
     $result = $this->orm->post($this->clientModel, $data);
 
     if ($result) {

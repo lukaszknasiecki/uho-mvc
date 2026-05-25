@@ -475,6 +475,7 @@ class _uho_orm_schema
             }*/
 
                 $filters = @$v['source']['filters'];
+
                 // update dynamic filters
                 if ($filters && $record) {
                     foreach ($filters as $k2 => $v2) {
@@ -497,7 +498,7 @@ class _uho_orm_schema
                         $v['source']['model'],
                         $filters,
                         false,
-                        null,
+                        $v['source']['order'] ?? null,
                         null,
                         $params0
                     );

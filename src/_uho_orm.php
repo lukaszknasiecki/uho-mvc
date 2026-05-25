@@ -346,7 +346,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 if (is_string($v3))
                     $vv = str_replace('%' . $k3 . '%', $v3, $vv);
         if ($twig) $vv = $this->getTwigFromHtml($vv, $v);
-        return $vv;
+        return $vv ?? "";
     }
 
     /**
