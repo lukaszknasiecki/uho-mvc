@@ -19,6 +19,8 @@ class _uho_auth
   private $logsModel = 'client_logs';
   private $website = [];
 
+  private $auth_type = null;
+
   private $user = null;
   private $current_token = null;
   private $passwordFormat = '8,1,1,1,1';
@@ -100,13 +102,24 @@ class _uho_auth
 
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
-      $this->setLoginToken($token);
-      return ['user' => $user, 'token' => $token];
+      if ($this->auth_type = 'cookie') $this->setCookieToken($token);
+      return ['user' => $user, 'token' => $token, "expires_in" => 4 * 60 * 60];
     }
 
     return false;
   }
 
+  public function refresh_token()
+  {
+    $user = $this->getUser();
+    if ($user) {
+      $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
+      if ($this->auth_type = 'cookie') $this->setCookieToken($token);
+      $this->current_token = $token;
+      return ['token' => $token, "expires_in" => 4 * 60 * 60];
+    }
+    return false;
+  }
 
   /**
    * Destroys the current session: removes the token record and clears the cookie.
@@ -511,6 +524,7 @@ class _uho_auth
     if (!empty($_COOKIE[$this->session_token])) {
       $token = $_COOKIE[$this->session_token];
       if ($token) {
+        $this->auth_type = 'cookie';
         $this->current_token = $token;
         $user_id = $this->getUserIdByToken($token, 'session');
         $this->user = $this->getUserByParams(['id' => $user_id], true);
@@ -529,6 +543,7 @@ class _uho_auth
       if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
         $token = $matches[1];
         if ($token) {
+          $this->auth_type = 'token';
           $this->current_token = $token;
           $user_id = $this->getUserIdByToken($token, 'session');
           $this->user = $this->getUserByParams(['id' => $user_id], true);
@@ -543,7 +558,7 @@ class _uho_auth
    *
    * @param string $token
    */
-  private function setLoginToken($token): void
+  private function setCookieToken($token): void
   {
     setcookie($this->session_token, $token, time() + 4 * 60 * 60, '/');
   }
