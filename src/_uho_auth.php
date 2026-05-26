@@ -36,9 +36,9 @@ class _uho_auth
   /**
    * @param object $orm      _uho_orm instance
    * @param array  $settings configuration: mailer, oauth, website, salt
-   * @param bool   $login    whether to attempt auto-login on construction
+   * @param bool   $login    whether to attempt auto-login ("cookie|token")
    */
-  public function __construct($orm, $settings, $login = true)
+  public function __construct($orm, $settings, $login = null)
   {
     $this->orm = $orm;
     if (isset($settings['mailer'])) $this->mailer = new _uho_mailer(['smtp' => $settings['mailer']['smtp']]);
@@ -61,7 +61,8 @@ class _uho_auth
       'ip'                   => 'ip'
     ];
 
-    if ($login) $this->loginAuto();
+    if ($login == 'cookie') $this->loginAutoCookie();
+    if ($login == 'token') $this->loginAutoToken();
   }
 
 
@@ -80,17 +81,16 @@ class _uho_auth
    */
   public function login($email, $password, array $params = [])
   {
-    $f=[];
-    $skip_pass_check=true;
+    $f = [];
+    $skip_pass_check = true;
 
-    if ($email && $password)
-    {
+    if ($email && $password) {
       $f[$this->fields['password']] = $password;
       $f[$this->fields['email']]    = $email;
       $skip_pass_check = false;
     }
 
-    if ($params) $f= array_merge($f, $params);
+    if ($params) $f = array_merge($f, $params);
 
     if (!$f) return false;
 
@@ -145,7 +145,7 @@ class _uho_auth
 
     $data['id'] = $user_id;
     $result = $this->orm->put($this->clientModel, $data);
- 
+
     /*
     $client = $this->getUser();
     if (@$data['image'] == '[remove]')
@@ -155,7 +155,7 @@ class _uho_auth
     $this->getData(true);
         */
 
-    return $result!==false;
+    return $result !== false;
   }
 
 
@@ -506,7 +506,7 @@ class _uho_auth
   /**
    * Attempts to restore the session from the session cookie.
    */
-  private function loginAuto(): void
+  private function loginAutoCookie(): void
   {
     if (!empty($_COOKIE[$this->session_token])) {
       $token = $_COOKIE[$this->session_token];
@@ -514,6 +514,25 @@ class _uho_auth
         $this->current_token = $token;
         $user_id = $this->getUserIdByToken($token, 'session');
         $this->user = $this->getUserByParams(['id' => $user_id], true);
+      }
+    }
+  }
+
+  /**
+   * Attempts to restore the session from bearer token.
+   */
+  private function loginAutoToken(): void
+  {
+    $headers = getallheaders();
+    if (!empty($headers['Authorization'])) {
+      $matches = [];
+      if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+        $token = $matches[1];
+        if ($token) {
+          $this->current_token = $token;
+          $user_id = $this->getUserIdByToken($token, 'session');
+          $this->user = $this->getUserByParams(['id' => $user_id], true);
+        }
       }
     }
   }

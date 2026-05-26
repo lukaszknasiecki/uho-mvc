@@ -169,6 +169,7 @@ class _uho_application
         require_once($app_path . "models/" . $model_class . ".php");
 
         $langs = @$this->application_params['application_languages'];
+        
         if ($langs) {
             $langs = array_flip($langs);
             if (isset($langs['_' . $lang])) {
@@ -331,10 +332,11 @@ class _uho_application
         if (isset($cfg_domains['api_keys'])) $cfg['api_keys'] = $cfg_domains['api_keys'];
         $cfg = array_merge($cfg_domains, $cfg);
 
+        /*
         if ($cfg['application_languages_url'] === false) {
             $cfg['application_language'] = $cfg['application_languages'][0];
             $cfg['application_languages'] = null;
-        }
+        }*/
 
         if (isset($cfg_domains['http'])) $cfg['application_http'] = $cfg_domains['http'];
         if (!isset($cfg['application_http'])) {

@@ -87,6 +87,7 @@ class _uho_model
 
     public function __construct($sql, $lang, $salt = null, $lang_model = null, $params = null)
     {
+
         $this->sql = $sql;
         $this->lang = $lang;
         if ($lang_model === null && $lang) {
