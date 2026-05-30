@@ -17,6 +17,12 @@ class _uho_model_api_endpoint
     protected static $GET_REQUIRED_FIELDS;
     protected static $POST_ALLOWED_FIELDS;
     protected static $POST_REQUIRED_FIELDS;
+    protected static $DELETE_ALLOWED_FIELDS;
+    protected static $DELETE_REQUIRED_FIELDS;
+    protected static $PUT_ALLOWED_FIELDS;
+    protected static $PUT_REQUIRED_FIELDS;
+    protected static $PATCH_ALLOWED_FIELDS;
+    protected static $PATCH_REQUIRED_FIELDS;
 
     function __construct($parent, $settings)
     {
@@ -27,6 +33,9 @@ class _uho_model_api_endpoint
     {
         if ($method == 'GET') return static::$GET_ALLOWED_FIELDS;
         if ($method == 'POST') return static::$POST_ALLOWED_FIELDS;
+        if ($method == 'PATCH') return static::$PATCH_ALLOWED_FIELDS;
+        if ($method == 'PUT') return static::$PUT_ALLOWED_FIELDS;
+        if ($method == 'DELETE') return static::$DELETE_ALLOWED_FIELDS;
         return [];
     }
 
@@ -34,6 +43,9 @@ class _uho_model_api_endpoint
     {
         if ($method == 'GET') return static::$GET_REQUIRED_FIELDS;
         if ($method == 'POST') return static::$POST_REQUIRED_FIELDS;
+        if ($method == 'PATCH') return static::$PATCH_REQUIRED_FIELDS;
+        if ($method == 'PUT') return static::$PUT_REQUIRED_FIELDS;
+        if ($method == 'DELETE') return static::$DELETE_REQUIRED_FIELDS;
         return [];
     }
 

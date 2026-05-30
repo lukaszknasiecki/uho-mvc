@@ -98,7 +98,8 @@
             "cms": {
                 "small": "boolean",
                 "style": "string",
-                "input": "string"
+                "input": "string",
+                "layout": "string"
             },
             "source": {
                 "filters": "array",
