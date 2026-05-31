@@ -486,8 +486,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         }
                     break;
 
-                case "datetime":
                 case "timestamp":
+
+                    $value = (new \DateTimeImmutable($value, new \DateTimeZone('UTC')))
+                                ->setTimezone(new \DateTimeZone(date_default_timezone_get()))
+                                ->format('Y-m-d H:i:s');
+
+                    break;
+
+                case "datetime":
 
                     $format = $field['settings']['format'] ?? null;
                     if ($field_type == 'timestamp') $format = "USER";
@@ -749,14 +756,12 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * get model schema
          */
 
-        if (!empty($predefined_schema))
-        {
-            $model = $predefined_schema;            
-        }
-        elseif (isset($params['schema_update'])) {
-            $model = $this->getSchemaWithPageUpdate($name);            
+        if (!empty($predefined_schema)) {
+            $model = $predefined_schema;
+        } elseif (isset($params['schema_update'])) {
+            $model = $this->getSchemaWithPageUpdate($name);
         } else {
-            $model = $this->getSchema($name, false, ['return_error' => true]);            
+            $model = $this->getSchema($name, false, ['return_error' => true]);
             if (isset($model['result']) && !$model['result'])
                 $this->halt($model['message']);
         }
@@ -914,7 +919,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         $data = $this->query($query);
 
-
         /**
          * Return system COUNT(*) and AVG()
          */
@@ -1029,9 +1033,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
             foreach ($model['fields'] as $k2 => $v2) {
 
                 if (isset($v2['settings']['hash']) && isset($data[$k][$v2['field']])) {
-                    if ($v2['settings']['hash'][0]=='~')
-                        $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, substr($v2['settings']['hash'],1));
-                        else $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['settings']['hash']);
+                    if ($v2['settings']['hash'][0] == '~')
+                        $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, substr($v2['settings']['hash'], 1));
+                    else $data[$k][$v2['field']] = _uho_fx::decrypt($data[$k][$v2['field']], $this->keys, $v2['settings']['hash']);
                 }
 
                 if (isset($v2['source']) && $k == 0 && @is_array($v2['source']['fields'])) {
@@ -1988,15 +1992,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 if (isset($v['type']) && $v['type'] == 'sql') {
                     $data[$k] = '`' . $k . '`=' . $v['value'];
                 } else {
-                    if (isset($field['settings']['hash']))
-                    {
-                        if ($field['settings']['hash'][0]=='~')
-                        {
-                            $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, substr($field['settings']['hash'],1), true) . '"';
-                        }
-                            else $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
-                    }
-                    elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
+                    if (isset($field['settings']['hash'])) {
+                        if ($field['settings']['hash'][0] == '~') {
+                            $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, substr($field['settings']['hash'], 1), true) . '"';
+                        } else $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
+                    } elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
                     elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
                     elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';
                     else $data[$k] = '`' . $k . '`="' . $this->sqlSafe($v) . '"';
@@ -2276,27 +2276,24 @@ public function getTwigFromHtml(string $html, array $data): ?string
         }
         // other version, no filters
 
-        if ($multiple)
-        {
+        if ($multiple) {
 
             $f = [];
 
-            foreach ($data as $v)
-            {
-                $vv=[];
+            foreach ($data as $v) {
+                $vv = [];
                 foreach ($v as $k2 => $val)
-                if (empty($params['uid']) || in_array($k2, $params['uid']))
-                {
-                    $vv[$k2] = $val;
-                }
-    
+                    if (empty($params['uid']) || in_array($k2, $params['uid'])) {
+                        $vv[$k2] = $val;
+                    }
+
                 $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $vv));
             }
 
-            if (empty($params['uid'])) $fields=array_keys($data[0]);
-                else $fields=$params['uid'];
+            if (empty($params['uid'])) $fields = array_keys($data[0]);
+            else $fields = $params['uid'];
 
-        
+
             $exists = 'SELECT id,' . implode(',', $fields) . ' FROM ' . $schema['table'] . ' WHERE (' . implode(') || (', $f) . ')';
             $exists = $this->query($exists);
 
@@ -2304,13 +2301,14 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $update = [];
 
             if ($exists)
-                foreach ($insert as $k => $v)
-                {
+                foreach ($insert as $k => $v) {
                     $exact = false;
                     foreach ($exists as $k2 => $v2) {
                         unset($v2['id']);
-                        if (array_intersect_key($v,array_flip($fields))
-                            == array_intersect_key($v2,array_flip($fields))) {
+                        if (
+                            array_intersect_key($v, array_flip($fields))
+                            == array_intersect_key($v2, array_flip($fields))
+                        ) {
                             $exact = true;
                             $id = $exists[$k2]['id'];
                         }
@@ -2324,15 +2322,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
 
 
-            if ($insert) $result=$this->post($model, $insert, true); else $result=true;
-            if ($result!==false && $update)
-            {
+            if ($insert) $result = $this->post($model, $insert, true);
+            else $result = true;
+            if ($result !== false && $update) {
                 foreach ($update as $k => $v) {
                     unset($v['id']);
                     $data = $this->buildOutputQuery($schema, $v);
                     $query = 'UPDATE ' . $schema['table'] . ' SET ' . $data . ' WHERE id=' . $update[$k]['id'];
 
-                    $result=$this->queryOut($query);
+                    $result = $this->queryOut($query);
                 }
             }
             return $result;

@@ -282,7 +282,10 @@
                 "lang": "string",
                 "length": "integer",
                 "case": "boolean",
-                "hash": true
+                "hash": true,
+                "minlength": "integer",
+                "maxlength": "integer",
+                "pattern": "string"
             },
             "cms": {
                 "auto": "array",
