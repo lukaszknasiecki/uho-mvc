@@ -123,7 +123,9 @@
                 "filename_original": "string",
                 "folder": "string",
                 "hashable": "boolean",
-                "extension": "string"
+                "extension": "string",
+                "extensions": "array",
+                "extension_field": "string"
             }
         },
         "required": {
@@ -278,11 +280,13 @@
     },
     "string": {
         "allowed": {
+            "options": "array",
             "settings": {
                 "lang": "string",
                 "length": "integer",
                 "case": "boolean",
                 "hash": true,
+                "null": true,
                 "minlength": "integer",
                 "maxlength": "integer",
                 "pattern": "string"

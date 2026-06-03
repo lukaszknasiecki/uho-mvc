@@ -59,6 +59,7 @@ class _uho_model_pages extends _uho_model
             Module Preview
         */
         if ($this->isCmsSession() && !empty($urlArr[0]) && $urlArr[0] == 'module-preview' && !empty($urlArr[1])) {
+            
             $this->preview_module = true;
             $page = ['title' => 'Module Preview'];
             $page['modules'] = $this->get('pages_modules', ['id' => intval($urlArr[1])]);

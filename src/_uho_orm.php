@@ -267,7 +267,7 @@ class _uho_orm
 
     public function getTwigFromHtml(string $html, array $data): string|null
     {
-        if (!$html) return null;
+        if (!$html || !is_string($html)) return null;
         if (!$this->twig)
             $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
         if ($this->twig) {
