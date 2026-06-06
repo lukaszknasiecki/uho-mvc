@@ -868,7 +868,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * ['field'=>'title', 'sort'=>'DESC']
          */
 
-        if (!empty($order)) {
+        if (!empty($order))
+        {
             $allowed_order_fields = ['id'];
             foreach ($model['fields'] as $_of) {
                 if (!empty($_of['field'])) $allowed_order_fields[] = $_of['field'];
@@ -887,6 +888,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if ($order) $query_order = ' ORDER BY ' . $order;
         else $query_order = '';
+
+
 
         /**
          * Manage SQL query if count is set (return count/avg of records only)

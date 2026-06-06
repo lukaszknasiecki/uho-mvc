@@ -750,7 +750,8 @@ class _uho_mysqli
         /*
             debug
         */
-        if ($this->debug && _uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance')) {
+        if ($this->debug && _uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance'))
+        {
             if (_uho_fx::getGet('dbg') == 'performance')  $time = '[T=' . number_format((_uho_fx::microtime_float() - $this->perfromance_start), 4) . '] ';
             else $time = '';
             if (!isset($tt) || !$tt) $i = 0;

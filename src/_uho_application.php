@@ -85,8 +85,8 @@ class _uho_application
 
         $this->checkAccess();
 
-        $this->application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
-        $this->application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
+        if (empty($this->application_params['orm_version'])) $this->application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
+        if (empty($this->application_params['sql_debug'])) $this->application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
 
         // $this->application_title = @$this->application_params['application_title'];
 
@@ -139,9 +139,6 @@ class _uho_application
             case "pl":
                 setlocale(LC_ALL, 'pl_PL.utf-8');
                 break;
-            case "en":
-                setlocale(LC_ALL, 'en_EN.utf-8');
-                break;
             case "fr":
                 setlocale(LC_ALL, 'fr_FR.utf-8');
                 break;
@@ -153,6 +150,9 @@ class _uho_application
                 break;
             case "cn":
                 setlocale(LC_ALL, 'zh_CN.utf-8');
+                break;
+            default:
+                setlocale(LC_ALL, 'en_EN.utf-8');
                 break;
         }
 

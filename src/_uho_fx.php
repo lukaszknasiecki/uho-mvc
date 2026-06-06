@@ -795,6 +795,7 @@ class _uho_fx
      */
     public static function convertSingleDate($date, $lang = 'pl', $return_field = false)
     {
+
         $monthsPL1 = explode(';', 'styczeń;luty;marzec;kwiecień;maj;czerwiec;lipiec;sierpień;wrzesień;październik;listopad;grudzień');
         $weekShort = array(
             'pl' => array('ND', 'PN', 'WT', 'ŚR', 'CZW', 'PT', 'SOB', 'ND'),
@@ -916,6 +917,7 @@ class _uho_fx
             $r['long_time'] = str_replace($monthsPL1, $monthsPL2, $r['long_time']);
             $r['long_time_noyear'] = str_replace($monthsPL1, $monthsPL2, $r['long_time_noyear']);
         }
+
 
         if ($return_field && isset($r[$return_field])) return $r[$return_field];
             elseif ($return_field) return "";

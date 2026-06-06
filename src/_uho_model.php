@@ -12,6 +12,9 @@ class _uho_model
      * instance of _uho_mysqli
      */
     public  $sql;
+
+    // twig
+    private $twig;
     /**
      * current language shortcut
      */
@@ -533,21 +536,29 @@ class _uho_model
 
     public function getTwigFromHtml($html, $data)
     {
-        if ($html && is_string($html) && is_array($data)) {
-            $twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
+        if ($html && is_string($html) && is_array($data))
+        {
 
-            // --- declination
-            $twig_filter_declination = new \Twig\TwigFilter('declination', function ($context, $string, $params) {
-                $result = $params[_uho_fx::utilsNumberDeclinationPL($string) - 1];
-                if ($params[3])
-                    $result = $string . ' ' . $result;
-                return $result;
-            }, ['needs_context' => true]);
+            if (!$this->twig)
+            {
+                $twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
 
-            $twig->addFilter($twig_filter_declination);
+                // --- declination
+                $twig_filter_declination = new \Twig\TwigFilter('declination', function ($context, $string, $params) {
+                    $result = $params[_uho_fx::utilsNumberDeclinationPL($string) - 1];
+                    if ($params[3])
+                        $result = $string . ' ' . $result;
+                    return $result;
+                }, ['needs_context' => true]);
+                
+                $twig_filter_dozeruj = new \Twig\TwigFilter('dozeruj', fn($string, $params) => _uho_fx::dozeruj($string, $params));
 
+                $twig->addFilter($twig_filter_declination);
+                $twig->addFilter($twig_filter_dozeruj);
+                $this->twig = $twig;
+            }
 
-            $template = $twig->createTemplate($html);
+            $template = $this->twig->createTemplate($html);
             $html = $template->render($data);
         }
         return $html;
