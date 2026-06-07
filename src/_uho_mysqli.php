@@ -875,6 +875,7 @@ class _uho_mysqli
     {
         $result = true;
         if ($this->cacheSkipTables) {
+
             $query = explode(' from ', strtolower($query));
             if (isset($query[1])) $query = explode(' where ', strtolower($query[1]));
             $query = explode(' order ', strtolower($query[0]));
@@ -882,7 +883,17 @@ class _uho_mysqli
             foreach ($query as $k => $v) {
                 $query[$k] = trim($v);
             }
-            foreach ($this->cacheSkipTables as $v) {
+            foreach ($this->cacheSkipTables as $v)
+            {
+                if (str_ends_with($v, '*')) {
+                    $v = rtrim($v, '*');
+                    foreach ($query as $q) {
+                        if (str_starts_with($q, $v)) {
+                            $result = false;
+                            break 2;
+                        }
+                    }
+                } else
                 if (in_array($v, $query)) {
                     $result = false;
                 }

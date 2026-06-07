@@ -11,6 +11,7 @@ $cfg_domains = [
 		'sql_pass' =>                                       getenv('SQL_PASS'),
 		'sql_base' =>                                       getenv('SQL_BASE'),
 		'sql_debug' =>                                       getenv('APP_SQL_DEBUG'),
+		'sql_cache' =>                                       getenv('APP_SQL_CACHE'),
 		
 		'api_keys' => [
 			'mailchimp' =>

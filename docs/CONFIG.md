@@ -27,9 +27,14 @@ Application settings, useful for debug, versioning and caching.
 | `APP_CACHE_SALT` | `'uho'` | Encryption key for caching. |
 | `APP_DEV_MODE` | `0` | Development mode — shows errors. |
 | `APP_PASSWORD` | `user:password_bcrypt_hash` | Asks for a password before app runs. |
+| `APP_SQL_CACHE` | `integer` | Enable SQL Cache |
 | `APP_SQL_DEBUG` | `0` | SQL debug mode — shows SQL queries in comments. |
 | `APP_UPLOAD_SERVER` | null | Http server to read file uploads |
 | `APP_UHO_ORM` | `1` | ORM version (`1`/`2`). |
+| `APP_SQL_CACHE` | `0` | SQL cache mode — caches SQL queries except those in config.cache_exclude_sql |
+| `APP_HTTP_CACHE` | `0` | HTTP cache mode — caches HTTP queries except those in config.cache_exclude_http |
+| `APP_HTTP_CACHE_SALT` | `string` | Custom salt for hashing HTTP cache |
+| `APP_URI` | `string` | Application full http url |
 
 For password hash you can use https://hostingcanada.org/htpasswd-generator/, choose Bcrypt.
 
@@ -71,14 +76,41 @@ You can modify this list by creting your own `application_config/hosts.php` file
 | `SMTP_LOGIN` | `string` | SMTP authentication username (alias). |
 | `SMTP_NAME` | `string` | Display name used as the email sender name. |
 
+## .uho-mvc.json
+
+This file (root directory) consists of data for HTTP cache if used
+
+```json
+{
+    "cache_exclude_http": [
+        "api/favourites",
+        "api/comments",
+        "api/playlists*"
+    ],
+    "cache_headers_http": [
+        "custom-header"
+    ]
+}
+```
+
+---
+
+## .uho-mvc.json file specs
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `cache_exclude_http` | `array` | `[]` | Disables those paths from HTTP cache, * suffix supported |
+| `cache_headers_http` | `array` | `[]` | Distincts content in cache is stored by those headers |
+
 
 ## application_config.php file custom minimal example
 
 ```php
 <?php
 $cfg = [
-		'application_languages' =>		   	 ['en'],
-		'application_languages_url' =>	 	 false,
+		'application_languages' =>		   	['en'],
+		'application_languages_url' =>	 	false,
+		'cache_exclude_sql' =>			    ['client_*']
 ];
 ```
 
@@ -91,6 +123,7 @@ $cfg = [
 | `application_title` | `string` | `'app'` | Human-readable application name. Available in Twig as `{{ application_title }}`. |
 | `application_domain` | `string` | — | Primary domain (e.g. `example.com`). Used for URL generation and cookie scope. Can be overridden per-domain in `hosts.php`. |
 | `application_url_prefix` | `string` | `''` | Optional path prefix prepended to all URLs (e.g. `'/app'`). |
+| `cache_exclude_sql` | `array` | `[]` | Disables those tables from SQL cache, * suffix supported |
 | `strict_url_parts` | `bool` | — | When `true`, enforces strict URL segment matching in routing. |
 | `no_session` | `bool` | `false` | When `true`, skips `session_start()`. Useful for pure API contexts. |
 | `nosql` | `bool` | `false` | When `true`, disables database connection entirely. |

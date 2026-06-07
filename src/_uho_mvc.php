@@ -19,7 +19,7 @@ namespace Huncwot\UhoFramework;
  * Supported config keys:
  *   root_path      – absolute path to the project root (default: dirname of SCRIPT_FILENAME)
  *   timezone       – PHP timezone string (default: 'Europe/Berlin')
- *   cache_enabled  – bool, enable HTML output caching (default: false)
+ *   cache_enabled  – bool, enable HTTP output caching (default: false)
  *   cache_minutes  – cache TTL in minutes (default: 1440)
  *   config_folder  – application config folder name or path (default: 'application_config')
  *   development    – bool override; when omitted, auto-detected from HTTP_HOST (.lh / localhost)
@@ -31,6 +31,7 @@ class _uho_mvc
     private string $rootPath;
     private string $cacheSalt;
     private bool $cacheEnabled;
+    private array $cacheConfig=[];
     private int $cacheMinutes;
     private string $timezone;
     private string $configFolder;
@@ -52,15 +53,26 @@ class _uho_mvc
 
         $this->timezone = getenv('APP_TIMEZONE') ?: 'Europe/Berlin';        
 
-        $this->cacheEnabled = getenv('APP_CACHE') ?: 0;
-        $this->cacheSalt = getenv('APP_CACHE_SALT') ?: 'uho';
-        $this->cacheMinutes = getenv('APP_CACHE_MINUTES') ?: 60 * 24;
-
         $this->rootPath = getenv('APP_ROOT_PATH') ?: dirname($_SERVER['SCRIPT_FILENAME']) . '/';
 
         $this->development = getenv('APP_DEV_MODE') ?: 0;
         $this->sql_debug = getenv('APP_SQL_DEBUG') ?: 0;
         $this->orm_version = getenv('APP_UHO_ORM') ?: 1;
+
+        $this->cacheEnabled = getenv('APP_HTTP_CACHE') ?: 0;
+        $this->cacheSalt = getenv('APP_HTTP_CACHE_SALT') ?: 'uho';
+        $this->cacheMinutes = getenv('APP_HTTP_CACHE_MINUTES') ?: 60 * 24;
+
+        if ($this->cacheEnabled)
+            {
+                
+                $this->cacheConfig=$this->getRootConfig();// ?? [];
+                $this->cacheConfig=[
+                    'ajax'=>true,
+                    'exclude'=>$this->getRootConfig()['cache_exclude_http'] ?? [],
+                    'headers'=>$this->getRootConfig()['cache_headers_http'] ?? []
+                ];
+            }
 
     }
 
@@ -112,11 +124,20 @@ class _uho_mvc
     /**
      * Returns [output, header, cached].
      */
+
     private function resolveOutput(): array
     {
         if ($this->cacheEnabled)
         {
-            $cache = new _uho_cache($this->cacheSalt,true);
+            $cache = new _uho_cache(
+                $this->cacheSalt,
+                $this->cacheConfig['ajax'],
+                null,
+                null,
+                ['headers'=>$this->cacheConfig['headers']],
+                $this->cacheConfig['exclude']
+                );
+            
             $cache->eraseExpired();
 
             if ($cache->checkCache()) {
@@ -177,4 +198,11 @@ class _uho_mvc
         [$usec, $sec] = explode(' ', microtime());
         return (float)$usec + (float)$sec;
     }
+
+    private function getRootConfig()
+    {
+        $file=file_get_contents($this->rootPath . '/.uho-mvc.json');
+        if ($file) return json_decode($file, true); else return [];
+    }
+
 }

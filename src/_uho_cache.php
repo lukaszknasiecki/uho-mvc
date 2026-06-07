@@ -31,6 +31,7 @@ class _uho_cache
      */
     private $additionalParam;
     private $requestParams;
+    private $exclude_paths;
     private $addPost;
     private $ajaxDifferent;
 
@@ -43,11 +44,12 @@ class _uho_cache
      * @return null
      */
 
-    public function __construct($salt, $ajaxDifferent = false, $additionalParam = null, $addPost = false, $request = [])
+    public function __construct($salt, $ajaxDifferent = false, $additionalParam = null, $addPost = false, $request = [], $exclude_paths=[])
     {
         $this->ajaxDifferent = $ajaxDifferent;
         $this->additionalParam = $additionalParam;
         $this->requestParams = $request;
+        $this->exclude_paths = $exclude_paths;
         $this->salt = $salt;
         $this->addPost = $addPost;
         $this->result = '';
@@ -139,6 +141,18 @@ class _uho_cache
 
     public function checkCache()
     {
+        $uri=trim($_SERVER['REQUEST_URI'], '/');
+
+        if ($this->exclude_paths) {
+            foreach ($this->exclude_paths as $p)
+            if (str_ends_with($p, '*')) {
+                $pp=trim($p, '*');
+                if (str_starts_with($uri, $pp)) return false;
+            } else {
+                if ($uri==$p) return false;
+            }                                    
+        }
+
         $this->result = '';
         $this->result = $this->cache->retrieve('html');
         if ($this->result) {
