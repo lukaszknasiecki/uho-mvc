@@ -21,6 +21,7 @@ class _uho_model_api extends _uho_model
     ];
     private $models_path = '';
     private $allow_form_bearer_token=false;
+    public $path = [];
 
 
     public function setRoutingAuth($items)
@@ -50,6 +51,7 @@ class _uho_model_api extends _uho_model
 
     public function request($method, $action, $data, $cfg)
     {
+        $this->path=explode('/',$action);
      
         if (!empty($cfg['debug'])) $this->sql->setDebug($cfg['debug']);
         $captcha = isset($data['captcha']) ? $data['captcha'] : null;

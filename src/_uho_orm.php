@@ -2242,6 +2242,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     public function put($model, $data, $filters = null, $multiple = false, $params = []): int|bool
     {
+        
         if (isset($params['schema_update']))
             $schema = $this->getSchemaWithPageUpdate($model, true);
         else $schema = $this->getSchema($model, true);
@@ -2254,6 +2255,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         // 
         if ($multiple && $filters) {
             // looking for existing objects
+            
             if ($filters) $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $filters));
             $exists = 'SELECT id FROM ' . $schema['table'] . ' WHERE (' . implode(') || (', $f) . ')';
             $exists = $this->query($exists);
@@ -2324,17 +2326,32 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 }
 
 
-
             if ($insert) $result = $this->post($model, $insert, true);
             else $result = true;
-            if ($result !== false && $update) {
+            if ($result !== false && $update)
+            {
+
+                // new version
+                $query = $this->buildOutputQueryMultiple($schema, $update);
+                $keys_f=$keys=array_keys($update[0]);
+                $query2=[];
+                foreach ($keys as $k)
+                    if ($k!='id')
+                    $query2[]="`".$k."`=VALUES(`".$k."`)";
+                
+                $query="INSERT INTO ".$schema['table']." ".$query." ";
+                $query.="ON DUPLICATE KEY UPDATE ".implode(', ', $query2);
+                $result = $this->queryOut($query);
+
+                /* old version - multiple queries, not so efficient
                 foreach ($update as $k => $v) {
                     unset($v['id']);
-                    $data = $this->buildOutputQuery($schema, $v);
+                    $data = $this->buildOutputQuery($schema, $v);                    
                     $query = 'UPDATE ' . $schema['table'] . ' SET ' . $data . ' WHERE id=' . $update[$k]['id'];
-
                     $result = $this->queryOut($query);
                 }
+                */
+
             }
             return $result;
         } elseif ($filters) {
