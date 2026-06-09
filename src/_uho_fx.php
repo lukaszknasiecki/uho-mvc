@@ -1545,6 +1545,7 @@ class _uho_fx
         if (isset($params['content-type']))   $header[] = 'content-type: ' . $params['content-type'];
         if (isset($params['authorization'])) $header[] = 'Authorization: ' . $params['authorization'];
         if (isset($params['bearer'])) $header[] = 'Authorization: Bearer ' . $params['bearer'];
+        if (isset($params['headers'])) $header = array_merge($header, $params['headers']);
 
         if (isset($params['verify_host']) && $params['verify_host'] === false) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -1579,7 +1580,6 @@ class _uho_fx
 
         $data = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if (!$data) {
             return ['result' => false, 'error' => curl_error($ch), 'code' => $code];
