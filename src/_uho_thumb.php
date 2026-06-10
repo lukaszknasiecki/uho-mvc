@@ -189,6 +189,8 @@ class _uho_thumb
             return (array('result' => false, 'comments' => $comments, 'errors' => $errors));
         }
 
+        if (!$source_external)
+            self::fixImageOrientation($file1);
 
 
         if (!$source_external && $magicBytesCheck) {
@@ -644,5 +646,70 @@ class _uho_thumb
             $result = true;
         }
         return (array('result' => $result, 'webp' => @$file2webp, 'comments' => $comments, 'errors' => $errors));
+    }
+
+    private static function fixImageOrientation(string $filename): bool
+    {
+
+        if (!$filename || !file_exists($filename)) return false;
+
+        try {
+            $exif = @exif_read_data($filename);
+            $orientation = $exif['Orientation'] ?? 1;
+
+            if ($orientation === 1) {
+                return true;
+            }
+
+            $type = @exif_imagetype($filename);
+            switch ($type) {
+                case 1:
+                    $pic = imageCreateFromGif($filename);
+                    break;
+                case 2:
+                    $pic = imageCreateFromJpeg($filename);
+                    break;
+                case 3:
+                    $pic = imageCreateFromPng($filename);
+                    break;
+                case 6:
+                    $pic = imageCreateFromBmp($filename);
+                    break;
+                case 18:
+                    $pic = imageCreateFromWebp($filename);
+                    break;
+                default:
+                    $pic = null;
+            }
+
+            if (!$pic) {
+                return false;
+            }
+
+            $degrees = match ($orientation) {
+                3 => 180,
+                6 => 270,
+                8 => 90,
+                default => 0,
+            };
+
+            if ($degrees !== 0) {
+                $pic = imagerotate($pic, $degrees, 0);
+            }
+
+            $tmp = tempnam(sys_get_temp_dir(), 'img_');
+            imagejpeg($pic, $tmp, 90);
+            imagedestroy($pic);
+
+            if (file_exists($tmp))
+            {
+                @unlink($filename);
+                copy($tmp, $filename);
+                @unlink($tmp);
+                return true;
+            } else return false;
+        } finally {
+            
+        }
     }
 }

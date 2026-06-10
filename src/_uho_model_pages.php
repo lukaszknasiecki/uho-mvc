@@ -223,6 +223,12 @@ class _uho_model_pages extends _uho_model
         return $this->is404;
     }
 
+    public function ogSetDefaults(string|null $title, string|null $description, string|null $image = null)
+    {
+        if ($title) $this->head['app_title']= $title;
+        if ($description) $this->head['description']= $description;
+        if ($image) $this->head['image'] = $image;
+    }
     /*
         Returns header data for sharing
     */
