@@ -40,7 +40,7 @@ class _uho_model_pages extends _uho_model
         Checks if UHO-CMS is open
     */
 
-    private function isCmsSession()
+    public function isCmsSession()
     {
         return !empty($_SESSION['login_session_id']);
     }

@@ -77,6 +77,16 @@ class _uho_model_pages_modules
 
 		return $m;
 	}
+	
+	public function set404()
+    {
+        $this->parent->set404();
+    }
+
+	public function isCmsSession()
+    {
+        return $this->parent->isCmsSession();
+    }
 
 
 

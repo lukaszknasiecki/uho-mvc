@@ -1083,7 +1083,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 }
                 /**
                  * elements type with source.model
-                 * get model on each iteration
+                 * get model on each iteration (older method)
                  */
                 elseif ($this->getElementsMethod == 'iterate' && $v2['type'] == 'elements' && isset($v2['source']['model'])) {
 

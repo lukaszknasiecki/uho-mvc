@@ -46,7 +46,7 @@ class _uho_controller_pages extends _uho_controller
             'view' => 'article'
         ];
 
-        if (!$data['content'] || $this->model->is404()) {
+        if (!$data['content'] && $this->model->is404()) {
             $data = $this->get404();
             $this->outputType = '404';
         }
