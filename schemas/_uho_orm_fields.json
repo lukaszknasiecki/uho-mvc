@@ -212,7 +212,8 @@
         "field": false,
         "allowed": {
             "cms": {
-                "layout": "array"
+                "layout": "array",
+                "wide": "boolean"
             },
             "captions": "array",
             "source": {
