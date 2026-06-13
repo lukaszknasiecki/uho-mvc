@@ -63,17 +63,25 @@ class _uho_mvc
         $this->cacheSalt = getenv('APP_HTTP_CACHE_SALT') ?: 'uho';
         $this->cacheMinutes = getenv('APP_HTTP_CACHE_MINUTES') ?: 60 * 24;
 
-        if ($this->cacheEnabled)
-            {
-                
+        
+
+        if ($this->cacheEnabled && $this->checkAccess())
+            {                
                 $this->cacheConfig=$this->getRootConfig();// ?? [];
                 $this->cacheConfig=[
                     'ajax'=>true,
                     'exclude'=>$this->getRootConfig()['cache_exclude_http'] ?? [],
                     'headers'=>$this->getRootConfig()['cache_headers_http'] ?? []
                 ];
-            }
+            } else $this->cacheEnabled = false;
 
+    }
+
+    private function checkAccess()    
+    {
+        if (empty(getenv('APP_PASSWORD'))) return true;
+        session_start();
+        return isset($_SESSION['uhomvc_auth']) && $_SESSION['uhomvc_auth'] === true;
     }
 
     /**
