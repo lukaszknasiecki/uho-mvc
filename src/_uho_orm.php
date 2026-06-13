@@ -176,7 +176,7 @@ class _uho_orm
      * @return null
      */
 
-    function __construct(_uho_mysqli|null $sql, string|null $lang, array $keys, bool $test = false)
+    function __construct(object|null $sql, string|null $lang, array $keys, bool $test = false)
     {
         $this->sql = $sql;
 
@@ -458,7 +458,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * Sanitizes language fields
      */
 
-    private function sqlSanitizeLangFields($fields)
+    protected function sqlSanitizeLangFields($fields)
     {
         foreach ($fields as $k => $v)
             if (!strpos($v, ':lang') && substr($v, 0, 6) != 'COUNT(') $fields[$k] = '`' . $v . '`';
@@ -1971,7 +1971,18 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         if (is_array($v)) $v = json_encode($v, true);
                         break;
                     case "select":
-                        if (is_numeric($v)) $skip_safe = true;
+
+                        $iDigits = 0;
+                        if (!empty($field['settings']['output'])) {
+                            if ($field['settings']['output'] == '4digits') $iDigits = 4;
+                            if ($field['settings']['output'] == '6digits') $iDigits = 6;
+                            if ($field['settings']['output'] == '8digits') $iDigits = 8;
+                        }
+                        
+                        if ($iDigits) $v=_uho_fx::dozeruj($v, $iDigits);
+                        elseif (isset($field['settings']['output']) && $field['settings']['output'] == 'string');
+                        elseif (is_numeric($v)) $skip_safe = true;
+
                         break;
                     case 'table':
 
@@ -2025,7 +2036,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * @return mixed
      */
 
-    private function buildOutputQueryMultiple($model, $data, $output = 'query')
+    protected function buildOutputQueryMultiple($model, $data, $output = 'query')
     {
 
         $skip_fields = ['image', 'virtual', 'media', 'video', 'file', 'audio'];
@@ -2111,6 +2122,90 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             return $query;
         } else return $result;
+    }
+
+    /**
+     * Converts schema fields + data into typed parameter tuples for prepared statements.
+     * Returns ['fields' => [], 'values' => [], 'types' => []] where types use mysqli chars: s/i/d.
+     */
+    protected function buildPreparedData(array $schema, array $data): array
+    {
+        $skip_fields = ['image', 'video', 'file', 'audio', 'virtual', 'media'];
+        $fields = [];
+        $values = [];
+        $types  = [];
+
+        foreach ($data as $k => $v) {
+            if ($k === 'id') continue;
+
+            $field = _uho_fx::array_filter($schema['fields'], 'field', $k, ['first' => true]);
+            if (!$field || in_array($field['type'], $skip_fields)) continue;
+            if (isset($v['type']) && $v['type'] === 'sql') continue;
+
+            $phpType = 's';
+
+            switch ($field['type'] ?? '') {
+                case 'integer':
+                case 'order':
+                    $v = intval($v);
+                    $phpType = 'i';
+                    break;
+                case 'float':
+                    $v = floatval($v);
+                    $phpType = 'd';
+                    break;
+                case 'boolean':
+                    $v = ($v === true || $v === 'on' || $v === 1 || $v === '1') ? 1 : 0;
+                    $phpType = 'i';
+                    break;
+                case 'timestamp':
+                    $v = (new \DateTimeImmutable($v, new \DateTimeZone(date_default_timezone_get())))
+                        ->setTimezone(new \DateTimeZone('UTC'))
+                        ->format('Y-m-d H:i:s');
+                    break;
+                case 'json':
+                case 'blocks':
+                    if (is_array($v)) $v = json_encode($v, true);
+                    break;
+                case 'checkboxes':
+                case 'elements':
+                    $iDigits = 8;
+                    if (!empty($field['settings']['output'])) {
+                        if ($field['settings']['output'] === 'string') $iDigits = 0;
+                        else $iDigits = intval($field['settings']['output']);
+                    }
+                    if (is_array($v)) {
+                        foreach ($v as $k2 => $v2)
+                            if ($iDigits) $v[$k2] = _uho_fx::dozeruj($v2, $iDigits);
+                        $v = implode(',', $v);
+                    }
+                    break;
+                case 'table':
+                    if (isset($field['settings']['format']) && $field['settings']['format'] === 'object') {
+                        $v0 = $v; $v = [];
+                        foreach ($v0 as $v2) $v[$v2[0]] = $v2[1];
+                    }
+                    $v = json_encode($v);
+                    break;
+                case 'select':
+                    if (is_numeric($v)) { $v = intval($v); $phpType = 'i'; }
+                    break;
+            }
+
+            if (isset($field['settings']['hash'])) {
+                $hash = $field['settings']['hash'];
+                if ($hash[0] === '~')
+                    $v = _uho_fx::encrypt($v, $this->getKeys(), substr($hash, 1), true);
+                else
+                    $v = _uho_fx::encrypt($v, $this->getKeys(), $hash);
+            }
+
+            $fields[] = $k;
+            $values[] = $v;
+            $types[]  = $phpType;
+        }
+
+        return compact('fields', 'values', 'types');
     }
 
     /**
@@ -2387,7 +2482,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         unset($data['id']);
 
         $set = $this->buildOutputQuery($model, $data);
-
+        
         if ($set) {
             $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
             $r = $this->queryOut($query);
@@ -2550,38 +2645,42 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * @return array
      */
 
+    protected function processLangQuery(string $query): string
+    {
+        if (!strpos($query, ':lang')) return $query;
+
+        $query = explode('FROM', $query);
+        $select = $query[0];
+        while ($i = strpos($select, ':lang')) {
+            $j = $i;
+            while ($j >= 0 && $select[$j] != ' ' && $select[$j] != ',') $j--;
+            $field = substr($select, $j + 1, $i - $j - 1);
+            $field_only = explode('.', $field);
+            $field_only = array_pop($field_only);
+
+            if ($this->lang_add) {
+                $field = $field . $this->lang_add;
+                $next = strtolower(trim(substr($select, $i + 5)));
+                if (substr($next, 0, 2) == 'as');
+                else $field .= ' AS `' . $field_only . '`';
+            } elseif ($this->langs) {
+                $f = [];
+                foreach ($this->langs as $v2) {
+                    $f[] = $field . $v2['lang_add'];
+                }
+                $field = implode(', ', $f);
+            }
+            $select = substr($select, 0, $j + 1) . $field . substr($select, $i + 5);
+        }
+        $query[0] = $select;
+        return implode('FROM', $query);
+    }
+
     public function query($query, $single = false, $stripslashes = true, $key = null, $do_field_only = null, $force_sql_cache = false)
     {
         if (!$this->sql) return;
 
-        // replaceing :lang occurency
-        if (strpos($query, ':lang')) {
-            $query = explode('FROM', $query);
-            $select = $query[0];
-            while ($i = strpos($select, ':lang')) {
-                $j = $i;
-                while ($j >= 0 && $select[$j] != ' ' && $select[$j] != ',') $j--;
-                $field = substr($select, $j + 1, $i - $j - 1);
-                $field_only = explode('.', $field);
-                $field_only = array_pop($field_only);
-
-                if ($this->lang_add) {
-                    $field = $field . $this->lang_add;
-                    $next = strtolower(trim(substr($select, $i + 5)));
-                    if (substr($next, 0, 2) == 'as');
-                    else $field .= ' AS `' . $field_only . '`';
-                } elseif ($this->langs) {
-                    $f = [];
-                    foreach ($this->langs as $v2) {
-                        $f[] = $field . $v2['lang_add'];
-                    }
-                    $field = implode(', ', $f);
-                }
-                $select = substr($select, 0, $j + 1) . $field . substr($select, $i + 5);
-            }
-            $query[0] = $select;
-            $query = implode('FROM', $query);
-        }
+        $query = $this->processLangQuery($query);
 
         // sql query
         $result = $this->sql->query($query, $single, $stripslashes, $key, $force_sql_cache);

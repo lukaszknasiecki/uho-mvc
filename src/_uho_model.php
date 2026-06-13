@@ -126,13 +126,14 @@ class _uho_model
         $this->http_server .= $_SERVER['HTTP_HOST'];
 
         $orm_version = isset($params['orm_version']) ? $params['orm_version'] : 1;
+        $orm_type = isset($params['orm_type']) ? $params['orm_type'] : 'mysql';
 
-        switch ($orm_version) {
-            case 2:
-                $orm_class=__NAMESPACE__.'\\_uho_orm_v2';
+        switch ($orm_type.$orm_version) {
+            case "mysql2":
+                $orm_class=__NAMESPACE__.'\\_uho_orm_mysql_prepared';
                 break;
             default:
-                $orm_class=__NAMESPACE__.'\\_uho_orm';
+                $orm_class=__NAMESPACE__.'\\_uho_orm_mysql';
                 break;
         }
 

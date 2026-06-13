@@ -152,6 +152,7 @@ class _uho_mvc
             $this->configFolder,
             false,
             [
+                'orm_type' => 'mysql',
                 'orm_version' => $this->orm_version,
                 'sql_debug' => $this->sql_debug
             ]

@@ -267,10 +267,13 @@
             },
             "settings": {
                 "default": "string",
-                "null": "boolean"
+                "null": "boolean",
+                "length": "integer",
+                "output": "string"
             },
             "options": "array",
             "source": {
+                "id":"string",
                 "filters": "array",
                 "list": "string",
                 "model": "string",

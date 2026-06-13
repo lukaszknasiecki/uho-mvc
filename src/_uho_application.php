@@ -86,6 +86,7 @@ class _uho_application
         $this->checkAccess();
 
         if (empty($this->application_params['orm_version'])) $this->application_params['orm_version'] = $additional_params['orm_version'] ?? 1;
+        if (empty($this->application_params['orm_type'])) $this->application_params['orm_type'] = $additional_params['orm_type'] ?? 'mysql';
         if (empty($this->application_params['sql_debug'])) $this->application_params['sql_debug'] = $additional_params['sql_debug'] ?? 0;
 
         // $this->application_title = @$this->application_params['application_title'];
@@ -195,6 +196,7 @@ class _uho_application
                 'params' => @$this->application_params['params'],
                 'files_decache' => @$this->application_params['files_decache'],
                 'keys' => @$this->application_params['keys'],
+                'orm_type' => empty($this->application_params['orm_type']) ? 'mysql' : $this->application_params['orm_type'],
                 'orm_version' => empty($this->application_params['orm_version']) ? 1 : $this->application_params['orm_version'],
                 'api_keys' => @$this->application_params['api_keys'],
                 'languages' => @$this->application_params['application_languages'],

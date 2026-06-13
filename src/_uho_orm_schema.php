@@ -506,10 +506,12 @@ class _uho_orm_schema
                     $t = $this->orm->query('SELECT id AS value,' . implode(',', $v['source']['fields']) . ' FROM ' . $v['source']['table'] . ' ' . $order);
                 }
 
+                $id=$v['source']['id'] ?? 'id';
+
                 foreach ($t as $kk => $vv) {
                     if (!@$v['source']['label']) $v['source']['label'] = '{{label}}';
                     $label = $this->orm->getTwigFromHtml($v['source']['label'], $vv);
-                    if (!isset($vv['value'])) $vv['value'] = $vv['id'];
+                    if (!isset($vv['value'])) $vv['value'] = $vv[$id];
                     $t[$kk] = ['values' => $vv, 'value' => $prefix . $vv['value'], 'label' => $label];
                     if (@is_array($vv['image'])) $image = @array_slice($vv['image'], 1, 1);
                     if (isset($image)) $t[$kk]['image'] = array_pop($image);
