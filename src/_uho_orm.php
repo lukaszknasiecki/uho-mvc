@@ -1225,7 +1225,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         case 'select':
                             $id0 = ($v[$v2['field']]);
                             if (is_numeric($id0)) $id0 = intval($id0);
-                            if (isset($v2['source']['data'][$id0]))
+                            
+                            if ($v2['source']['data'] && isset($v2['source']['data'][$id0]))
                                 $data[$k][$v2['field']] = $v[$v2['field']] = $v2['source']['data'][$id0];
                             break;
 

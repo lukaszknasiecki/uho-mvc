@@ -810,9 +810,9 @@ class _uho_fx
         if ($time) {
             $time = explode(':', $time);
         }
-        if ($time) {
+        if ($time && count($time) >= 2) {
             $time = _uho_fx::dozeruj($time[0], 2) . ':' . _uho_fx::dozeruj($time[1], 2);
-        }
+        } else $time='';
 
         if (!$time);
         elseif ($lang == 'pl') {
