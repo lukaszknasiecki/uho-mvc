@@ -1548,6 +1548,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         // join HTML blocks
 
         if (!empty($params['html_join'])) {
+            
             foreach ($blocks as $k => $v)
                 if ($k > 0 && $v['type'] == 'html') {
                     $v_prev = $blocks[$k - 1];
@@ -2349,7 +2350,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
         // filters --> get existing elements matching filters
         // data --> all records matching filters to update
         // 
-        if ($multiple && $filters) {
+        if ($multiple && $filters)
+        {
             // looking for existing objects
             
             if ($filters) $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $filters));
@@ -2452,6 +2454,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             return $result;
         } elseif ($filters) {
             $where = $this->getFilters($schema, $filters);
+            
         } else {
             $id = @$data['id'] = (@$data['id']);
             if (!$data['id']) {

@@ -71,7 +71,7 @@ class _uho_orm_schema_sql
 
                 case "json":
                 case "text":
-                case "html":                
+                case "html":
                 case "table":
                     $type = 'text';
                     if (!empty($v['settings']['long']) && $v['settings']['long'])
@@ -82,11 +82,9 @@ class _uho_orm_schema_sql
 
                     $type = 'int(11)';
 
-                    if (!empty($v['settings']['length']))
-                    {
+                    if (!empty($v['settings']['length'])) {
                         $type = 'varchar(' . $v['settings']['length'] . ')';
-                    } elseif (!empty($v['source']['model']))
-                    {
+                    } elseif (!empty($v['source']['model'])) {
                         $source_model = $this->orm->getSchema($v['source']['model']);
 
                         if ($source_model) {
@@ -96,8 +94,7 @@ class _uho_orm_schema_sql
                                 $type = 'varchar(' . $length . ')';
                             }
                         }
-                    } elseif (!empty($v['options']))
-                    {
+                    } elseif (!empty($v['options'])) {
                         $options = _uho_fx::array_extract($v['options'], 'value');
                         $type = "enum('" . implode("','", $options) . "')";
                     }
@@ -120,12 +117,11 @@ class _uho_orm_schema_sql
             }
 
             if ($v['field'] && $type) {
-                $not_null=false;
+                $not_null = false;
                 $default = null;
-                if ($v['type'] == 'integer' || $v['type'] == 'boolean')
-                {
+                if ($v['type'] == 'integer' || $v['type'] == 'boolean') {
                     $default = "'0'";
-                    $not_null=true;
+                    $not_null = true;
                 }
                 if (!empty($v['settings']['default'])) {
                     switch ($v['settings']['default']) {
@@ -141,7 +137,15 @@ class _uho_orm_schema_sql
 
                 if ($v['field'] == 'id') $id = $type;
                 $fields[] = $q;
-                $fields_sql[] = ['Field' => $v['field'], 'Type' => $type, 'Null' => !$not_null, 'Default' => $default];
+                $f = ['Field' => $v['field'], 'Type' => $type, 'Null' => !$not_null, 'Default' => $default];
+                
+                if (!empty($v['settings']['sql']['generated'])) $f['Generated'] = $v['settings']['sql']['generated'];
+                if (!empty($v['settings']['sql']['stored'])) $f['Stored'] = $v['settings']['sql']['stored'];
+                if (!empty($v['settings']['sql']['unique'])) $f['Unique'] = true;
+                if (!empty($v['settings']['sql']['trigger'])) $f['Trigger'] = $v['settings']['sql']['trigger'];
+                if (!empty($v['settings']['sql']['index'])) $f['Index'] = $v['settings']['sql']['index'];
+
+                $fields_sql[] = $f;
             }
         }
 
@@ -200,6 +204,7 @@ class _uho_orm_schema_sql
         $sql_schema = $this->getSchemaSQL($schema);
         $columns = $this->orm->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
 
+        //
         /*
             Array with the same depreceated types
         */
@@ -214,13 +219,11 @@ class _uho_orm_schema_sql
         $update = [];
         $add = [];
 
-        foreach ($sql_schema['fields_sql'] as $v)
-        {
+        foreach ($sql_schema['fields_sql'] as $v) {
 
             $find = _uho_fx::array_filter($columns, 'Field', $v['Field'], ['first' => true]);
             if ($find && isset($find['Type']) && $find['Type'] == $v['Type']);
-            elseif ($find)
-            {
+            elseif ($find) {
                 if (isset($the_same[$find['Type']]) && in_array($v['Type'], $the_same[$find['Type']]));
                 else {
                     $v['OldType'] = $find['Type'];
@@ -230,6 +233,7 @@ class _uho_orm_schema_sql
                 $add[] = $v;
             }
         }
+
 
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
         $performed_action = null;
@@ -256,25 +260,38 @@ class _uho_orm_schema_sql
                 foreach ($update as $v)
                     $message .= '- Field to be updated: ' . $v['Field'] . ' (' . $v['OldType'] . ' -> ' . $v['Type'] . ')';
 
-                return ['action' => $performed_action,'message'=>$message];
+                return ['action' => $performed_action, 'message' => $message];
             }
 
             if ($action == 'auto') {
-                
+
                 foreach ($update as $v) {
                     $performed_action = 'table_update';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` CHANGE `' . $v['Field'] . '` `' . $v['Field'] . '` ' . $v['Type'];
-                    if ($v['Null']) $query .= ' NULL'; else $query .= ' NOT NULL';
-                    if ($v['Default']) $query .= ' DEFAULT '.$v['Default'];
+                    if ($v['Null']) $query .= ' NULL';
+                    else $query .= ' NOT NULL';
+                    if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                 }
 
                 foreach ($add as $v) {
                     $performed_action = 'table_create';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` ADD `' . $v['Field'] . '` ' . $v['Type'];
+                    if (!empty($v['Generated'])) $query .= ' GENERATED ' . $v['Generated'];
                     if ($v['Null']) $query .= ' NULL'; else $query .= ' NOT NULL';
-                    if ($v['Default']) $query .= ' DEFAULT '.$v['Default'];
+                    if ($v['Stored']) $query .= ' STORED';
+                    if ($v['Unique']) $query .= ' UNIQUE';
+                    if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
+
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
+
+                    if ($v['Trigger'])
+                    {
+                        $query = 'CREATE TRIGGER ' . $schema['table'] . '_' . $v['Field'] . '_trigger ' . $v['Trigger'];
+                        if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
+                    }
+
+
                 }
             }
         }
@@ -297,26 +314,23 @@ class _uho_orm_schema_sql
 
         $exists = $this->orm->query("SHOW TABLES LIKE '" . $schema['table'] . "'", true);;
 
-        if (!$exists)
-        {
+        if (!$exists) {
             /* create table */
-            if (isset($options) && !empty($options['create']) && in_array($options['create'], ['auto','alert']))
-            {
+            if (isset($options) && !empty($options['create']) && in_array($options['create'], ['auto', 'alert'])) {
                 $sql = isset($options['create_sql']) ? $options['create_sql'] : null;
                 $response = $this->createTable($schema, $sql);
                 $messages[] = 'Table has been created';
                 if ($response['action']) $actions[] = $response['action'];
-            } else
-            {
+            } else {
                 $actions[] = 'table_create';
-                $messages[]= 'Table ['.$schema['table'].'] needs to be created';
+                $messages[] = 'Table [' . $schema['table'] . '] needs to be created';
             }
         } else {
             if (isset($options) && !empty($options['update'])) {
                 $response = $this->updateTable($schema, $options['update']);
 
                 if (!empty($response['message'])) $messages[] = $response['message'];
-                    elseif ($response['action'] == 'table_update') $messages[] = 'Table has been updated';
+                elseif ($response['action'] == 'table_update') $messages[] = 'Table has been updated';
 
                 if ($response['action']) $actions[] = $response['action'];
             } else $actions[] = 'table_update';
@@ -405,12 +419,12 @@ class _uho_orm_schema_sql
                     $or = null;
 
                     if (isset($field['settings']['hash']) && !$this->orm->getKeys()) $this->orm->halt('_uho_orm::getFiltersQueryArray::nokeys');
-                    if (isset($field['settings']['hash']))
-                    {
-                        if ($field['settings']['hash'][0]=='~')
-                            $v = _uho_fx::encrypt($v, $this->orm->getKeys(), substr($field['settings']['hash'],1), true);
-                             else $v = _uho_fx::encrypt($v, $this->orm->getKeys(), $field['settings']['hash']);
+                    if (isset($field['settings']['hash'])) {
+                        if ($field['settings']['hash'][0] == '~')
+                            $v = _uho_fx::encrypt($v, $this->orm->getKeys(), substr($field['settings']['hash'], 1), true);
+                        else $v = _uho_fx::encrypt($v, $this->orm->getKeys(), $field['settings']['hash']);
                     }
+
 
                     if ($field)
                         switch (@$field['type']) {
@@ -428,7 +442,7 @@ class _uho_orm_schema_sql
                                 if (@$field['settings']['output'] == 'string') $iDigits = 0;
 
                                 if ($eq == '!=' && !$v) {
-                                // skipping standard !=''
+                                    // skipping standard !=''
                                 } else {
                                     if (!is_array($v)) $v = explode(',', $v);
                                     foreach ($v as $k2 => $v2)
@@ -438,9 +452,10 @@ class _uho_orm_schema_sql
                                         }
                                     if ($eq == '!=') $eq = '%!LIKE%';
                                     else $eq = '%LIKE%';
-                                    if (isset($field['settings']['multiple_filters'])
-                                        && in_array($field['settings']['multiple_filters'],['&&','||'])
-                                        ) $or = ' '.$field['settings']['multiple_filters'].' ';
+                                    if (
+                                        isset($field['settings']['multiple_filters'])
+                                        && in_array($field['settings']['multiple_filters'], ['&&', '||'])
+                                    ) $or = ' ' . $field['settings']['multiple_filters'] . ' ';
                                 }
                                 if ($eq != '!=' && !$v) $v = null;
                                 break;

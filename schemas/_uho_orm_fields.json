@@ -23,7 +23,8 @@
                 "unique": "boolean"
             },
             "settings": {
-                "field_output": "string"
+                "field_output": "string",
+                "sql": "array"
             }
         }
     },
@@ -204,7 +205,11 @@
     "json": {
         "allowed": {
             "cms": {
+                "wide": "boolean",
                 "rows": "integer|string"
+            },
+            "settings": {
+                "long": "boolean"
             }
         }
     },
@@ -289,6 +294,7 @@
                 "lang": "string",
                 "length": "integer",
                 "case": "boolean",
+                "unique":"boolean",
                 "hash": true,
                 "null": true,
                 "minlength": "integer",
@@ -304,7 +310,7 @@
                 "on_demand": "boolean",
                 "style": "string",
                 "rows": "integer"
-            }
+            }            
         }
     },
     "text": {
