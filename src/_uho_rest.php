@@ -218,8 +218,30 @@ class _uho_rest
     }
 
     /*
+    Helper: Cloudflare Turnstile Captcha
+    */
+
+    public static function turnstile($token, $secret)
+    {
+        $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+		curl_setopt_array($ch, [
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_POST => true,
+			CURLOPT_POSTFIELDS => http_build_query([
+				'secret' => $secret,
+				'response' => $token,
+				'remoteip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''
+			]),
+			CURLOPT_TIMEOUT => 5
+		]);
+		$response = curl_exec($ch);
+		$json = $response ? json_decode($response, true) : null;
+		return !empty($json['success']);
+    }
+
+    /*
     Helper: Google Captcha
-  */
+    */
 
     public static function captcha($captcha, $secret)
     {

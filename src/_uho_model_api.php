@@ -55,6 +55,7 @@ class _uho_model_api extends _uho_model
      
         if (!empty($cfg['debug'])) $this->sql->setDebug($cfg['debug']);
         $captcha = isset($data['captcha']) ? $data['captcha'] : null;
+
         $this->allowOptionsHeader();
 
         // check Auth
@@ -96,8 +97,10 @@ class _uho_model_api extends _uho_model
         }
 
         if ($rest) {
+            
             // Check legacy captcha list (before class name transformation)
-            $requires_captcha = in_array($rest['class'], $rest['captcha']);
+            $requires_captcha = false; //in_array($rest['class'], $rest['captcha']);
+            $requires_turnstile = false;
 
             $rest['class'] = str_replace('-', '_', $rest['class']);
 
@@ -109,12 +112,19 @@ class _uho_model_api extends _uho_model
             if (!$requires_captcha && method_exists($object, $method)) {
                 $reflection = new \ReflectionMethod($object, $method);
                 $requires_captcha = !empty($reflection->getAttributes(\Huncwot\UhoFramework\Attributes\RequiresCaptcha::class));
+                $requires_turnstile = !empty($reflection->getAttributes(\Huncwot\UhoFramework\Attributes\RequiresTurnstile::class));                
             }
+
+            $allowed = true;
 
             if ($requires_captcha) {
                 $result = _uho_rest::captcha($captcha, $this->getApiKey('google_recaptcha', 'private'));
-                $allowed = ($result === true);
-            } else $allowed = true;
+                $allowed = $allowed && ($result === true);
+            };
+            if ($requires_turnstile) {
+                $result = _uho_rest::turnstile($captcha, $this->getApiKey('turnstile', 'private'));
+                $allowed = $allowed && ($result === true);
+            };
 
             if ($allowed) {
 

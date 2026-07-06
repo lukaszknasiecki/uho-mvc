@@ -23,6 +23,11 @@ $cfg_domains = [
 			[
 				'public' => getenv('GOOGLE_RECAPTCHA_PUBLIC'),
 				'private' => getenv('GOOGLE_RECAPTCHA_PRIVATE')
+			],
+			'turnstile' =>
+			[
+				'public' => getenv('TURNSTILE_PUBLIC'),
+				'private' => getenv('TURNSTILE_SECRET')
 			]
 		],
 		'clients' =>
