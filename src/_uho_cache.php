@@ -144,13 +144,13 @@ class _uho_cache
         $uri=trim($_SERVER['REQUEST_URI'], '/');
 
         if ($this->exclude_paths) {
-            foreach ($this->exclude_paths as $p)
-            if (str_ends_with($p, '*')) {
-                $pp=trim($p, '*');
-                if (str_starts_with($uri, $pp)) return false;
-            } else {
-                if ($uri==$p) return false;
-            }                                    
+            foreach ($this->exclude_paths as $p) {
+                if (strpos($p, '*') !== false) {
+                    if (fnmatch($p, $uri)) return false;
+                } else {
+                    if ($uri == $p) return false;
+                }
+            }
         }
 
         $this->result = '';

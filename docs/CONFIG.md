@@ -22,17 +22,14 @@ Application settings, useful for debug, versioning and caching.
 | ENV | Default | Description |
 |-----|---------|-------------|
 | `APP_TIMEZONE` | `Europe/Berlin` | Sets app's timezone. |
-| `APP_CACHE` | `0` | Enables app's caching (based on URL and ajax header). |
-| `APP_CACHE_MINUTES` | `24H` | Max time of cached items. |
-| `APP_CACHE_SALT` | `'uho'` | Encryption key for caching. |
 | `APP_DEV_MODE` | `0` | Development mode — shows errors. |
 | `APP_PASSWORD` | `user:password_bcrypt_hash` | Asks for a password before app runs. |
 | `APP_SQL_CACHE` | `integer` | Enable SQL Cache |
 | `APP_SQL_DEBUG` | `0` | SQL debug mode — shows SQL queries in comments. |
 | `APP_UPLOAD_SERVER` | null | Http server to read file uploads |
 | `APP_UHO_ORM` | `1` | ORM version (`1`/`2`). |
-| `APP_SQL_CACHE` | `0` | SQL cache mode — caches SQL queries except those in config.cache_exclude_sql |
-| `APP_HTTP_CACHE` | `0` | HTTP cache mode — caches HTTP queries except those in config.cache_exclude_http |
+| `APP_SQL_CACHE` | `0` | SQL cache mode — caches SQL queries except those in application_config.php -> cache_exclude_sql |
+| `APP_HTTP_CACHE` | `0` | HTTP cache mode — caches HTTP queries except those in config .uho-mvc.json -> cache_exclude_http |
 | `APP_HTTP_CACHE_SALT` | `string` | Custom salt for hashing HTTP cache |
 | `APP_URI` | `string` | Application full http url |
 
@@ -99,7 +96,7 @@ This file (root directory) consists of data for HTTP cache if used
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `cache_exclude_http` | `array` | `[]` | Disables those paths from HTTP cache, * suffix supported |
+| `cache_exclude_http` | `array` | `[]` | Disables those paths from HTTP cache, "*" supported |
 | `cache_headers_http` | `array` | `[]` | Distincts content in cache is stored by those headers |
 
 

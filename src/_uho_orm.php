@@ -1137,9 +1137,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     $data[$k][$v2['field']] = $val2;
                 }
                 /**
-                 * select type with source.model
+                 * select type with source.model (older method)
                  */
                 elseif ($this->getSelectMethod == 'iterate' && @$v2['type'] == 'select' && !empty($v2['source']['model'])) {
+
 
                     if (isset($v2['source']['filters'])) {
                         $f = array($v2['source']['filters']);
@@ -1156,7 +1157,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     $data[$k][$v2['field']] = $this->get($model0, $f, $getSingle, $order);
                 }
                 /**
-                 * Select fields with source.model & aggregate method
+                 * Select fields with source.model & aggregate method (newer)
                  */
                 elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes']))) {
 
