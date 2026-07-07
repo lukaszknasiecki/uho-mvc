@@ -372,7 +372,7 @@ class _uho_auth
     $filters = $params;
     $pass = isset($filters['password']) ? $filters['password'] : null;
     unset($filters['password']);
-
+    if (!$filters) return null;
     $t = $this->orm->get($this->clientModel, $filters, true);
 
     if ($t && !$skip_pass_check) {
@@ -527,7 +527,7 @@ class _uho_auth
         $this->auth_type = 'cookie';
         $this->current_token = $token;
         $user_id = $this->getUserIdByToken($token, 'session');
-        $this->user = $this->getUserByParams(['id' => $user_id], true);
+        if ($user_id) $this->user = $this->getUserByParams(['id' => $user_id], true);
       }
     }
   }
