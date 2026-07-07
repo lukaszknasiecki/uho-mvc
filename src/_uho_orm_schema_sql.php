@@ -32,6 +32,7 @@ class _uho_orm_schema_sql
         $fields = [];
         $fields_sql = [];
         $id = false;
+        $unique=false;
 
         // converts UHO ORM field types to SQL types
 
@@ -56,6 +57,7 @@ class _uho_orm_schema_sql
                     break;
                 case "uid":
                     $type = 'varchar(13)';
+                    $unique=true;
                     break;
                 case "checkboxes":
                 case "elements":
@@ -116,8 +118,11 @@ class _uho_orm_schema_sql
                     break;
             }
 
-            if ($v['field'] && $type) {
-                $not_null = false;
+            if ($unique) $v['settings']['sql']['unique']=$unique;
+
+            if ($v['field'] && $type)
+            {
+                if ($unique) $not_null = true; else $not_null = false;
                 $default = null;
                 if ($v['type'] == 'integer' || $v['type'] == 'boolean') {
                     $default = "'0'";
@@ -238,7 +243,8 @@ class _uho_orm_schema_sql
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
         $performed_action = null;
 
-        if ($update || $add) {
+        if ($update || $add)
+        {
 
             if ($action == 'alert') {
                 $html = '<h3>Schema for [<code>' . $schema['table'] . '</code>] needs to be updated.</h3><ul>';
@@ -274,14 +280,22 @@ class _uho_orm_schema_sql
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                 }
 
-                foreach ($add as $v) {
+                // add new fields
+                foreach ($add as $k=>$v)
+                {
                     $performed_action = 'table_create';
-                    $query = 'ALTER TABLE `' . $schema['table'] . '` ADD `' . $v['Field'] . '` ' . $v['Type'];
+                    $query = 'ALTER TABLE `' . $schema['table'] . '` {{METHOD}} `' . $v['Field'] . '` ' . $v['Type'];
                     if (!empty($v['Generated'])) $query .= ' GENERATED ' . $v['Generated'];
-                    if ($v['Null']) $query .= ' NULL'; else $query .= ' NOT NULL';
+                    $query.=' {{NULL}}';
                     if ($v['Stored']) $query .= ' STORED';
                     if ($v['Unique']) $query .= ' UNIQUE';
                     if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
+                    
+                    $add[$k]['alter_query']=str_replace('{{NULL}}', $v['Null'] ? ' NULL' : ' NOT NULL', $query);
+                    $add[$k]['alter_query']=str_replace('{{METHOD}}', 'MODIFY', $add[$k]['alter_query']);
+
+                    $query=str_replace('{{METHOD}}','ADD', $query);
+                    $query=str_replace('{{NULL}}','NULL', $query); // first, always NULL
 
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
 
@@ -290,9 +304,24 @@ class _uho_orm_schema_sql
                         $query = 'CREATE TRIGGER ' . $schema['table'] . '_' . $v['Field'] . '_trigger ' . $v['Trigger'];
                         if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                     }
+                }
 
+                foreach ($add as $v)
+                if (!$v['Null'])
+                {
+                    $query=null;
+                    switch ($v['Type']) {
+                        case 'varchar(13)':
+                            $query = 'UPDATE `' . $schema['table'] . '` SET `' . $v['Field'] . '` = SUBSTRING(MD5(CONCAT(UUID(), RAND())), 1, 13) WHERE `' . $v['Field'] . '` IS NULL';
+                            if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
+                            break;                        
+                    }
+                    if ($query) $this->orm->queryOut($query);
+                    $this->orm->queryOut($v['alter_query']);
+                    
 
                 }
+
             }
         }
 

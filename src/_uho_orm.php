@@ -2348,7 +2348,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if (isset($schema['filters']) && isset($params['skipSchemaFilters'])) unset($schema['filters']);
 
-        if (isset($params['uid']) && !is_array($params['uid'])) $params['uid'] = [$params['uid']];
+        if (!empty($params['uid']) && !is_array($params['uid'])) $params['uid'] = [$params['uid']];
+            elseif (empty($params['uid'])) $params['uid']=null;
+
+        $multiple_version = 'new';
+        $multiple_version = 'old';
 
         // ---------------------------------------------------------------------------
         // filters --> get existing elements matching filters
@@ -2381,8 +2385,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
             return true;
         }
         // other version, no filters
-
-        if ($multiple && 1 == 1) {
+        // NEWER VERSION
+        if ($multiple && $multiple_version == 'new')
+        {
 
             $query = $this->buildOutputQueryMultiple($schema, $data);
 
@@ -2399,6 +2404,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             return $result;
             
         } elseif ($multiple)
+        // OLDER VERSION
         {
 
             $f = [];
@@ -2409,7 +2415,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     if (empty($params['uid']) || in_array($k2, $params['uid'])) {
                         $vv[$k2] = $val;
                     }
-
                 $f[] = str_replace('WHERE ', '', $this->getFilters($schema, $vv));
             }
 
