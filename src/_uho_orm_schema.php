@@ -466,6 +466,7 @@ class _uho_orm_schema
         foreach ($schema['fields'] as $k => $v)
             // source --> options
             if (@$v['source'] && !@$v['options'] && @$v['cms']['input'] != 'search') {
+                
                 $prefix = '';
                 // many models -> lets' get first for a start
                 /*if ($v['source']['models'])
@@ -489,6 +490,7 @@ class _uho_orm_schema
 
                 if ($v['source']['model'])
                 {
+                    
                     if (!empty($v['source']['model_fields'])) $params0 = ['fields' => $v['source']['model_fields']];
                     else $params0 = [];
 
@@ -520,6 +522,7 @@ class _uho_orm_schema
 
                 if (isset($v['source']['order']))
                     $t = _uho_fx::array_multisort($t, $v['source']['order']);
+                    else $t = _uho_fx::array_multisort($t, 'label');
 
 
                 $schema['fields'][$k]['options'] = $t;

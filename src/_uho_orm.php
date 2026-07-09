@@ -2349,7 +2349,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if (isset($schema['filters']) && isset($params['skipSchemaFilters'])) unset($schema['filters']);
 
         if (!empty($params['uid']) && !is_array($params['uid'])) $params['uid'] = [$params['uid']];
-            elseif (empty($params['uid'])) $params['uid']=null;
+        elseif (empty($params['uid'])) $params['uid'] = null;
 
         $multiple_version = 'new';
         $multiple_version = 'old';
@@ -2386,8 +2386,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         }
         // other version, no filters
         // NEWER VERSION
-        if ($multiple && $multiple_version == 'new')
-        {
+        if ($multiple && $multiple_version == 'new') {
 
             $query = $this->buildOutputQueryMultiple($schema, $data);
 
@@ -2402,7 +2401,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             $result = $this->queryOut($query);
             return $result;
-            
         } elseif ($multiple)
         // OLDER VERSION
         {
@@ -2779,10 +2777,12 @@ public function getTwigFromHtml(string $html, array $data): ?string
         return $this->schemaSqlManager->creator($schema, $options, $recursive, $update_languages);
     }
 
-    public function getFiltersQueryArray($model)
+    public function getFiltersQueryArray($model, array $filters = [])
     {
-        return $this->schemaSqlManager->getFiltersQueryArray($model);
+        if ($filters) $model['filters'] = $filters;
+        return $this->schemaSqlManager->getFiltersQueryArray($model, $filters);
     }
+
 
     /**
      * FILE/IMAGE UPLOAD METHODS

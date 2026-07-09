@@ -38,6 +38,7 @@ class _uho_orm_schema_sql
 
         foreach ($schema['fields'] as $v) {
 
+            $unique=false;
             $type = '';
             switch ($v['type']) {
                 case "date":
@@ -69,6 +70,7 @@ class _uho_orm_schema_sql
                     break;
                 case "boolean":
                     $type = 'tinyint(4)';
+                    
                     break;
 
                 case "json":
@@ -143,7 +145,7 @@ class _uho_orm_schema_sql
                 if ($v['field'] == 'id') $id = $type;
                 $fields[] = $q;
                 $f = ['Field' => $v['field'], 'Type' => $type, 'Null' => !$not_null, 'Default' => $default];
-                
+
                 if (!empty($v['settings']['sql']['generated'])) $f['Generated'] = $v['settings']['sql']['generated'];
                 if (!empty($v['settings']['sql']['stored'])) $f['Stored'] = $v['settings']['sql']['stored'];
                 if (!empty($v['settings']['sql']['unique'])) $f['Unique'] = true;

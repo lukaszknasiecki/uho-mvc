@@ -35,7 +35,6 @@ class _uho_controller_api extends _uho_controller
                 break;
 
             case "POST":
-
                 $data = $this->post;
                 $body = $this->getBody();
                 if ($body) $data = array_merge($data, $body);
