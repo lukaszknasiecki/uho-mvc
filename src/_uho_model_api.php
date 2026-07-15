@@ -19,6 +19,8 @@ class _uho_model_api extends _uho_model
         'no_auth' => [],
         'auth' => []
     ];
+
+    private $skip_wrong_token=true;
     private $models_path = '';
     private $allow_form_bearer_token=false;
     public $path = [];
@@ -49,10 +51,15 @@ class _uho_model_api extends _uho_model
         $this->allow_form_bearer_token = $allow;
     }
 
+    public function setSkipWrongToken(bool $skip)
+    {
+        $this->skip_wrong_token = $skip;
+    }
+
     public function request($method, $action, $data, $cfg)
     {
         $this->path=explode('/',$action);
-     
+
         if (!empty($cfg['debug'])) $this->sql->setDebug($cfg['debug']);
         $captcha = isset($data['captcha']) ? $data['captcha'] : null;
 
@@ -67,6 +74,7 @@ class _uho_model_api extends _uho_model
         if ($bearer_token) {
             $result = $this->validateUserToken($bearer_token);
             if ($result['header'] == 200) $user_id = $result['user'];
+            elseif ($this->skip_wrong_token) $user_id=null;
             else return $result;
         }
 

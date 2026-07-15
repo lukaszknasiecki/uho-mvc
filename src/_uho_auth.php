@@ -665,13 +665,14 @@ class _uho_auth
    * @param int|null $user_id user ID written to the log; null for anonymous actions
    * @return bool true when the mailer reports success
    */
-  private function mailing($slug, $emails, $data = [], $user_id = null): bool
+  public function mailing($slug, $emails, $data = [], $user_id = null): bool
   {
+        
     if (empty($this->mailingModel)) exit('_uho_client::mailing::missing_model');
     if (!$emails) return false;
 
     $mailing = $this->orm->get($this->mailingModel, ['slug' => $slug], true);
-    if (!$mailing) exit('_uho_auth::mailing::missing_mailing_model::' . $slug);
+    if (!$mailing) exit('_uho_auth::mailing-->missing_mailing_template::' . $slug);
 
     $data['website'] = $this->website['title'];
     $data['http'] = $this->website['http'];
