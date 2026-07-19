@@ -132,6 +132,34 @@ Alternative versions of `options` format:
   }
   ```
 
+## Field write settings
+
+You can set fields values automatically on each record change
+with sql pattern for each field, like in the following exaple
+which creates custom string index based on `id` field:
+
+```json
+  "settings": {
+                "auto": {
+                    "on_update":
+                    {
+                        "value_sql": "CONCAT('NR', LPAD(`id`, 8, '0'))"
+                    }
+                }
+  }
+```
+```json
+"settings": {
+                "auto": {
+                    "on_update": {
+                        "value_sql": "CURRENT_TIMESTAMP"
+                    }
+                }
+            }
+```
+
+This way you can emulate mySQL triggers.
+
 ## Custom field object properties
 
 Here is a list of field types and properties which work with these types:

@@ -2302,10 +2302,17 @@ public function getTwigFromHtml(string $html, array $data): ?string
             if ($data) {
 
                 $query = 'INSERT INTO ' . $model['table'] . ' ' . $query;
-
                 $r = $this->queryOut($query);
                 if (!$r) $this->errors[] = 'post:: ' . $query;
-                else $r = $this->getInsertId();
+                else {
+                    $r = $this->getInsertId();
+                    // execute auto sql on full table since multiple inserts may have changed the data in a way that requires recalculation of auto fields
+                    $set = $this->buildOutputQueryAutoSql($model);
+                    if ($set) {
+                        $query = 'UPDATE ' . $model['table'] . ' SET ' . $set;
+                        $this->queryOut($query);
+                    }
+                }
                 return $r;
             }
         } else {
@@ -2322,6 +2329,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 else {
                     $r = $this->getInsertId();
                     $full_data['id'] = $this->getInsertId();
+                    $id = 'id';
+
+                    $set = $this->buildOutputQueryAutoSql($model);
+                    if ($set) {
+                        $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' WHERE ' . $id . '="' . $r . '"';
+                        $this->queryOut($query);
+                    }
                 }
 
                 return $r;
@@ -2398,8 +2412,16 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             $query = "INSERT INTO " . $schema['table'] . " " . $query . " ";
             $query .= "ON DUPLICATE KEY UPDATE " . implode(', ', $query2);
-
             $result = $this->queryOut($query);
+
+            // sql auto updates
+            $set = $this->buildOutputQueryAutoSql($model);
+            if ($set) {
+                $query = 'UPDATE ' . $schema['table'] . ' SET ' . $set;
+                $this->queryOut($query);
+            }
+
+
             return $result;
         } elseif ($multiple)
         // OLDER VERSION
@@ -2472,6 +2494,14 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $data = $this->buildOutputQuery($schema, $v);
                         $query = 'UPDATE ' . $schema['table'] . ' SET ' . $data . ' WHERE ' . implode(' && ', $where);
                         $result = $this->queryOut($query);
+
+                        // sql auto updates
+                        $set = $this->buildOutputQueryAutoSql($model);
+                        if ($set) {
+                            $query = 'UPDATE ' . $schema['table'] . ' SET ' . $set;
+                            $this->queryOut($query);
+                        }
+                        
                     } else $result = false;
                 }
             }
@@ -2497,8 +2527,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
             return false;
         }
 
+        /*
+            check if record exists
+        */
         $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;
-
         $exists = $this->query($exists_query);
 
 
@@ -2514,12 +2546,30 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
             $r = $this->queryOut($query);
             if (!$r) return false;
-            return $this->getAffectedRows();
-        } else {
+            $count = $this->getAffectedRows();
 
+            $set = $this->buildOutputQueryAutoSql($model);
+            if ($set) {
+                $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
+                $r = $this->queryOut($query);
+            }
+
+            return $count;
+        } else {
             $this->errors[] = 'mysql error:: buildOutputQuery empty for table: ' . $model['table'];
             return false;
         }
+    }
+
+    private function buildOutputQueryAutoSql($model): string
+    {
+        $set = [];
+        foreach ($model['fields'] as $field) {
+            if (isset($field['settings']['auto']['on_update']['value_sql'])) {
+                $set[] = '`' . $field['field'] . '`=' . $field['settings']['auto']['on_update']['value_sql'];
+            }
+        }
+        return implode(', ', $set);
     }
 
     /**

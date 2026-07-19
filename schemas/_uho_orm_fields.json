@@ -25,6 +25,7 @@
             },
             "settings": {
                 "field_output": "string",
+                "auto": "array",
                 "sql": "array"
             }
         }
