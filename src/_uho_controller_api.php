@@ -58,6 +58,7 @@ class _uho_controller_api extends _uho_controller
 
     private function getBody()
     {
+        $body= null;        
         $raw = file_get_contents('php://input');
         if ($raw !== '') {
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';

@@ -2412,10 +2412,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             $query = "INSERT INTO " . $schema['table'] . " " . $query . " ";
             $query .= "ON DUPLICATE KEY UPDATE " . implode(', ', $query2);
+            
             $result = $this->queryOut($query);
 
             // sql auto updates
-            $set = $this->buildOutputQueryAutoSql($model);
+            $set = $this->buildOutputQueryAutoSql($schema);
             if ($set) {
                 $query = 'UPDATE ' . $schema['table'] . ' SET ' . $set;
                 $this->queryOut($query);
@@ -2443,7 +2444,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
 
             $exists = 'SELECT id,' . implode(',', $fields) . ' FROM ' . $schema['table'] . ' WHERE (' . implode(') || (', $f) . ')';
-
             $exists = $this->query($exists);
 
             $insert = $data;
@@ -2451,7 +2451,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             // new items
             if ($exists)
-                foreach ($insert as $k => $v) {
+                foreach ($insert as $k => $v)
+            {
                     $exact = false;
                     foreach ($exists as $k2 => $v2) {
                         unset($v2['id']);
@@ -2496,7 +2497,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $result = $this->queryOut($query);
 
                         // sql auto updates
-                        $set = $this->buildOutputQueryAutoSql($model);
+                        $set = $this->buildOutputQueryAutoSql($schema);
                         if ($set) {
                             $query = 'UPDATE ' . $schema['table'] . ' SET ' . $set;
                             $this->queryOut($query);
@@ -2564,8 +2565,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
     private function buildOutputQueryAutoSql($model): string
     {
         $set = [];
-        foreach ($model['fields'] as $field) {
-            if (isset($field['settings']['auto']['on_update']['value_sql'])) {
+        foreach ($model['fields'] as $field)
+        {
+            if (!empty($field['settings']['auto']['on_update']['value_sql'])) {
                 $set[] = '`' . $field['field'] . '`=' . $field['settings']['auto']['on_update']['value_sql'];
             }
         }

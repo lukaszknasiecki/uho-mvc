@@ -763,7 +763,7 @@ class _uho_route
                 }
                 /*
                     if url prefix is set, value is string with no http prefix, use full string 
-                */ elseif ($v && substr($k, 0, 3) === 'url' && substr($v, 0, 4) != 'http') {
+                */ elseif ($v && is_string($v) && substr($k, 0, 3) === 'url' && substr($v, 0, 4) != 'http') {
                     if ($v == 'home') $t[$k] = '/';
                     else $t[$k] = rtrim($this->getUrl($v), '/');
                 }

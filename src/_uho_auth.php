@@ -265,7 +265,8 @@ class _uho_auth
    */
   public function registerConfirmation($key): array
   {
-    $user = $this->getUserToken($key, 'registration_confirmation', true);
+    
+    $user = $this->getUserIdByToken($key, 'registration_confirmation', true);
     if ($user) $user = $this->orm->get($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
 
     if ($user) {
