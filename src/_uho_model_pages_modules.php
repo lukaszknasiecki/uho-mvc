@@ -58,10 +58,10 @@ class _uho_model_pages_modules
 
 		$m['preview'] = isset($get['preview']);
 		$m['lang'] = $this->lang;
-		$m['links'] =
-			[
-				'url_home' => ''
-			];
+		if (empty($m['links'])) $m['links']=[];
+		$m['links']['url_home'] = 'home';
+		$m['links']['url_now'] = ['type' => 'url_now'];
+		$m['links']['url_now_http'] = ['type' => 'url_now_http'];
 
 		/*
 			Uses's page module class

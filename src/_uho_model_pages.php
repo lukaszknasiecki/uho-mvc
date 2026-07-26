@@ -179,12 +179,13 @@ class _uho_model_pages extends _uho_model
             $modules = new _uho_model_pages_modules($this, $this->path_modules);
             $i = 0;
             foreach ($m as $k => $v) {
-                $v = $this->updateModuleCustom($v, $url, $get);
+                $v = $this->updateModuleCustom($v, $url, $get);                
                 $m[$k] = $modules->updateModule($v, $url, $get);
                 if (empty($m[$k])) unset($m[$k]);
             }
         }
         $m = array_values($m);
+        
         return $m;
     }
 
