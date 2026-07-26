@@ -158,10 +158,20 @@ class _uho_orm_schema
         // setting field defaults ------------------------------------------------------------
         if ($model && isset($model['fields']) && is_array($model['fields']))
             foreach ($model['fields'] as $k => $v)
+            {
                 if (!isset($v['type'])) {
                     if ($v['field'] == 'id') $model['fields'][$k]['type'] = 'integer';
-                    else $model['fields'][$k]['type'] = 'string';
+                    else
+                    {
+                        $model['fields'][$k]['type'] = 'string';
+                    }
                 }
+
+                if ($model['fields'][$k]['type']=='string' && empty($v['settings']['length']))
+                    $model['fields'][$k]['settings']['length'] = 255;
+
+
+            }
 
         // setting langs  ------------------------------------------------------------
         $langs = $this->orm->getLanguages();
