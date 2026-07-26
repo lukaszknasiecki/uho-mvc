@@ -267,7 +267,9 @@ class _uho_orm
 
     public function getTwigFromHtml(string $html, array $data): string|null
     {
+
         if (!$html || !is_string($html)) return null;
+        if (!preg_match('/\{[\{%#]/', $html)) return $html;
         if (!$this->twig)
             $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
         if ($this->twig) {
@@ -962,6 +964,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /**
          * Re-working all returned records
          */
+        
         $data = $this->getUpdateRecords($model, $data);
         $data = $this->getUpdateRecordsMedia($model, $data, $fields_auto);
         $data = $this->getUpdateRecordsBlocks($model, $data);
@@ -1663,6 +1666,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                             $v2['settings']['filename'] = $this->getTwigFromHtml($v2['settings']['filename'], $v);
                             $v2['settings']['folder'] = $this->getTwigFromHtml($v2['settings']['folder'], $v);
+
                             if (isset($v2['settings']['extension_field'])) $v2['settings']['extension'] = $v[$v2['settings']['extension_field']];
 
                             if (@$v2['settings']['extension'] && !is_array($v2['settings']['extension']))
@@ -1719,7 +1723,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             elseif (@$v2['settings']['extensions'] && count($v2['settings']['extensions']) == 1)
                                 $extension = $v2['settings']['extensions'][0];
 
-                            $v2['settings']['folder'] = $this->getTemplate($v2['settings']['folder'], $v);
+                            $v2['settings']['folder'] = $this->getTemplate($v2['settings']['folder'], $v,true);
 
                             /*
                                 optional: add image sizes via stored values in separate field
