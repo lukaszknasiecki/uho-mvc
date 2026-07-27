@@ -102,7 +102,7 @@ class _uho_auth
 
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
-      if ($this->auth_type = 'cookie') $this->setCookieToken($token);
+      if ($this->auth_type == 'cookie') $this->setCookieToken($token);
       return ['user' => $user, 'token' => $token, "expires_in" => 4 * 60 * 60];
     }
 
