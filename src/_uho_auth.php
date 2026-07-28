@@ -9,6 +9,39 @@ use Huncwot\UhoFramework\_uho_auth;
 
 class _uho_auth
 {
+  // Methods (alphabetical):
+  // __construct($orm, $settings, $login = null)
+  // addLog($action, $value, $user_id = null): void
+  // base64url(string $bin): string
+  // createUser($data)
+  // encodePassword($pass, $filter = false, $salt = null): string
+  // encodePasswordParams($password): array
+  // generateToken(): string
+  // generateUserToken($user_id, $type, $date): ?string
+  // getCurrentToken()
+  // getIp(): string
+  // getUser(): ?array
+  // getUserByParams(array $params, $skip_pass_check = false)
+  // getUserId(): ?int
+  // getUserIdByToken($token, $type = null, $remove_if_present = false)
+  // login($email, $password, array $params = [])
+  // loginAutoCookie(): void
+  // loginAutoToken(): void
+  // logout(): void
+  // mailing($slug, $emails, $data = [], $user_id = null): bool
+  // passwordChange($password, $user = null)
+  // passwordChangeByOldPassword($oldpass, $pass)
+  // passwordCheck($pass)  
+  // passwordValidateFormat($pass)
+  // passwordReset(string $email, string $url)
+  // refresh_token()
+  // register($data, $url = null): array
+  // registerConfirmation($key): array
+  // removeUserTokens($user_id, $type = null): void
+  // setCookieToken($token): void
+  // uniqid(): string
+  // update($user_id = 0, $data = null)
+
   use _uho_auth_google;
 
   private $orm;
@@ -460,6 +493,23 @@ class _uho_auth
     return false;
   }
 
+  public function passwordReset(string $email, string $url)
+  {
+      $user = $this->getUserByParams(['email' => $email], true);
+      if (!$user) return ['result' => false, 'message' => 'client_user_not_found'];
+
+      $token = $this->generateUserToken($user['id'], 'password_reset', '+12 hours');
+      if (!$token) return ['result' => false, 'message' => 'client_user_token_creation_error'];
+
+      $result = $this->mailing(
+        'password_reset',
+        $user['email'],[
+          'url' => str_replace('%key%', $token, $url )]);
+
+      if (!$result) return ['result' => false, 'message' => 'client_user_email_sending_error'];
+      else return ['result' => true, 'message' => 'client_user_email_sending_success'];
+  }
+
 
   /**
    * Changes the password for the given (or current) user.
@@ -509,6 +559,15 @@ class _uho_auth
       return ['result' => false, 'message' => 'client_old_password_wrong'];
 
     return $this->passwordChange($pass);
+  }
+
+  public function passwordChangeByToken($pass_token, $pass)
+  {
+    $user=$this->getUserIdByToken($pass_token, 'password_reset', true);
+    if (!$user) return ['result' => false, 'message' => 'client_password_token_invalid'];
+
+    return $this->passwordChange($pass,$user);
+    
   }
 
 

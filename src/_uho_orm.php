@@ -2535,6 +2535,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /*
             check if record exists
         */
+            
         $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;
         $exists = $this->query($exists_query);
 
