@@ -206,7 +206,7 @@ class _uho_fx
                     if (empty($valid[$k]))
                         $valid = _uho_fx::sanitize_input($input, [$k=>$type]);
                 }
-                $output[$k]=$valid[$k];
+                $output[$k]=$valid[$k] ?? null;
             }
             elseif (isset($input[$k]))
                 switch ($v) {
@@ -217,7 +217,6 @@ class _uho_fx
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
                         break;
                     case "email":
-
                         $sanitized_a = filter_var($input[$k], FILTER_SANITIZE_EMAIL);
                         if (filter_var($sanitized_a, FILTER_VALIDATE_EMAIL))
                             $output[$k] = $sanitized_a;
