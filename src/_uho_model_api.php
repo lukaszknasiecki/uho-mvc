@@ -173,7 +173,7 @@ class _uho_model_api extends _uho_model
         // return 404 if no result
 
         if (empty($result) && (!isset($result) || $result !== [])) {
-            $result = ['result' => false, 'header' => '404', 'error' => 'Unknown API path'];
+            $result = ['result' => false, 'header' => '404', 'error' => 'Unknown API path','authorized'=>$user_id?true:false];
         }
 
         if (isset($result['header'])) {

@@ -137,11 +137,17 @@ class _uho_rest
     Validate Required Parameters
   */
 
-    public static function validateRequiredInput($data = null, $required = [])
+    public static function validateRequiredInput($data = null, $required = [], $return = 'boolean')
     {
+        $errors=[];
         foreach ($required as $k => $v)
-            if (!isset($data[$v])) return false;
-        return true;
+            if (!isset($data[$v]))
+            {
+                $errors[]=$v;
+                if ($return == 'boolean') return false;
+            }
+        if ($return == 'boolean') return true;
+        else return $errors;
     }
 
     /*
@@ -206,9 +212,11 @@ class _uho_rest
                 if (!empty($v['required']))
                 {
                     $val = isset($data['sanitize'][$k]['value']) ? $data['sanitize'][$k]['value'] : null;
-                
-                    if (!_uho_rest::validateRequiredInput($val, $v['required']))
-                        return ['header' => 401, 'error' => 'Missing required params'];
+                    $missing=_uho_rest::validateRequiredInput($val, $v['required'],'fields');                
+                    if ($missing)
+                    {                        
+                        return ['header' => 401, 'error' => 'Missing required params: '.implode(', ',$missing)];
+                    }
                 }
             }
             
