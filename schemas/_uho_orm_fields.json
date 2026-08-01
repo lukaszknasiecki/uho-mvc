@@ -284,8 +284,10 @@
             "options": "array",
             "source": {
                 "id":"string",
+                "label":"string",
                 "filters": "array",
                 "list": "string",
+                "search": "array",
                 "model": "string",
                 "model_fields": "array",
                 "order": "string"

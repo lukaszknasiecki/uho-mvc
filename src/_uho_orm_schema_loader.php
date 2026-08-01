@@ -102,7 +102,7 @@ class _uho_orm_schema_loader
                 $schema=$this->loadJsonSchema($json['include']);
                 if (!empty($schema['cms']))
                 {
-                    $json['cms']=array_merge($schema['cms'],$json['cms']);
+                    $json['cms']=array_merge($schema['cms'] ?? [],$json['cms'] ?? []);
                     unset($schema['cms']);
                 }
                 $json=array_merge($schema,$json);
