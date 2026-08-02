@@ -222,8 +222,21 @@ class _uho_pgsql
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
-                $whereFields[] = '"' . $p[2] . '"=$' . $i++;
-                $values[]      = $p[1];
+                if (is_array($p[1])) {
+                    if (empty($p[1])) {
+                        $whereFields[] = '1=0';
+                        continue;
+                    }
+                    $placeholders = [];
+                    foreach ($p[1] as $v) {
+                        $placeholders[] = '$' . $i++;
+                        $values[]       = $v;
+                    }
+                    $whereFields[] = '"' . $p[2] . '" IN (' . implode(',', $placeholders) . ')';
+                } else {
+                    $whereFields[] = '"' . $p[2] . '"=$' . $i++;
+                    $values[]      = $p[1];
+                }
             }
             $query .= ' WHERE ' . implode(' AND ', $whereFields);
         }
@@ -256,8 +269,21 @@ class _uho_pgsql
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
-                $whereFields[] = '"' . $p[2] . '"=$' . $i++;
-                $values[]      = $p[1];
+                if (is_array($p[1])) {
+                    if (empty($p[1])) {
+                        $whereFields[] = '1=0';
+                        continue;
+                    }
+                    $placeholders = [];
+                    foreach ($p[1] as $v) {
+                        $placeholders[] = '$' . $i++;
+                        $values[]       = $v;
+                    }
+                    $whereFields[] = '"' . $p[2] . '" IN (' . implode(',', $placeholders) . ')';
+                } else {
+                    $whereFields[] = '"' . $p[2] . '"=$' . $i++;
+                    $values[]      = $p[1];
+                }
             }
             $query .= ' WHERE ' . implode(' AND ', $whereFields);
         }
