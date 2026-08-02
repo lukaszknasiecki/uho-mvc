@@ -2369,8 +2369,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if (!empty($params['uid']) && !is_array($params['uid'])) $params['uid'] = [$params['uid']];
         elseif (empty($params['uid'])) $params['uid'] = null;
 
-        $multiple_version = 'new';
+        // $multiple_version = 'new';
         $multiple_version = 'old';
+
+        if (isset($params['version']))
+            $multiple_version = $params['version'];
 
         // ---------------------------------------------------------------------------
         // filters --> get existing elements matching filters
@@ -2786,6 +2789,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
     {
         $result = $this->sql->queryOut($query);
         if (!$result) $this->errors[] = $query;
+        return $result;
+    }
+
+    public function queryUpdatePrepared(string $table, array $setParams, array $whereParams = [], string $whereClause = '')
+    {
+        $result = $this->sql->updatePrepared($table, $setParams, $whereParams, $whereClause);
+        if (!$result) $this->errors[] = 'updatePrepared:: ' . $table;
         return $result;
     }
 

@@ -496,7 +496,7 @@ class _uho_mysqli
      * Runs prepared UPDATE query
      * @param string $table - table name
      * @param array $setParams - array of [type, value, field_name] tuples for SET clause
-     * @param array $whereParams - array of [type, value, field_name] tuples for WHERE clause
+     * @param array  $whereParams - array of [type, value, field_name] tuples for WHERE clause; value may be an array to generate an IN (...) condition
      * @param string $whereClause - optional custom WHERE clause with placeholders
      * @return bool
      */
@@ -527,9 +527,23 @@ class _uho_mysqli
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
-                $whereFields[] = '`' . $p[2] . '`=?';
-                $types .= $p[0];
-                $values[] = $p[1];
+                if (is_array($p[1])) {
+                    if (empty($p[1])) {
+                        $whereFields[] = '1=0';
+                        continue;
+                    }
+                    $placeholders = [];
+                    foreach ($p[1] as $v) {
+                        $placeholders[] = '?';
+                        $types .= $p[0];
+                        $values[] = $v;
+                    }
+                    $whereFields[] = '`' . $p[2] . '` IN (' . implode(',', $placeholders) . ')';
+                } else {
+                    $whereFields[] = '`' . $p[2] . '`=?';
+                    $types .= $p[0];
+                    $values[] = $p[1];
+                }
             }
             $query .= ' WHERE ' . implode(' AND ', $whereFields);
         }
@@ -560,7 +574,7 @@ class _uho_mysqli
     /**
      * Runs prepared DELETE query
      * @param string $table - table name
-     * @param array $whereParams - array of [type, value, field_name] tuples for WHERE clause
+     * @param array $whereParams - array of [type, value, field_name] tuples for WHERE clause; value may be an array to generate an IN (...) condition
      * @param string $whereClause - optional custom WHERE clause with placeholders
      * @return bool
      */
@@ -584,9 +598,23 @@ class _uho_mysqli
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
-                $whereFields[] = '`' . $p[2] . '`=?';
-                $types .= $p[0];
-                $values[] = $p[1];
+                if (is_array($p[1])) {
+                    if (empty($p[1])) {
+                        $whereFields[] = '1=0';
+                        continue;
+                    }
+                    $placeholders = [];
+                    foreach ($p[1] as $v) {
+                        $placeholders[] = '?';
+                        $types .= $p[0];
+                        $values[] = $v;
+                    }
+                    $whereFields[] = '`' . $p[2] . '` IN (' . implode(',', $placeholders) . ')';
+                } else {
+                    $whereFields[] = '`' . $p[2] . '`=?';
+                    $types .= $p[0];
+                    $values[] = $p[1];
+                }
             }
             $query .= ' WHERE ' . implode(' AND ', $whereFields);
         }
