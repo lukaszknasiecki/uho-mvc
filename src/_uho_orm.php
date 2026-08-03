@@ -1054,6 +1054,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 }
             }
 
+
             foreach ($model['fields'] as $k2 => $v2) {
                 /**
                  * removing :lang fields as they are already duplicated to output final languages
@@ -1162,7 +1163,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 /**
                  * Select fields with source.model & aggregate method (newer)
                  */
-                elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes']))) {
+                elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes'])))
+                {
 
                     /**
                      * Create Source.Data if needed - all elements to choose from
@@ -1170,7 +1172,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                     if (!@$v2['source']['data']) {
 
-                        if (@$v2['source']['model']) {
+                        if (@$v2['source']['model'])
+                        {
 
                             $ids = [];
                             foreach ($data as $v5)
@@ -1222,6 +1225,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             foreach ($v2['source']['data'] as $k3 => $v3) {
                                 $v2['source']['data'][$k3]['url'] = $this->getTemplate($v2['source']['url'], $v3);
                             }
+                        
                     }
 
                     switch ($v2['type']) {
@@ -1408,6 +1412,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
             foreach ($model['fields'] as $v2)
                 if (isset($v2['field']) && isset($v[$v2['field']]))
                     switch ($v2['type']) {
+                        case "elements":
+                        case "checkboxes":    
+                            if (empty($data[$k][$v2['field']])) $data[$k][$v2['field']]=[];
+                            break;
                         case "integer":
                         case "order":
                             $data[$k][$v2['field']] = intval($data[$k][$v2['field']]);

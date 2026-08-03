@@ -383,7 +383,7 @@ class _uho_fx
      *
      * Supported params: 'first' (return first match only), 'returnField' (return specific field),
      * 'keys' (return keys only), 'search' (use strpos search), 'strict' (strict comparison),
-     * 'case' (case sensitivity)
+     * 'case' (case sensitivity), 'negative' (return elements NOT matching criteria)
      *
      * @param array $array Array to filter
      * @param string $key Key to search for
@@ -398,6 +398,7 @@ class _uho_fx
         $returnKeys = (@$params['keys'] ? true : false);
         $strPosSearch = (@$params['search'] ? true : false);
         $strict = (@$params['strict'] ? true : false);
+        $negative = (@$params['negative'] ? true : false);
         $case = true;
         if (@$params['case'] === false) $params['case'] = false;
 
@@ -405,10 +406,16 @@ class _uho_fx
         if (is_array($array)) {
             foreach ($array as $k => $v) {
                 // array value
-                if (is_array($value)) {
+                if (is_array($value) && array_is_list($value))
+                {
+                    // list of scalars - match if field value is in the list
+                    $ok = in_array(@$v[$key], $value);
+                } elseif (is_array($value))
+                {
+                    // associative array - match sub-fields of $v[$key]
                     $ok = true;
                     foreach ($value as $k2 => $v2) {
-                        if (isset($v[$key][$k2]) && $v[$key][$k2] != $v2) {
+                        if (!isset($v[$key][$k2]) || $v[$key][$k2] != $v2) {
                             $ok = false;
                         }
                     }
@@ -416,14 +423,16 @@ class _uho_fx
                     $ok = false;
                 }
 
-                if (
+                $matches = (
                     (!isset($key))
                     || $ok
                     || (isset($value) && @$v[$key] == $value)
                     || (isset($value) && is_string($value) && $case && !$strict && isset($v[$key]) && is_string($v[$key]) && strtolower(@$v[$key]) == strtolower($value))
                     || (isset($value) && $strPosSearch && strpos(' ' . $v[$key], $value) == 1)
                     || (!isset($value) && isset($v[$key]))
-                ) {
+                );
+
+                if ($negative ? !$matches : $matches) {
                     if ($returnKeys) {
                         $result[$k] = $k;
                     } else {

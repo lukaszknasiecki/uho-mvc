@@ -670,14 +670,20 @@ class _uho_route
                 case "home":
                     $v = '';
                     break;
+
                 case "url_now":
                     
-                    $getNew = empty($v['get']) ? null: $v['get'];
+                    $get = empty($v['get']) ? null: $v['get'];
 
-                    if (!$getNew) $getNew = [];
-                    if (!empty($val['setlang'])) $getNew['setlang'] = 'true';
+                    if (!$get) $get = [];
+                    if (!empty($val['setlang'])) $get['setlang'] = 'true';
 
-                    if ($getNew) $v = $this->getUrlNow(false, '[all]', $getNew, @$v['get_remove'], @$val['lang']);
+                    if ($get)
+                    {                        
+                        if (!empty($v['strict'])) $v = $this->getUrlNow(false, null, $get,@$v['get_remove'], @$val['lang']);
+                            else $v = $this->getUrlNow(false, '[all]', $get, @$v['get_remove'], @$val['lang']);
+                    
+                    }
                     else $v = $this->getUrlNow(false, null, null, null, @$val['lang']);
 
                     $v = rtrim($v, '/');
