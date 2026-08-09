@@ -68,7 +68,7 @@
             "cms": {
                 "auto": "array",
                 "style": "string",
-                "default": "integer"
+                "default": "string|integer"
             },
             "settings": {
                 "default": "string"

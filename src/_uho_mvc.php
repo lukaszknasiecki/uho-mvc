@@ -40,7 +40,6 @@ class _uho_mvc
 
     public function __construct(array $config = [])
     {
-
         $this->timeStart = $this->microtimeFloat();
         $this->configFolder = $config['config_folder'] ?? 'application_config';
 
@@ -63,7 +62,7 @@ class _uho_mvc
         $this->cacheSalt = getenv('APP_HTTP_CACHE_SALT') ?: 'uho';
         $this->cacheMinutes = getenv('APP_HTTP_CACHE_MINUTES') ?: 60 * 24;
 
-        
+        $this->setCookieHeaders();        
 
         if ($this->cacheEnabled && $this->checkAccess())
             {                
@@ -84,17 +83,21 @@ class _uho_mvc
         return isset($_SESSION['uhomvc_auth']) && $_SESSION['uhomvc_auth'] === true;
     }
 
+    public function setCookieHeaders()
+    {
+        if (!$this->development) {
+            ini_set('session.cookie_httponly', 1);
+            ini_set('session.cookie_secure', 1);
+            ini_set('session.cookie_samesite', 'Lax');
+        }
+    }
+
     /**
      * Run the full bootstrap: configure environment, handle cache, run app, send output.
      */
     public function run(): void
     {
         date_default_timezone_set($this->timezone);
-        
-        if (!$this->development) {
-            ini_set('session.cookie_httponly', 1);
-            ini_set('session.cookie_secure', 1);
-        }
         
         if (!is_dir($this->rootPath . 'reports')) {
             mkdir($this->rootPath . 'reports');
