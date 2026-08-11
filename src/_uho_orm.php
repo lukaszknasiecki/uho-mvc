@@ -2896,9 +2896,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * Upload image to the model
      * Delegates to Upload Manager
      */
-    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $return_array=false)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $temp_folder=null, $return_array=false)
     {
-        $r=$this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename);
+        $r=$this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename, $temp_folder);
         if ($return_array) {
             return['result'=>$r, 'errors'=>$this->uploadManager->getLogs()];
         }

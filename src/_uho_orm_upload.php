@@ -114,7 +114,7 @@ class _uho_orm_upload
      * -- if $image is set - it's raw data source
      * -- if temp_filename - we are using this as a source
      */
-    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $temp_folder = null)
     {
 
         $root = $_SERVER['DOCUMENT_ROOT'];
@@ -146,6 +146,10 @@ class _uho_orm_upload
 
         if ($image && !$temp_filename) {
             $temp_filename = $this->getTempFilename(true);
+            if ($temp_folder) {
+                if (!is_dir($temp_folder)) mkdir($temp_folder, 0777, true);
+                $temp_filename = rtrim($temp_folder, '/') . '/' . basename($temp_filename);
+            }
             if (!@file_put_contents($temp_filename, $image)) {
                 $this->addLog('Failed to write image to temporary file: ' . $temp_filename);
                 return false;
@@ -153,7 +157,8 @@ class _uho_orm_upload
         }
 
         $temp_original_filename = $temp_filename;
-        $this->copy($temp_filename, $original_filename); // no-remove
+        
+        $this->copy($temp_filename, $original_filename);
 
         /* resize */
 
