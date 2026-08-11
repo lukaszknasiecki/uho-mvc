@@ -23,6 +23,7 @@ class _uho_orm_upload
 {
     private $orm;
     private $s3Manager;
+    private $logs=[];
     private $temp_public_folder = '/temp';
 
     public function __construct(_uho_orm $orm, _uho_orm_s3 $s3Manager)
@@ -98,6 +99,15 @@ class _uho_orm_upload
         return false;
     }
 
+    private function addLog($message)
+    {
+        $this->logs[] = $message;
+    }
+
+    public function getLogs()
+    {
+        return $this->logs;
+    }
 
     /**
      * Upload image to the model
@@ -109,7 +119,11 @@ class _uho_orm_upload
 
         $root = $_SERVER['DOCUMENT_ROOT'];
         $field = _uho_fx::array_filter($schema['fields'], 'field', $field_name, ['first' => true]);
-        if (!$field) return false;
+        if (!$field)
+        {
+            $this->addLog('Field not found in schema: ' . $field_name);
+            return false;
+        }
 
         /* retina */
         $retina = [];
@@ -132,7 +146,8 @@ class _uho_orm_upload
 
         if ($image && !$temp_filename) {
             $temp_filename = $this->getTempFilename(true);
-            if (!file_put_contents($temp_filename, $image)) {
+            if (!@file_put_contents($temp_filename, $image)) {
+                $this->addLog('Failed to write image to temporary file: ' . $temp_filename);
                 return false;
             }
         }
@@ -164,7 +179,11 @@ class _uho_orm_upload
                 $v
             );
 
-            if (!$r['result']) $result = false;
+            if (!$r['result'])
+            {
+                $this->addLog('Failed to resize image: ' . implode(', ', $r['errors']));
+                $result = false;
+            }
             elseif ($this->s3Manager->getS3()) {
                 $this->copy($dest, $dest_s3);
             }
@@ -200,7 +219,10 @@ class _uho_orm_upload
         if ($this->s3Manager->isS3()) $this->s3copy($src, $dest);
         else {
             $dest = $_SERVER['DOCUMENT_ROOT'] . $dest;
-            copy($src, $dest);
+            @copy($src, $dest);
+            if (!file_exists($dest)) {
+                $this->addLog('Failed to copy file: ' . $src . ' to ' . $dest);
+            }
         }
         if ($remove_src) @unlink($src);
     }

@@ -2379,7 +2379,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         // $multiple_version = 'new';
         $multiple_version = 'old';
-
         if (isset($params['version']))
             $multiple_version = $params['version'];
 
@@ -2533,8 +2532,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $where = 'WHERE id="' . $this->sqlSafe($id) . '"';
         }
 
-
-
         $model = $schema;
 
 
@@ -2547,9 +2544,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
             check if record exists
         */
             
-        $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;
+        $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;        
         $exists = $this->query($exists_query);
-
 
         if (!$exists) {
             return $this->post($model, $data);
@@ -2558,6 +2554,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
         unset($data['id']);
 
         $set = $this->buildOutputQuery($model, $data);
+
+
 
         if ($set) {
             $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
@@ -2898,9 +2896,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * Upload image to the model
      * Delegates to Upload Manager
      */
-    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $return_array=false)
     {
-        return $this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename);
+        $r=$this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename);
+        if ($return_array) {
+            return['result'=>$r, 'errors'=>$this->uploadManager->getLogs()];
+        }
+        return $r['result'] ?? false;
     }
 
     /**
