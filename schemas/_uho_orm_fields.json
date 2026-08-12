@@ -146,6 +146,7 @@
             },
             "settings": {
                 "media": "string",
+                "media_filters": "array",
                 "decode": "boolean|string"
             }
         }
@@ -227,6 +228,7 @@
             "captions": "array",
             "source": {
                 "model": "string",
+                "filters": "array",
                 "types": "array"
             }
         }

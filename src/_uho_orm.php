@@ -964,7 +964,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /**
          * Re-working all returned records
          */
-        
+
         $data = $this->getUpdateRecords($model, $data);
         $data = $this->getUpdateRecordsMedia($model, $data, $fields_auto);
         $data = $this->getUpdateRecordsBlocks($model, $data);
@@ -1163,8 +1163,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 /**
                  * Select fields with source.model & aggregate method (newer)
                  */
-                elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes'])))
-                {
+                elseif (@$v2['source'] && (in_array($v2['type'], ['elements', 'select', 'checkboxes']))) {
 
                     /**
                      * Create Source.Data if needed - all elements to choose from
@@ -1172,8 +1171,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                     if (!@$v2['source']['data']) {
 
-                        if (@$v2['source']['model'])
-                        {
+                        if (@$v2['source']['model']) {
 
                             $ids = [];
                             foreach ($data as $v5)
@@ -1225,7 +1223,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             foreach ($v2['source']['data'] as $k3 => $v3) {
                                 $v2['source']['data'][$k3]['url'] = $this->getTemplate($v2['source']['url'], $v3);
                             }
-                        
                     }
 
                     switch ($v2['type']) {
@@ -1413,8 +1410,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 if (isset($v2['field']) && isset($v[$v2['field']]))
                     switch ($v2['type']) {
                         case "elements":
-                        case "checkboxes":    
-                            if (empty($data[$k][$v2['field']])) $data[$k][$v2['field']]=[];
+                        case "checkboxes":
+                            if (empty($data[$k][$v2['field']])) $data[$k][$v2['field']] = [];
                             break;
                         case "integer":
                         case "order":
@@ -1731,7 +1728,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             elseif (@$v2['settings']['extensions'] && count($v2['settings']['extensions']) == 1)
                                 $extension = $v2['settings']['extensions'][0];
 
-                            $v2['settings']['folder'] = $this->getTemplate($v2['settings']['folder'], $v,true);
+                            $v2['settings']['folder'] = $this->getTemplate($v2['settings']['folder'], $v, true);
 
                             /*
                                 optional: add image sizes via stored values in separate field
@@ -1830,7 +1827,22 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
                         if (!$media_model) $this->halt('no source model defined for: ' . $name . '::' . $v2['field']);
 
-                        $media = $this->get($media_model, ['model' => $model_name . @$v2['media']['suffix'], 'model_id' => $v['id']], false, 'model_id_order');
+                        $media_filters = [
+                            'model' => $model_name . @$v2['media']['suffix'],
+                            'model_id' => $v['id']
+                        ];
+
+                        if (isset($v2['source']['filters'])) {
+                            $media_filters = array_merge($media_filters, $v2['source']['filters']);
+                        }
+
+
+                        $media = $this->get(
+                            $media_model,
+                            $media_filters,
+                            false,
+                            'model_id_order'
+                        );
 
                         foreach ($media as $k5 => $v5) {
                             unset($media[$k5]['date']);
@@ -1926,7 +1938,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
      *
      */
 
-    public function buildOutputQuery($model, $data, string $join = ','): array|string
+    public function buildOutputQuery($model, $data, string $join = ','): array|string|null
     {
 
         $skip_fields = ['image', 'video', 'file', 'audio', 'virtual', 'media'];
@@ -2426,7 +2438,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             $query = "INSERT INTO " . $schema['table'] . " " . $query . " ";
             $query .= "ON DUPLICATE KEY UPDATE " . implode(', ', $query2);
-            
+
             $result = $this->queryOut($query);
 
             // sql auto updates
@@ -2465,8 +2477,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             // new items
             if ($exists)
-                foreach ($insert as $k => $v)
-            {
+                foreach ($insert as $k => $v) {
                     $exact = false;
                     foreach ($exists as $k2 => $v2) {
                         unset($v2['id']);
@@ -2516,7 +2527,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             $query = 'UPDATE ' . $schema['table'] . ' SET ' . $set;
                             $this->queryOut($query);
                         }
-                        
                     } else $result = false;
                 }
             }
@@ -2543,8 +2553,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /*
             check if record exists
         */
-            
-        $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;        
+
+        $exists_query = 'SELECT id FROM ' . $model['table'] . ' ' . $where;
         $exists = $this->query($exists_query);
 
         if (!$exists) {
@@ -2579,8 +2589,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
     private function buildOutputQueryAutoSql($model): string
     {
         $set = [];
-        foreach ($model['fields'] as $field)
-        {
+        foreach ($model['fields'] as $field) {
             if (!empty($field['settings']['auto']['on_update']['value_sql'])) {
                 $set[] = '`' . $field['field'] . '`=' . $field['settings']['auto']['on_update']['value_sql'];
             }
@@ -2896,11 +2905,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
      * Upload image to the model
      * Delegates to Upload Manager
      */
-    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $temp_folder=null, $return_array=false)
+    public function uploadImage($schema, $record, $field_name, $image, $temp_filename = null, $temp_folder = null, $return_array = false)
     {
-        $r=$this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename, $temp_folder);
+        $r = $this->uploadManager->uploadImage($schema, $record, $field_name, $image, $temp_filename, $temp_folder);
         if ($return_array) {
-            return['result'=>$r, 'errors'=>$this->uploadManager->getLogs()];
+            return ['result' => $r, 'errors' => $this->uploadManager->getLogs()];
         }
         return $r['result'] ?? false;
     }

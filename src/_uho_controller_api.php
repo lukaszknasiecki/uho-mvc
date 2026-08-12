@@ -12,8 +12,10 @@ class _uho_controller_api extends _uho_controller
 
         $path = $this->route->e();
 
-        // remove /API/ from path
-        array_shift($path);
+        // remove /API/ from path if present
+        if ($path[0] === 'api') {
+            array_shift($path);
+        }
 
         // create full action path
         $action = implode('/', $path);
