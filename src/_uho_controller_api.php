@@ -46,11 +46,14 @@ class _uho_controller_api extends _uho_controller
 
         // launch API method
 
+        $cfg=$this->cfg;
+        $cfg['_path']=$this->route->e();
+
         $this->data['content'] = $this->model->request(
             $method,
             $action,
             $data,
-            $this->cfg
+            $cfg
         );
         $this->data['content'] = $this->route->updatePaths($this->data['content']);
         $this->outputType = 'json';
