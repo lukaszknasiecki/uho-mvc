@@ -32,13 +32,13 @@ class _uho_orm_schema_sql
         $fields = [];
         $fields_sql = [];
         $id = false;
-        $unique=false;
+        $unique = false;
 
         // converts UHO ORM field types to SQL types
 
         foreach ($schema['fields'] as $v) {
 
-            $unique=false;
+            $unique = false;
             $type = '';
             switch ($v['type']) {
                 case "date":
@@ -58,7 +58,7 @@ class _uho_orm_schema_sql
                     break;
                 case "uid":
                     $type = 'varchar(13)';
-                    $unique=true;
+                    $unique = true;
                     break;
                 case "checkboxes":
                 case "elements":
@@ -70,7 +70,7 @@ class _uho_orm_schema_sql
                     break;
                 case "boolean":
                     $type = 'tinyint(4)';
-                    
+
                     break;
 
                 case "json":
@@ -120,11 +120,11 @@ class _uho_orm_schema_sql
                     break;
             }
 
-            if ($unique) $v['settings']['sql']['unique']=$unique;
+            if ($unique) $v['settings']['sql']['unique'] = $unique;
 
-            if ($v['field'] && $type)
-            {
-                if ($unique) $not_null = true; else $not_null = false;
+            if ($v['field'] && $type) {
+                if ($unique) $not_null = true;
+                else $not_null = false;
                 $default = null;
                 if ($v['type'] == 'integer' || $v['type'] == 'boolean') {
                     $default = "'0'";
@@ -245,8 +245,7 @@ class _uho_orm_schema_sql
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
         $performed_action = null;
 
-        if ($update || $add)
-        {
+        if ($update || $add) {
 
             if ($action == 'alert') {
                 $html = '<h3>Schema for [<code>' . $schema['table'] . '</code>] needs to be updated.</h3><ul>';
@@ -283,47 +282,41 @@ class _uho_orm_schema_sql
                 }
 
                 // add new fields
-                foreach ($add as $k=>$v)
-                {
+                foreach ($add as $k => $v) {
                     $performed_action = 'table_create';
                     $query = 'ALTER TABLE `' . $schema['table'] . '` {{METHOD}} `' . $v['Field'] . '` ' . $v['Type'];
                     if (!empty($v['Generated'])) $query .= ' GENERATED ' . $v['Generated'];
-                    $query.=' {{NULL}}';
+                    $query .= ' {{NULL}}';
                     if ($v['Stored']) $query .= ' STORED';
                     if ($v['Unique']) $query .= ' UNIQUE';
                     if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
-                    
-                    $add[$k]['alter_query']=str_replace('{{NULL}}', $v['Null'] ? ' NULL' : ' NOT NULL', $query);
-                    $add[$k]['alter_query']=str_replace('{{METHOD}}', 'MODIFY', $add[$k]['alter_query']);
 
-                    $query=str_replace('{{METHOD}}','ADD', $query);
-                    $query=str_replace('{{NULL}}','NULL', $query); // first, always NULL
+                    $add[$k]['alter_query'] = str_replace('{{NULL}}', $v['Null'] ? ' NULL' : ' NOT NULL', $query);
+                    $add[$k]['alter_query'] = str_replace('{{METHOD}}', 'MODIFY', $add[$k]['alter_query']);
+
+                    $query = str_replace('{{METHOD}}', 'ADD', $query);
+                    $query = str_replace('{{NULL}}', 'NULL', $query); // first, always NULL
 
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
 
-                    if ($v['Trigger'])
-                    {
+                    if ($v['Trigger']) {
                         $query = 'CREATE TRIGGER ' . $schema['table'] . '_' . $v['Field'] . '_trigger ' . $v['Trigger'];
                         if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                     }
                 }
 
                 foreach ($add as $v)
-                if (!$v['Null'])
-                {
-                    $query=null;
-                    switch ($v['Type']) {
-                        case 'varchar(13)':
-                            $query = 'UPDATE `' . $schema['table'] . '` SET `' . $v['Field'] . '` = SUBSTRING(MD5(CONCAT(UUID(), RAND())), 1, 13) WHERE `' . $v['Field'] . '` IS NULL';
-                            if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
-                            break;                        
+                    if (!$v['Null']) {
+                        $query = null;
+                        switch ($v['Type']) {
+                            case 'varchar(13)':
+                                $query = 'UPDATE `' . $schema['table'] . '` SET `' . $v['Field'] . '` = SUBSTRING(MD5(CONCAT(UUID(), RAND())), 1, 13) WHERE `' . $v['Field'] . '` IS NULL';
+                                if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
+                                break;
+                        }
+                        if ($query) $this->orm->queryOut($query);
+                        $this->orm->queryOut($v['alter_query']);
                     }
-                    if ($query) $this->orm->queryOut($query);
-                    $this->orm->queryOut($v['alter_query']);
-                    
-
-                }
-
             }
         }
 
@@ -505,10 +498,14 @@ class _uho_orm_schema_sql
 
                     // multiple values
                     if (is_array($v) && @$v['type'] == 'custom');
-                    elseif (is_array($v)) {
+                    elseif (is_array($v))
+                    {
+                        // escape
                         if (is_array($model['filters'][$k]) && ($eq == '=' || $eq == '!='))
+                        {
                             foreach ($model['filters'][$k] as $k2 => $v2)
-                                $model['filters'][$k][$k2] = $this->orm->sqlSafe($v2);
+                                $v[$k2]=$model['filters'][$k][$k2] = $this->orm->sqlSafe($v2);
+                        }
 
                         if ($or);
                         elseif ($eq == '!=') $or = ' && ';
@@ -516,8 +513,8 @@ class _uho_orm_schema_sql
 
                         if ($eq == 'in') {
                             if (count($v) == 2)
-                                $model['filters'][$k] = '(`' . $field . '`>="' . $v[0] . '" && `' . $field . '`<="' . $v[1] . '")';
-                            else $model['filters'][$k] = '(' . $v[1] . '<="' . $v[0] . '" && ' . $v[2] . '>="' . $v[0] . '")';
+                                $model['filters'][$k] = '(`' . $field . '`>="' . $this->orm->sqlSafe($v[0]) . '" && `' . $field . '`<="' . $this->orm->sqlSafe($v[1]) . '")';
+                            else $model['filters'][$k] = '(' . $this->orm->sqlSafe($v[1]) . '<="' . $this->orm->sqlSafe($v[0]) . '" && ' . $this->orm->sqlSafe($v[2]) . '>="' . $this->orm->sqlSafe($v[0]) . '")';
                         } elseif ($eq == '%LIKE%') $model['filters'][$k] = '(`' . $field . '` LIKE "%' . implode('%" ' . $or . ' `' . $field . '` LIKE "%', $v) . '%")';
                         elseif ($eq == '%!LIKE%') {
                             $or = '&&';

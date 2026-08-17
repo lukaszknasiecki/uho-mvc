@@ -85,9 +85,9 @@ class _uho_mailer
    *
    * @return true
    */
-  function setSMTP($server, $port, $login, $pass): bool
+  function setSMTP($server, $port, $login, $pass, $secure = true): bool
   {
-    $this->cfg['smtp'] = array('server' => $server, 'port' => $port, 'login' => $login, 'pass' => $pass);
+    $this->cfg['smtp'] = array('server' => $server, 'port' => $port, 'login' => $login, 'pass' => $pass, 'secure' => $secure);
     return true;
   }
 
@@ -170,7 +170,7 @@ class _uho_mailer
 
   public function send()
   {
-    
+
     if (!$this->cfg['smtp']) return;
     $mail = new PHPMailer(true);
     $mail->CharSet = "UTF-8";
@@ -214,20 +214,21 @@ class _uho_mailer
 
     if ($this->debug) $mail->SMTPDebug = $this->debug;
 
-    try
-    {
-      $mail->smtpConnect(
-        array(
-          "ssl" => array(
+    try {
+      $connect_options = [];
+      if (!$this->cfg['smtp']['secure'])
+        $connect_options = [
+          "ssl" => [
             "verify_peer" => false,
             "verify_peer_name" => false,
             "allow_self_signed" => true
-          )
-        )
+          ]
+        ];
+      $mail->smtpConnect(
+        $connect_options
+
       );
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
       return false;
     }
 

@@ -745,7 +745,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         // create sql-compliant limit params from paging array
 
-        if (is_array($limit) && count($limit) == 2) {
+        // [2,3] = LIMIT 2,3
+        if (is_array($limit) && count($limit) == 2)
+        {
             $limit_page = intval($limit[0]);
             $limit_perpage = intval($limit[1]);
 
@@ -753,6 +755,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 $limit = ($limit_page - 1) * $limit_perpage . ',' . $limit_perpage;
             else $limit = '';
         } elseif (is_array($limit)) $limit = '';
+        else
+        {
+            $limit=explode(',',$limit);
+            if (count($limit)==1) $limit=intval($limit[0]);
+            elseif (count($limit)==2) $limit=intval($limit[0]).','.intval($limit[1]);
+            else $limit='';
+        }
 
         /**
          * get model schema
@@ -805,7 +814,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
          */
         $sql_query_filters = '';
 
-        if (is_array($filters) || is_array($model['filters'])) {
+        if (is_array($filters) || is_array($model['filters']))
+        {
             if (empty($model['filters'])) $model['filters'] = [];
             if (!empty($filters)) $model['filters'] = array_merge($model['filters'], $filters);
 
@@ -813,7 +823,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
             if ($sql_query_filters) $sql_query_filters = 'WHERE ' . implode(' && ', $sql_query_filters);
             else $sql_query_filters = '';
-        } elseif ($filters) $sql_query_filters = 'WHERE ' . $filters;
+        } else $sql_query_filters = '';
 
         /**
          * Set (default) order from schema, if input order is empty
@@ -1948,7 +1958,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $skip_safe = false;
             $field = _uho_fx::array_filter($model['fields'], 'field', $k, ['first' => true]);
 
-            if ($k == 'id') $data[$k] = $k . '="' . ($v) . '"';
+            if ($k == 'id') $data[$k] = $k . '="' . $this->sqlSafe($v) . '"';
             elseif ($field && in_array($field['type'], $skip_fields)) unset($data[$k]);
             elseif ($field) {
 

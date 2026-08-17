@@ -791,12 +791,17 @@ class _uho_mysqli
         }
 
         if (!$t) {
-            if (_uho_fx::getGet('dbg') && $this->debug) {
+            if (_uho_fx::getGet('dbg') && $this->debug)
+            {
                 exit('mysql error:' . $query . '<br>Error: ' . $this->base_link->error);
-            } else {
+            } else
+            {
                 $this->errorAdd($query . ' ... ' . $this->base_link->error);
-                if ($this->halt_on_error) exit('error:' . $query . '<br>Error: ' . $this->base_link->error);
+
+                if ($this->debug && $this->halt_on_error) exit('error:' . $query . '<br>Error: ' . $this->base_link->error);
+                else if ($this->halt_on_error) exit('DB error');
                 else return false;
+                
             }
         } else {
             if ($key) {

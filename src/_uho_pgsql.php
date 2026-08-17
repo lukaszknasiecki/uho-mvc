@@ -13,6 +13,7 @@ class _uho_pgsql
     private int $affectedRows = 0;
     private array $query_log = [];
     private bool $halt_on_error = true;
+    private bool $debug = false;
 
     /**
      * Opens a PDO connection to a PostgreSQL database.
@@ -71,7 +72,8 @@ class _uho_pgsql
             if ($single && isset($result[0])) return $result[0];
             return $result;
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL error: ' . $e->getMessage() . '<br>Query: ' . $query);
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL error: ' . $e->getMessage() . '<br>Query: ' . $query);
+            elseif ($this->halt_on_error) exit('PostgreSQL error');
             return false;
         }
     }
@@ -87,7 +89,8 @@ class _uho_pgsql
             $this->affectedRows = $this->pdo->exec($query);
             return true;
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL error: ' . $e->getMessage() . '<br>Query: ' . $query);
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL error: ' . $e->getMessage() . '<br>Query: ' . $query);
+            elseif ($this->halt_on_error) exit('PostgreSQL error');
             return false;
         }
     }
@@ -218,7 +221,9 @@ class _uho_pgsql
 
         if ($whereClause) {
             $query .= ' ' . $whereClause;
-            foreach ($whereParams as $p) { $values[] = $p[1]; }
+            foreach ($whereParams as $p) {
+                $values[] = $p[1];
+            }
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
@@ -265,7 +270,9 @@ class _uho_pgsql
 
         if ($whereClause) {
             $query .= ' ' . $whereClause;
-            foreach ($whereParams as $p) { $values[] = $p[1]; }
+            foreach ($whereParams as $p) {
+                $values[] = $p[1];
+            }
         } elseif (!empty($whereParams)) {
             $whereFields = [];
             foreach ($whereParams as $p) {
@@ -299,5 +306,10 @@ class _uho_pgsql
             if ($this->halt_on_error) exit('PostgreSQL deletePrepared error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    public function setDebug($dbg)
+    {
+        $this->debug = $dbg;
     }
 }
