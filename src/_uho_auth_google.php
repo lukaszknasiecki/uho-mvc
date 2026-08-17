@@ -82,6 +82,11 @@ trait _uho_auth_google
       }
 
       if ($data && $data['sub']) {
+        // an unverified Google address proves nothing about e-mail ownership,
+        // so it must not be trusted for matching an existing account
+        $emailVerified = isset($data['email_verified'])
+          && filter_var($data['email_verified'], FILTER_VALIDATE_BOOLEAN);
+
         $data = [
           'name' => $data['given_name'],
           'surname' => $data['family_name'],
@@ -109,12 +114,12 @@ trait _uho_auth_google
         return ['result' => false, 'message' => $e->getMessage()];
       }
 
-
-
       $google_oauth = new GoogleOauth2($client);
       $google_account_info = $google_oauth->userinfo->get();
 
       if (!$google_account_info->id) return ['result' => false, 'message' => 'No google ID found'];
+
+      $emailVerified = filter_var($google_account_info->getVerifiedEmail(), FILTER_VALIDATE_BOOLEAN);
 
       $data = [
         'name' => $google_account_info->given_name,
@@ -126,13 +131,16 @@ trait _uho_auth_google
       ];
     }
 
+    if (empty($data['email'])) return ['result' => false, 'message' => 'No e-mail granted by Google'];
+
     /*
       * At this point we have user data from Google, we can try to find existing user or create new one
+      * matching by e-mail is only allowed when Google itself verified the address
     */
 
-    $result = $this->register($data);
+    $result = $this->register($data, null, false, $emailVerified);
 
-    if ($result) {
+    if ($result && $result['result']) {
       $image = $data['image_uri'];
       $result = $this->login(null, null, ['google_id' => $data['google_id']]);
     }

@@ -755,13 +755,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 $limit = ($limit_page - 1) * $limit_perpage . ',' . $limit_perpage;
             else $limit = '';
         } elseif (is_array($limit)) $limit = '';
-        else
+        elseif (is_string($limit) && $limit)
         {
             $limit=explode(',',$limit);
             if (count($limit)==1) $limit=intval($limit[0]);
             elseif (count($limit)==2) $limit=intval($limit[0]).','.intval($limit[1]);
             else $limit='';
-        }
+        } else $limit='';
 
         /**
          * get model schema

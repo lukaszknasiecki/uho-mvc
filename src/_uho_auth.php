@@ -43,6 +43,7 @@ class _uho_auth
   // update($user_id = 0, $data = null)
 
   use _uho_auth_google;
+  use _uho_auth_facebook;
 
   private $orm;
 
@@ -192,15 +193,6 @@ class _uho_auth
     $data['id'] = $user_id;
     $result = $this->orm->put($this->clientModel, $data);
 
-    /*
-    $client = $this->getUser();
-    if (@$data['image'] == '[remove]')
-      $this->removeImage($client['uid']);
-    elseif (isset($data['image']))
-      $this->setImageFromUrl($data['image'], $user_id, $client['uid']);    
-    $this->getData(true);
-        */
-
     return $result !== false;
   }
 
@@ -218,9 +210,13 @@ class _uho_auth
    *
    * @param array       $data user fields; must include the login e-mail field
    * @param string|null $url  confirmation URL template containing a '%key%' placeholder
+   * @param bool        $update_existing updates data of an already confirmed account
+   * @param bool        $sso_email_verified true only when the identity provider itself
+   *                    confirmed the e-mail address is verified (see $sso_link_allowed below)
    * @return array{result: bool, message: string, fields: array}
    */
-  public function register($data, $url = null): array
+  
+  public function register($data, $url = null, $update_existing=false, bool $sso_email_verified = false): array
   {
     $result = false;
 
@@ -242,8 +238,28 @@ class _uho_auth
 
     $message = '';
 
+    // An SSO login identity verify
+
+    $sso_field = null;
+    $sso_same_identity = false;
+    $sso_link_allowed = false;
+
+    if ($sso) {
+      foreach (['facebook_id', 'google_id', 'epuap_id'] as $f)
+        if (isset($data[$f])) $sso_field = $f;
+
+      $sso_same_identity = $exists && !empty($exists[$sso_field])
+        && (string)$exists[$sso_field] === (string)$data[$sso_field];
+      $sso_link_allowed = $sso_same_identity || ($sso_email_verified && empty($exists[$sso_field]));
+    }
+
     // validation errors — $fields is non-empty; $result stays false, returned at the end
     if ($fields);
+
+    // SSO e-mail collides with an account we are not allowed to link into
+    elseif ($exists && $sso && !$sso_link_allowed) {
+      $message = 'client_sso_email_not_verified';
+    }
 
     // unconfirmed account exists — reset status and re-send confirmation mail
     elseif ($exists && $exists['status'] != 'confirmed' && !$sso) {
@@ -265,7 +281,9 @@ class _uho_auth
     // already confirmed — update profile data
     elseif ($exists && $exists['status'] == 'confirmed') {
       $result = true;
-      $this->update($exists['id'], $data);
+      if ($update_existing) $this->update($exists['id'], $data);
+      // link the verified SSO identity, otherwise the login by it cannot find the account
+      elseif ($sso && !$sso_same_identity) $this->update($exists['id'], [$sso_field => $data[$sso_field]]);
       $message = 'client_already_registered';
     }
 
