@@ -747,6 +747,40 @@ $social = new \Huncwot\UhoFramework\_uho_social($config);
 // Facebook, Google, etc.
 ```
 
+### SSO login and account linking
+
+`loginGoogle()` / `loginFacebook()` accept either an `$code` (hard redirect from the
+provider) or an `$access_token` coming straight from the browser. A client-supplied
+token is only trusted after the provider confirms it was issued for **this** app:
+
+* Google — `verifyIdToken()` validates the signature and the `aud` claim against
+  `oauth.google.client_id`.
+* Facebook — the token is inspected with Graph `debug_token` using the app access
+  token, requiring `is_valid` and `app_id` equal to `oauth.facebook.client_id`, and
+  the fetched profile `id` must equal the token's `user_id`. Without this check a
+  token minted for any other Facebook app could be replayed to log in as its user.
+
+Both flows then call `register()`, which matches the SSO identity against existing
+accounts **by e-mail**. Because an e-mail address is only proof of ownership when the
+provider verified it, `register()` takes a `$sso_email_verified` flag:
+
+```php
+$this->register($data, null, false, $sso_email_verified);
+```
+
+| Situation | Behaviour |
+| --------- | --------- |
+| No account with that e-mail | new account created and linked to the SSO id |
+| Account already holds the same SSO id | logged in |
+| Account with that e-mail, SSO id free, e-mail verified | SSO id linked, logged in |
+| Account with that e-mail, e-mail **not** verified | refused, `client_sso_email_not_verified` |
+| Account already linked to a **different** id of that provider | refused, `client_sso_email_not_verified` |
+
+Google supplies `email_verified` (`verified_email` on the userinfo endpoint) and it is
+passed through. The Facebook Graph API exposes no such flag, so Facebook e-mails count
+as unverified and never link into an existing account. Projects willing to accept that
+risk can opt in with `oauth.facebook.trust_email = true`.
+
 
 ## API Reference
 

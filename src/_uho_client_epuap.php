@@ -301,8 +301,11 @@ class _uho_client_epuap
 
             $ch = curl_init($this->artifact_resolve_url);
 
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            /*
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            */
+
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
@@ -316,15 +319,15 @@ class _uho_client_epuap
             curl_close($ch);
 
             if ($this->debug) echo ('<hr>4. Received answer <pre>' . $this->printXml($output) . '</pre> to file ' . $tmpEncryptedArtifactResolved);
-
             file_put_contents($tmpEncryptedArtifactResolved, $output);
         } else {
-            copy($this->temp_folder . '_encrypted_artifact_resolved_real.xml', $tmpEncryptedArtifactResolved);
+            $source=$this->temp_folder . '_encrypted_artifact_resolved_real.xml';
+            unlink($source);
+            copy($source, $tmpEncryptedArtifactResolved);
         }
 
         $decryptedXml = $this->decrytpArtifactResolved($tmpEncryptedArtifactResolved);
-
-        // @unlink($tmpEncryptedArtifactResolved);
+        unlink($tmpEncryptedArtifactResolved);
 
         if ($this->debug) echo ('<hr><p>6. Decrypted data<pre>' . $this->printXml($decryptedXml) . '</pre>');
 

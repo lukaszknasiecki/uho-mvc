@@ -355,7 +355,7 @@ class _uho_client
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
 
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value'] . '5eh');
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value'] . '5eh');        
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {
@@ -377,6 +377,11 @@ class _uho_client
         ];
       $this->enableCookie($settings['cookie']['name'], $settings['cookie']['days'], $settings['cookie']['domain'], $settings['cookie']['login']);
     }
+  }
+
+  public function setOAuthConfig($key,$value)
+  {
+    $this->oAuth[$key]=$value;
   }
 
 
@@ -480,7 +485,7 @@ class _uho_client
    *
    * @param array $data user's data
    */
-  private function storeData($data): void
+  public function storeData($data): void
   {
     $_SESSION[$this->session_key] = $data;
   }
@@ -532,7 +537,7 @@ class _uho_client
   public function cookieLoginStore($id): void
   {
     if ($this->cookie && $this->cookieLoginEnabled) {
-      $uid = $this->hashPass(uniqid());
+      $uid = $this->hashPass(bin2hex(random_bytes(32)));
       $this->orm->put($this->clientModel, 
         ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
       setcookie(
@@ -620,8 +625,10 @@ class _uho_client
     if ($this->isLogoutNow) return;
 
     $data = @$_SESSION[$this->session_key];
+
     if (!is_array($data)) $data = null;
-    if ($reload || (!$data && $this->cookie)) {
+    if ($reload || (!$data && $this->cookie))
+    {
       $this->cookieLogin();
       $data = @$_SESSION[$this->session_key];
       if (@$data['id'] && $reload) {
@@ -775,7 +782,6 @@ class _uho_client
       return;
     }
 
-
     if (isset($params['facebook_id'])) {
       $client = $this->getClient(array('facebook_id' => $params['facebook_id']), false, true);
       if ($client) $this->cookieLoginStore($client['id']);
@@ -854,6 +860,7 @@ class _uho_client
     }
   }
 
+  
 
   /**
    * Performs current user's logout
@@ -949,17 +956,34 @@ class _uho_client
     if (!$source) return;
     $schema = $this->orm->getSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
+
     if ($image) {
+
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
       $original = null;
 
       foreach ($image['images'] as $v) {
-        if (!$original) {
+
+        if (!$original)
+        {
+
           $original = $destination . $v['folder'] . '/' . $uid . '.jpg';
-          if (!@copy($source, $original)) {
+          if (!@copy($source, $original))
+          {
             if ($this->curl_copy($source, $original))
               $log[] = 'original copied with curl';
           } else $log[] = 'original copied';
+
+          if (file_exists($original))
+          {
+            $magic_bytes = _uho_thumb::fileMagicBytesCheck($source, $original);
+            if (!$magic_bytes['result']) {
+              @unlink($original);
+              $log[] = '[error] Source (' . $source . ') is not a valid image: ' . $magic_bytes['errors'];
+              $original = null;
+              break;
+            }
+          }
         } else {
           if (file_exists($original))
             $log[] = _uho_thumb::convert($original, $original, $destination . $v['folder'] . '/' . $uid . '.jpg', $v); //, $copyOnly=false, $nr=1, $predefined_crop=null, $useNative=false, $magicBytesCheck=true);
@@ -1006,7 +1030,7 @@ class _uho_client
     if (!empty($this->settings['gdpr_days']))
       $data['gdpr_expiration_date'] = date('Y-m-d', strtotime("+" . $this->settings['gdpr_days'] . " days"));
 
-    $data['uid'] = $this->uniqid();
+    $data['uid'] = $this->generateToken();
     $data['salt'] = substr(bin2hex(random_bytes(32)), 0, 3);
 
     if (isset($data['password']))
@@ -1125,7 +1149,7 @@ class _uho_client
     if (!$client || ($client['password'] && !$this->passwordCheck($password)))
       return ['result' => false, 'message' => 'client_password_wrong'];
 
-    $key = $this->uniqid();
+    $key = bin2hex(random_bytes(32));
     $url = $this->http . $url;
     $url = str_replace('%key%', $key, $url);
 
@@ -1174,11 +1198,14 @@ class _uho_client
    *
    * @param array $data user's data
    * @param string $url url to register process confirmation url
+   * @param bool $update_registered updates data of an already confirmed account
+   * @param bool $sso_email_verified true only when the identity provider itself
+   *        confirmed the e-mail address is verified (see $sso_link_allowed below)
    *
    * @return array
    */
 
-  public function register($data, $url = null): array
+  public function register($data, $url = null, bool $update_registered=false, bool $sso_email_verified = false): array
   {
 
     $result = false;
@@ -1202,8 +1229,32 @@ class _uho_client
 
     $message = '';
 
+    // An SSO login is matched against existing accounts by e-mail, so linking
+    // is only safe when the provider verified that address - otherwise anybody
+    // able to set an arbitrary e-mail at their identity provider could claim
+    // somebody else's account. Linking into an identity that is already taken
+    // is never allowed.
+
+    $sso_field = null;
+    $sso_same_identity = false;
+    $sso_link_allowed = false;
+
+    if ($sso) {
+      foreach (['facebook_id', 'google_id', 'epuap_id'] as $f)
+        if (isset($data[$f])) $sso_field = $f;
+
+      $sso_same_identity = $status && !empty($status[$sso_field])
+        && (string)$status[$sso_field] === (string)$data[$sso_field];
+      $sso_link_allowed = $sso_same_identity || ($sso_email_verified && empty($status[$sso_field]));
+    }
+
     // validation error
     if ($fields);
+
+    // SSO e-mail collides with an account we are not allowed to link into
+    elseif ($status && $sso && !$sso_link_allowed) {
+      $message = 'client_sso_email_not_verified';
+    }
 
     // already submitted...
     elseif ($status && $status['status'] != 'confirmed' && !@$sso) {
@@ -1228,9 +1279,11 @@ class _uho_client
     // already confirmed
     elseif ($status && $status['status'] == 'confirmed') {
       $result = true;
-      $this->update($status['id'], $data);
+      if ($update_registered) $this->update($status['id'], $data);
+      // link the verified SSO identity, otherwise the login by it cannot find the account
+      elseif ($sso && !$sso_same_identity) $this->update($status['id'], [$sso_field => $data[$sso_field]]);
       $message = 'client_already_registered';
-    } 
+    }
     // create new user      
     else {
       $data['key_confirm'] = $this->generateToken();
@@ -1257,7 +1310,7 @@ class _uho_client
     return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
   }
 
-  private function generateToken(): string
+  public function generateToken(): string
   {
     $raw = $this->base64url(random_bytes(32));         // ~256-bit
     $hash = hash('sha256', $raw);                      // 64 hex chars
@@ -1610,7 +1663,7 @@ class _uho_client
   {
     if ($user_id || $this->isLogged()) {
       if ($date[0] == '+') $date = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' ' . $date));
-      $token = md5($this->uniqid());
+      $token = bin2hex(random_bytes(32));
       if (!$user_id) $user_id = $this->getClientId();
       $data = ['user' => $user_id, 'expiration' => $date, 'type' => $type, 'value' => $token];
 
@@ -1886,16 +1939,6 @@ class _uho_client
       $this->getData(true);
     } else $result = false;
     return $result;
-  }
-
-  /**
-   * Generates uid string
-   * @return string
-   */
-
-  private function uniqid()
-  {
-    return (str_shuffle(str_replace('.', '', uniqid('', true))));
   }
 
   private function getHttpHost()

@@ -94,9 +94,9 @@ trait _uho_client_auth_epuap
           'epuap_id' => hash('sha256', 'ciq' . $data['pesel'] . $this->salt['value']),
           'result' => true
         ];
-
-        $result = $this->register($data);
-        if ($result) {
+        
+        $result = $this->register($data, null, false, true);
+        if ($result && $result['result']) {
           $this->login(null, null, ['epuap_id' => $data['epuap_id']]);
         }
       } else {

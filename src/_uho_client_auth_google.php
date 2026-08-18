@@ -18,6 +18,7 @@ trait _uho_client_auth_google
   private function loginGoogleClient()
   {
     $client = new GoogleClient();
+
     $client->setClientId($this->oAuth['google']['client_id']);
     $client->setClientSecret($this->oAuth['google']['client_secret']);
     $client->setRedirectUri($this->oAuth['google']['redirect_uri']);
@@ -26,6 +27,7 @@ trait _uho_client_auth_google
       'email',
       'profile',
     ]);
+
     $client->setAccessType('offline');       // to receive refresh_token (first consent)
     $client->setPrompt('consent');           // force consent screen to get refresh_token reliably
     return $client;
@@ -58,10 +60,11 @@ trait _uho_client_auth_google
    * Google login
    * @param string $access_token token from Google API
    * @param string $code authorization code from Google redirect
+   * @param string $action = register|login|data
    * @return array returns result array with login status
    */
 
-  public function loginGoogle($access_token, $code = null)
+  public function loginGoogle($access_token, $code = null, $action = 'register')
   {
 
     if (!$this->oAuth['google']) return ['result' => false, 'Google oAuth config missing'];
@@ -71,7 +74,6 @@ trait _uho_client_auth_google
     if (!$access_token && !$code) return ['result' => false, 'message' => 'No token/code specified'];
 
     $client = $this->loginGoogleClient();
-
 
     // Option#1 - getting data via TOKEN
 
@@ -84,6 +86,11 @@ trait _uho_client_auth_google
       }
 
       if ($data && $data['sub']) {
+        // an unverified Google address proves nothing about e-mail ownership,
+        // so it must not be trusted for matching an existing account
+        $emailVerified = isset($data['email_verified'])
+          && filter_var($data['email_verified'], FILTER_VALIDATE_BOOLEAN);
+
         $data = [
           'name' => $data['given_name'],
           'surname' => $data['family_name'],
@@ -104,17 +111,22 @@ trait _uho_client_auth_google
 
       $token = $client->fetchAccessTokenWithAuthCode($code);
 
-      if (isset($token['error'])) return ['result' => false, 'message' => 'No token found: ' . $token['error']];
+      if (isset($token['error'])) return [
+        'result' => false,
+        'message' => 'No token found: ' . $token['error']
+      ];
       try {
         $client->setAccessToken($token);
       } catch (\Exception $e) {
-        return ['result' => false, 'message' => $e->getMessage()];
+        return ['result' => false, 'type' => 'code exchange to token', 'message' => $e->getMessage()];
       }
 
       $google_oauth = new GoogleOauth2($client);
       $google_account_info = $google_oauth->userinfo->get();
 
       if (!$google_account_info->id) return ['result' => false, 'message' => 'No google ID found'];
+
+      $emailVerified = filter_var($google_account_info->getVerifiedEmail(), FILTER_VALIDATE_BOOLEAN);
 
       $data = [
         'name' => $google_account_info->given_name,
@@ -126,13 +138,27 @@ trait _uho_client_auth_google
       ];
     }
 
+    if (empty($data['email'])) return ['result' => false, 'message' => 'No e-mail granted by Google'];
+
+    if ($action == 'data')
+      return ['result' => true, 'data' => $data];
+
+    if ($action == 'login') {
+      $client = $this->orm->get($this->clientModel, ['email' => $data['email']], true);
+      if ($client) {
+        $this->storeData($client);
+        return ['result' => true];
+      } else return ['result' => false];
+    }
+
     // ------------------------------------------------------------------------------------
     // not registered via Google but maybe via EMAIL?
+    // matching by e-mail is only allowed when Google itself verified the address
 
-    $result = $this->register($data);
+    $result = $this->register($data, null, false, $emailVerified);
 
     // logujemy
-    if ($result) {
+    if ($result && $result['result']) {
       $image = $data['image_uri'];
       $result = $this->login(null, null, ['google_id' => $data['google_id']]);
       @$result['client']['image_uri'] = $image;
