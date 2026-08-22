@@ -42,7 +42,7 @@ trait _uho_client_auth_google
     $client = $this->loginGoogleClient();
 
     // CSRF protection: random state
-    if ($state) {
+    if ($do_state) {
       $state = bin2hex(random_bytes(16));
       $_SESSION['oauth2state'] = $state;
     }
@@ -52,7 +52,7 @@ trait _uho_client_auth_google
 
     // Append state safely
     $sep = (parse_url($authUrl, PHP_URL_QUERY) ? '&' : '?');
-    $authUrl .= $sep . 'state=' . urlencode($state);
+    if ($do_state) $authUrl .= $sep . 'state=' . urlencode($state);
 
     header('Location: ' . $authUrl, true, 302);
     exit;

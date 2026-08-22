@@ -120,6 +120,25 @@ class _uho_orm
     private $twig = null;
     private $twig_templates = [];
 
+    /**
+     * Functions allowed inside AVG() for count.type = average
+     */
+    private $allowed_count_functions = [
+        'ABS',
+        'CEIL',
+        'CEILING',
+        'CHAR_LENGTH',
+        'DAY',
+        'FLOOR',
+        'HOUR',
+        'LENGTH',
+        'MINUTE',
+        'MONTH',
+        'ROUND',
+        'UNIX_TIMESTAMP',
+        'YEAR'
+    ];
+
     /* indicates if Cache Buster should be used and how */
     private $files_cache_buster = false;
     private $files_cache_buster_style = 'standard';
@@ -463,7 +482,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
     protected function sqlSanitizeLangFields($fields)
     {
         foreach ($fields as $k => $v)
-            if (!strpos($v, ':lang') && substr($v, 0, 6) != 'COUNT(') $fields[$k] = '`' . $v . '`';
+            // expressions (COUNT(*), AVG(`x`) AS average, ...) are already built quoted
+            if (!strpos($v, ':lang') && strpos($v, '(') === false) $fields[$k] = '`' . $v . '`';
         return $fields;
     }
 
@@ -897,11 +917,16 @@ public function getTwigFromHtml(string $html, array $data): ?string
          * ['field'=>'title', 'sort'=>'DESC']
          */
 
+        /**
+         * columns allowed in ORDER BY, GROUP BY and aggregate functions
+         */
+
+        $allowed_order_fields = ['id'];
+        foreach (($model['fields'] ?? []) as $_of) {
+            if (!empty($_of['field'])) $allowed_order_fields[] = $_of['field'];
+        }
+
         if (!empty($order)) {
-            $allowed_order_fields = ['id'];
-            foreach ($model['fields'] as $_of) {
-                if (!empty($_of['field'])) $allowed_order_fields[] = $_of['field'];
-            }
 
             if (is_array($order) && !empty($order['type']) && !empty($order['values']) && $order['type'] == 'field') {
                 $safe_values = array_filter($order['values'], fn($v) => in_array($v, $allowed_order_fields, true));
@@ -932,8 +957,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     $fields = array('COUNT(*)');
                     break;
                 case "average":
-                    if ($count['function']) $fields = array('AVG(' . $count['function'] . '(' . $count['field'] . ')) AS average');
-                    else $fields = array('AVG(' . $count['field'] . ') AS average');
+                    $count_field = $this->sanitizeFieldName(@$count['field'], $allowed_order_fields);
+                    if (!$count_field) $this->halt('get::count-average::field-not-allowed::' . @$count['field']);
+
+                    if (!empty($count['function'])) {
+                        $count_function = strtoupper(trim($count['function']));
+                        if (!in_array($count_function, $this->allowed_count_functions, true))
+                            $this->halt('get::count-average::function-not-allowed::' . $count['function']);
+                        $fields = array('AVG(' . $count_function . '(' . $count_field . ')) AS average');
+                    } else $fields = array('AVG(' . $count_field . ') AS average');
                     break;
             }
         }
@@ -946,7 +978,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         $query = 'SELECT ' . implode(',', $this->sqlSanitizeLangFields($fields_read)) . ' FROM ' . $model['table'] . ' ' . $sql_query_filters;
 
-        if ($groupBy) $query .= ' GROUP BY ' . $groupBy;
+        if ($groupBy) {
+            $groupBySafe = $this->sanitizeGroupBy($groupBy, $allowed_order_fields);
+            if ($groupBySafe === null) $this->halt('get::group-by::field-not-allowed::' . $groupBy);
+            $query .= ' GROUP BY ' . $groupBySafe;
+        }
         if ($query_order) $query .= ' ' . $query_order;
         if ($query_limit) $query .= ' ' . $query_limit;
 
@@ -1050,6 +1086,52 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if ($count) return count($data);
         else return $data;
+    }
+
+    /**
+     * Returns a backquoted column name if it belongs to the schema, null otherwise.
+     * Accepts ':lang' suffixed names too - those are resolved to the current
+     * language column, the way processLangQuery() does it for the SELECT part.
+     *
+     * @param mixed $input column name coming from the query params
+     * @param array $allowedColumns schema field list
+     * @return string|null
+     */
+
+    protected function sanitizeFieldName($input, array $allowedColumns): string|null
+    {
+        if (!is_string($input)) return null;
+
+        $column = trim(trim($input), '`');
+        if (!in_array($column, $allowedColumns, true)) return null;
+
+        if (strpos($column, ':lang')) $column = explode(':lang', $column)[0] . $this->lang_add;
+
+        return '`' . $column . '`';
+    }
+
+    /**
+     * Sanitizes GROUP BY clause against the list of schema columns.
+     * Returns null if any of the listed columns is not on the list - dropping
+     * just the offending one would silently change the result set.
+     *
+     * @param string $input comma separated column list
+     * @param array $allowedColumns schema field list
+     * @return string|null
+     */
+
+    protected function sanitizeGroupBy(string $input, array $allowedColumns): string|null
+    {
+        $result = [];
+
+        foreach (explode(',', $input) as $clause) {
+            if (trim($clause) === '') continue;
+            $column = $this->sanitizeFieldName($clause, $allowedColumns);
+            if (!$column) return null;
+            $result[] = $column;
+        }
+
+        return $result ? implode(', ', $result) : null;
     }
 
     /**

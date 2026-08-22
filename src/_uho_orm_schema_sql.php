@@ -434,7 +434,10 @@ class _uho_orm_schema_sql
                     // field
 
                     $field = _uho_fx::array_filter($model['fields'], 'field', $field_key, array('first' => true));
-                    
+
+                    // security check - only allow alphanumeric and underscore field names, optionally with :lang suffix
+                    if (!$field && !preg_match('/^[A-Za-z0-9_]+(:lang)?$/', $field_key)) { unset($model['filters'][$k]); continue; }
+
                     $or = null;
 
                     if (isset($field['settings']['hash']) && !$this->orm->getKeys()) $this->orm->halt('_uho_orm::getFiltersQueryArray::nokeys');
@@ -489,8 +492,12 @@ class _uho_orm_schema_sql
                     if (!empty($field['settings']['case'])) $pre_field = 'BINARY ';
                     else $pre_field = '';
 
-                    $field = $field_key;
-                    //$field = $field['field'];
+                    if (isset($field['field']))
+                        $field = $field['field'];
+                    else $field = $this->orm->sqlSafe($field_key);
+
+
+
 
                     // multiple values
                     if (is_array($v)) {
@@ -528,8 +535,7 @@ class _uho_orm_schema_sql
                     else if ($eq == '%LIKE') $model['filters'][$k] = $field . ' LIKE "%' . $this->orm->sqlSafe($v);
                     else if ($eq == '=' && $collate) {
                         $model['filters'][$k] = $function . '(' . $field . $collate . ') = "' . $this->orm->sqlSafe($v) . '"';
-                    } 
-                    else {
+                    } else {
                         //
                         //if ($field['hash']) $model['filters'][$k] = $k . $eq.'md5("' . $this->sqlSafe($v) . '")';
                         //    else 

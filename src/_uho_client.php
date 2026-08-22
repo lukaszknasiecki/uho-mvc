@@ -1134,6 +1134,7 @@ class _uho_client
     if (!$user_id) $user_id = $this->getClientId();
 
     $data['id'] = $user_id;
+    $data = $this->removeUserSecrets($data);
     $result = $this->orm->put($this->clientModel, $data);
     $client = $this->getData();
 
@@ -2240,10 +2241,17 @@ class _uho_client
     $fields = [
       'date_set',
       'salt',
+      'locked',
+      'admin',
+      'edit_all',
       'password',
       'cookie_key'
     ];
+
     foreach ($fields as $f) if (isset($user[$f])) unset($user[$f]);
     return $user;
   }
+
+  
+  
 }

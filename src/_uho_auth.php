@@ -197,7 +197,7 @@ class _uho_auth
     if (!$user_id) $user_id = $this->getUserId();
 
     $data['id'] = $user_id;
-    $data=$this->removeUserSecrets($data);    
+    $data = $this->removeUserSecrets($data);
     $result = $this->orm->put($this->clientModel, $data);
 
     return $result !== false;
@@ -434,9 +434,11 @@ class _uho_auth
     if (!$filters) return null;
     $t = $this->orm->get(
       [
-        'schema'=>$this->clientModel,
-        'filters'=>$filters,'first'=>true
-      ]);
+        'schema' => $this->clientModel,
+        'filters' => $filters,
+        'first' => true
+      ]
+    );
 
     if ($t && !$skip_pass_check) {
       $pass = trim($pass . $this->salt['value'] . $t[$this->salt['field']]);
@@ -448,12 +450,16 @@ class _uho_auth
 
   private function removeUserSecrets($user)
   {
-    $fields=[
+    $fields = [
       'date_set',
       'salt',
+      'locked',
+      'admin',
+      'edit_all',
       'password',
       'cookie_key'
     ];
+
     foreach ($fields as $f) if (isset($user[$f])) unset($user[$f]);
     return $user;
   }
