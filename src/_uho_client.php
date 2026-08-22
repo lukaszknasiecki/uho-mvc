@@ -104,6 +104,12 @@ class _uho_client
   use _uho_client_auth_facebook;
   use _uho_client_auth_google;
   use _uho_client_auth_epuap;
+
+  /**
+   * Limits for images fetched from a remote url, see fetchRemoteImage()
+   */
+  private const IMAGE_URL_MAX_BYTES = 10485760;
+  private const IMAGE_URL_MAX_REDIRECTS = 3;
   /**
    * _uho_orm client model name
    */
@@ -268,6 +274,10 @@ class _uho_client
                     'password_format' => @$cfg['password_required'],    // password format, check private $passwordFormat for details
                     'max_bad_login' => @$cfg['max_bad_login'],          // max number of bad logins allowed
                     'gdpr_days' => @$this->dictGet('settings', 'data-processing-days')['value'],    // max number of days without activity to anonimize account
+                    'trusted_proxies' => ['10.0.0.0/8'],                // IPs/CIDRs of own reverse proxies; only then X-Forwarded-For is honoured by getIp()
+                    'image_url_hosts' => ['graph.facebook.com'],        // optional allow-list of hosts setImageFromUrl() may download from
+                    'image_url_allow_private' => false,                 // set true only to allow images from private/reserved addresses
+                    'image_url_max_bytes' => 10485760,                  // max size of a remotely fetched image
                 ],
             ]
     */
@@ -355,7 +365,7 @@ class _uho_client
     $this->lang = $lang;
     if (!isset($settings['title'])) $settings['title'] = $_SERVER['HTTP_HOST'];
 
-    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value'] . '5eh');        
+    $this->session_key = 'uho_client_' . $settings['title'] . '_' . $this->hash($this->salt['value'] . '5eh');
     $this->http = $this->http . '://' . $_SERVER['HTTP_HOST'];
 
     if (isset($_SESSION[$this->session_key]) && @$settings['users']['check_if_logged_exists']) {
@@ -379,9 +389,9 @@ class _uho_client
     }
   }
 
-  public function setOAuthConfig($key,$value)
+  public function setOAuthConfig($key, $value)
   {
-    $this->oAuth[$key]=$value;
+    $this->oAuth[$key] = $value;
   }
 
 
@@ -538,8 +548,10 @@ class _uho_client
   {
     if ($this->cookie && $this->cookieLoginEnabled) {
       $uid = $this->hashPass(bin2hex(random_bytes(32)));
-      $this->orm->put($this->clientModel, 
-        ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]);
+      $this->orm->put(
+        $this->clientModel,
+        ['id' => $id, 'cookie_key' => $uid . $this->salt['value']]
+      );
       setcookie(
         $this->cookie['name'],
         $uid,
@@ -565,7 +577,7 @@ class _uho_client
     $this->orm->put(
       $this->clientModel,
       ['id' => $id, 'cookie_key' => '']
-      );
+    );
   }
 
   public function getCookieName()
@@ -610,7 +622,7 @@ class _uho_client
 
   public function validateToken($token, $key = '')
   {
-    $result = !empty($token) && ($token == $this->getToken($key));
+    $result = !empty($token) && (hash_equals($token, $this->getToken($key)));
     return $result;
   }
 
@@ -627,8 +639,7 @@ class _uho_client
     $data = @$_SESSION[$this->session_key];
 
     if (!is_array($data)) $data = null;
-    if ($reload || (!$data && $this->cookie))
-    {
+    if ($reload || (!$data && $this->cookie)) {
       $this->cookieLogin();
       $data = @$_SESSION[$this->session_key];
       if (@$data['id'] && $reload) {
@@ -734,30 +745,21 @@ class _uho_client
    * @return null
    */
 
-  public function beforeLogin()
-  {
-    
-  }
+  public function beforeLogin() {}
 
   /**
    * Performs any actions nedded before user is logged out
    * @return null
    */
 
-  public function beforeLogout()
-  {
-    
-  }
+  public function beforeLogout() {}
 
   /**
    * Performs any actions nedded before login callback is being run
    * @return null
    */
 
-  public function beforeLoginCallback($data)
-  {
-    
-  }
+  public function beforeLoginCallback($data) {}
 
   private function logAdd($type, $result): void
   {
@@ -842,7 +844,7 @@ class _uho_client
 
     if ($result) {
       if (!isset($message)) $message = 'client_login_success';
-      return (array('result' => $result, 'client' => $client, 'message' => $message));
+      return (array('result' => $result, 'client' => $this->removeUserSecrets($client), 'message' => $message));
     } else return (array('result' => $result, 'message' => $message));
   }
 
@@ -860,7 +862,7 @@ class _uho_client
     }
   }
 
-  
+
 
   /**
    * Performs current user's logout
@@ -917,10 +919,15 @@ class _uho_client
         'datetime' => ['operator' => '>', 'value' => $date],
         'result' => 0
       ];
-      foreach ($f as $k => $_) if (!in_array($k, $this->models['client_logs_model'])) unset($f[$k]);
+      foreach ($f as $k => $_) if (!in_array($k, $this->models['client_logs_model']['fields'])) unset($f[$k]);
 
-      $find = $this->orm->get($this->models['client_logs_model']['model'], $f, false, null, null);
-
+      $find = $this->orm->get(
+        $this->models['client_logs_model']['model'],
+        $f,
+        false,
+        null,
+        null
+      );
 
       if ($find && count($find) >= 5) $result = true;
     }
@@ -953,43 +960,49 @@ class _uho_client
   {
 
     $log = [];
-    if (!$source) return;
+    if (!$source || !is_string($source)) return;
     $schema = $this->orm->getSchema($this->clientModel);
     $image = _uho_fx::array_filter($schema['fields'], 'field', 'image', ['first' => true]);
 
     if ($image) {
 
+      // download into a private temporary file and validate it there,
+      // so that nothing unverified ever appears under DOCUMENT_ROOT
+      $temp = $this->fetchRemoteImage($source, $log);
+
+      if ($temp) {
+        $magic_bytes = _uho_thumb::fileMagicBytesCheck($source, $temp);
+        if (!$magic_bytes['result']) {
+          $log[] = '[error] Source (' . $source . ') is not a valid image: ' . $magic_bytes['errors'];
+          @unlink($temp);
+          $temp = null;
+        }
+      }
+
       $destination = $_SERVER['DOCUMENT_ROOT'] . $image['folder'] . '/';
       $original = null;
 
-      foreach ($image['images'] as $v) {
+      if ($temp)
+        foreach ($image['images'] as $v) {
 
-        if (!$original)
-        {
+          if (!$original) {
 
-          $original = $destination . $v['folder'] . '/' . $uid . '.jpg';
-          if (!@copy($source, $original))
-          {
-            if ($this->curl_copy($source, $original))
-              $log[] = 'original copied with curl';
-          } else $log[] = 'original copied';
-
-          if (file_exists($original))
-          {
-            $magic_bytes = _uho_thumb::fileMagicBytesCheck($source, $original);
-            if (!$magic_bytes['result']) {
-              @unlink($original);
-              $log[] = '[error] Source (' . $source . ') is not a valid image: ' . $magic_bytes['errors'];
+            $original = $destination . $v['folder'] . '/' . $uid . '.jpg';
+            if (!@copy($temp, $original)) {
+              $log[] = '[error] Cannot write original (' . $original . ')';
               $original = null;
               break;
             }
+            $log[] = 'original copied';
+          } else {
+            if (file_exists($original))
+              $log[] = _uho_thumb::convert($original, $original, $destination . $v['folder'] . '/' . $uid . '.jpg', $v); //, $copyOnly=false, $nr=1, $predefined_crop=null, $useNative=false, $magicBytesCheck=true);
+            else $log[] = 'No original (' . $original . ') found: no resizing performed';
           }
-        } else {
-          if (file_exists($original))
-            $log[] = _uho_thumb::convert($original, $original, $destination . $v['folder'] . '/' . $uid . '.jpg', $v); //, $copyOnly=false, $nr=1, $predefined_crop=null, $useNative=false, $magicBytesCheck=true);
-          else $log[] = 'No original (' . $original . ') found: no resizing performed';
         }
-      }
+
+      if ($temp) @unlink($temp);
+
       if ($original) {
         @unlink($original);
         $log[] = 'original removed';
@@ -1075,8 +1088,7 @@ class _uho_client
 
   public function createAdmin($login, $pass)
   {
-    if (!$this->adminExists())
-    {
+    if (!$this->adminExists()) {
       $data = ['name' => 'Admin', 'login' => $login, 'password' => $pass, 'admin' => 1, 'status' => 'confirmed', 'edit_all' => 1];
       $r = $this->create($data);
       if (!$r) {
@@ -1205,7 +1217,7 @@ class _uho_client
    * @return array
    */
 
-  public function register($data, $url = null, bool $update_registered=false, bool $sso_email_verified = false): array
+  public function register($data, $url = null, bool $update_registered = false, bool $sso_email_verified = false): array
   {
 
     $result = false;
@@ -1336,7 +1348,7 @@ class _uho_client
       $result = $this->orm->put(
         $this->clientModel,
         ['id' => $user['id'], 'status' => 'confirmed']
-        );
+      );
       $result = ['result' => true, 'user' => $user['id']];
     } else $result = ['result' => false];
 
@@ -1397,7 +1409,7 @@ class _uho_client
         $pass = $this->hashPass(trim($pass) . $this->salt['value']);
         break;
       case "double":
-        $pass=trim($pass . $this->salt['value'] . $salt);
+        $pass = trim($pass . $this->salt['value'] . $salt);
         $pass = $this->hashPass($pass);
         break;
     }
@@ -1714,7 +1726,8 @@ class _uho_client
     if (!$mailing) exit('_uho_client::mailing::missing_mailing_model::' . $slug);
 
     $data['website'] = $this->website;
-    $data['http'] = $this->getHttpHost();
+    $data['http'] = $this->getHttpHost(true);
+    if (!$data['http']) exit('_uho_client::mailing::missing_http_config');
 
     $mailing['subject'] = $this->orm->getTwigFromHtml($mailing['subject'], $data);
     $mailing['message'] = $this->orm->getTwigFromHtml($mailing['message'], $data);
@@ -1908,19 +1921,80 @@ class _uho_client
 
   /**
    * Returns user's ip
-   * @return string
+   * Only REMOTE_ADDR is trusted by default. Proxy-supplied headers
+   * (X-Forwarded-For) are client-controlled and are taken into account
+   * only when the request comes from an address listed in
+   * settings['trusted_proxies'] (array of IPs or CIDR ranges).
+   * @return string validated IP address or empty string if unknown
    */
 
   public function getIp()
   {
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-      $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    } else {
-      $ip = $_SERVER['REMOTE_ADDR'];
+    $remote = isset($_SERVER['REMOTE_ADDR']) ? trim($_SERVER['REMOTE_ADDR']) : '';
+    if (!filter_var($remote, FILTER_VALIDATE_IP)) return '';
+
+    $proxies = isset($this->settings['trusted_proxies']) ? $this->settings['trusted_proxies'] : null;
+    if (!$proxies || !is_array($proxies)) return $remote;
+    if (!$this->ipMatchesList($remote, $proxies)) return $remote;
+
+    if (empty($_SERVER['HTTP_X_FORWARDED_FOR'])) return $remote;
+
+    // rightmost address that was not appended by one of our own proxies
+    $chain = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+    for ($i = count($chain) - 1; $i >= 0; $i--) {
+      $ip = trim($chain[$i]);
+      // strip optional port, i.e. 1.2.3.4:5678 or [::1]:5678
+      if (preg_match('/^\[(.+)\](?::\d+)?$/', $ip, $m)) $ip = $m[1];
+      elseif (substr_count($ip, ':') == 1) $ip = strstr($ip, ':', true);
+      if (!filter_var($ip, FILTER_VALIDATE_IP)) return $remote;
+      if (!$this->ipMatchesList($ip, $proxies)) return $ip;
     }
-    return $ip;
+
+    return $remote;
+  }
+
+  /**
+   * Checks if given IP matches any of the entries (plain IP or CIDR)
+   * @param string $ip validated IP address
+   * @param array $list list of IPs / CIDR ranges
+   * @return boolean
+   */
+
+  private function ipMatchesList($ip, $list)
+  {
+    $bin = @inet_pton($ip);
+    if ($bin === false) return false;
+
+    foreach ($list as $entry) {
+      $entry = trim((string)$entry);
+      if ($entry === '') continue;
+
+      $mask = null;
+      if (strpos($entry, '/') !== false) list($entry, $mask) = explode('/', $entry, 2);
+
+      $range = @inet_pton($entry);
+      if ($range === false || strlen($range) != strlen($bin)) continue;
+
+      if ($mask === null) {
+        if ($range === $bin) return true;
+        continue;
+      }
+
+      $mask = (int)$mask;
+      $bits = strlen($bin) * 8;
+      if ($mask < 0 || $mask > $bits) continue;
+
+      $bytes = intdiv($mask, 8);
+      $rest = $mask % 8;
+      if ($bytes && strncmp($bin, $range, $bytes) !== 0) continue;
+      if ($rest) {
+        $byteMask = chr(0xff << (8 - $rest) & 0xff);
+        if ((($bin[$bytes] & $byteMask) !== ($range[$bytes] & $byteMask))) continue;
+      }
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -1941,31 +2015,235 @@ class _uho_client
     return $result;
   }
 
-  private function getHttpHost()
+  private function getHttpHost($force_settings = false)
   {
     if ($this->http_host) return $this->http_host;
+    elseif ($force_settings) return null;
     else return ($this->http . '://' . $_SERVER['HTTP_HOST']);
   }
 
   /**
-   * Curl_copy function, copies file from one location to another
+   * Downloads a remote image into a private temporary file.
    *
-   * @param string $remote_file file to be copied
-   * @param string $local_file destination path
+   * Only http/https urls that resolve to public addresses are accepted,
+   * redirects are followed by hand and re-validated on every hop, the
+   * connection is pinned to the address that was checked, and the transfer
+   * is capped by settings['image_url_max_bytes'].
+   *
+   * @param string $source remote url
+   * @param array $log log lines, appended in place
+   * @return string|null path of the temporary file, null when rejected
    */
-  private function curl_copy($remote_file, $local_file): void
+
+  private function fetchRemoteImage(string $source, array &$log): ?string
   {
-    curl_init();
-    $fp = @fopen($local_file, 'w+');
-    if ($fp) {
-      $ch = curl_init($remote_file);
-      curl_setopt($ch, CURLOPT_TIMEOUT, 50);
-      curl_setopt($ch, CURLOPT_FILE, $fp);
-      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-      curl_setopt($ch, CURLOPT_ENCODING, "");
-      curl_exec($ch);
-      fclose($fp);
+    $temp = @tempnam(sys_get_temp_dir(), 'uho_img_');
+    if (!$temp) {
+      $log[] = '[error] Cannot create a temporary file';
+      return null;
     }
+
+    $url = $source;
+
+    for ($hop = 0; $hop <= self::IMAGE_URL_MAX_REDIRECTS; $hop++) {
+
+      $target = $this->validateImageUrl($url);
+      if (!$target) {
+        $log[] = '[error] Rejected image url: ' . $url;
+        @unlink($temp);
+        return null;
+      }
+
+      $result = $this->downloadImageUrl($target, $temp);
+
+      if ($result['redirect']) {
+        $url = $result['redirect'];
+        continue;
+      }
+
+      if (!$result['result']) {
+        $log[] = '[error] ' . $result['message'];
+        @unlink($temp);
+        return null;
+      }
+
+      return $temp;
+    }
+
+    $log[] = '[error] Too many redirects for ' . $source;
+    @unlink($temp);
+    return null;
   }
 
+  /**
+   * Checks an image url against the SSRF rules and resolves its host.
+   *
+   * @param string $url
+   * @return array|null ['url','host','port','ip'] or null when not allowed
+   */
+
+  private function validateImageUrl(string $url): ?array
+  {
+    $parts = @parse_url($url);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host'])) return null;
+
+    $scheme = strtolower($parts['scheme']);
+    if (!in_array($scheme, ['http', 'https'], true)) return null;
+
+    $port = isset($parts['port']) ? intval($parts['port']) : ($scheme == 'https' ? 443 : 80);
+    if (!in_array($port, [80, 443], true)) return null;
+
+    $host = trim($parts['host'], '[]');
+    if ($host === '') return null;
+
+    // optional per-project allow-list of hosts
+    if (!empty($this->settings['image_url_hosts']) && is_array($this->settings['image_url_hosts'])) {
+      $allowed = array_map('strtolower', $this->settings['image_url_hosts']);
+      if (!in_array(strtolower($host), $allowed, true)) return null;
+    }
+
+    $ips = $this->resolveImageHost($host);
+    if (!$ips) return null;
+
+    // every address the name resolves to must be routable on the public internet
+    if (empty($this->settings['image_url_allow_private']))
+      foreach ($ips as $ip)
+        if (!$this->isPublicIp($ip)) return null;
+
+    return [
+      'url'  => $url,
+      'host' => $host,
+      'port' => $port,
+      'ip'   => $ips[0],
+      'literal' => (bool) filter_var($host, FILTER_VALIDATE_IP)
+    ];
+  }
+
+  /**
+   * Resolves a hostname to every A/AAAA address it points at
+   *
+   * @param string $host hostname or ip literal
+   * @return array list of ip addresses
+   */
+
+  private function resolveImageHost(string $host): array
+  {
+    if (filter_var($host, FILTER_VALIDATE_IP)) return [$host];
+
+    $ips = [];
+
+    $v4 = @gethostbynamel($host);
+    if (is_array($v4)) $ips = $v4;
+
+    $v6 = @dns_get_record($host, DNS_AAAA);
+    if (is_array($v6))
+      foreach ($v6 as $record)
+        if (!empty($record['ipv6'])) $ips[] = $record['ipv6'];
+
+    return array_values(array_unique($ips));
+  }
+
+  /**
+   * True when the address is not loopback, private or otherwise reserved
+   *
+   * @param string $ip
+   * @return boolean
+   */
+
+  private function isPublicIp(string $ip): bool
+  {
+    // ::ffff:127.0.0.1 and friends are checked as their IPv4 form
+    if (stripos($ip, '::ffff:') === 0) {
+      $mapped = substr($ip, 7);
+      if (filter_var($mapped, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) $ip = $mapped;
+    }
+
+    return (bool) filter_var(
+      $ip,
+      FILTER_VALIDATE_IP,
+      FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    );
+  }
+
+  /**
+   * Performs a single, size-capped GET into an already opened destination
+   *
+   * @param array $target output of validateImageUrl()
+   * @param string $filename destination path
+   * @return array ['result'=>bool, 'redirect'=>string|null, 'message'=>string]
+   */
+
+  private function downloadImageUrl(array $target, string $filename): array
+  {
+    $fp = @fopen($filename, 'w+');
+    if (!$fp) return ['result' => false, 'redirect' => null, 'message' => 'Cannot open temporary file'];
+
+    $max = !empty($this->settings['image_url_max_bytes'])
+      ? intval($this->settings['image_url_max_bytes'])
+      : self::IMAGE_URL_MAX_BYTES;
+
+    $written = 0;
+    $overflow = false;
+
+    $ch = curl_init($target['url']);
+
+    if (defined('CURLOPT_PROTOCOLS_STR')) curl_setopt($ch, CURLOPT_PROTOCOLS_STR, 'http,https');
+    elseif (defined('CURLOPT_PROTOCOLS')) curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+
+    // redirects are re-validated by fetchRemoteImage(), never followed by curl
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_ENCODING, '');
+
+    // connect to the address that was checked, not to whatever dns says next
+    if (!$target['literal'])
+      curl_setopt($ch, CURLOPT_RESOLVE, [$target['host'] . ':' . $target['port'] . ':' . $target['ip']]);
+
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $chunk) use ($fp, $max, &$written, &$overflow) {
+      $written += strlen($chunk);
+      if ($written > $max) {
+        $overflow = true;
+        return 0;
+      }
+      return fwrite($fp, $chunk);
+    });
+
+    curl_exec($ch);
+
+    $code     = intval(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
+    $location = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+    $error    = curl_error($ch);
+
+    fclose($fp);
+
+    if ($overflow)
+      return ['result' => false, 'redirect' => null, 'message' => 'Image larger than ' . $max . ' bytes: ' . $target['url']];
+
+    if (in_array($code, [301, 302, 303, 307, 308], true) && $location)
+      return ['result' => false, 'redirect' => $location, 'message' => ''];
+
+    if ($error)
+      return ['result' => false, 'redirect' => null, 'message' => 'Download failed (' . $target['url'] . '): ' . $error];
+
+    if ($code != 200)
+      return ['result' => false, 'redirect' => null, 'message' => 'Download failed (' . $target['url'] . '): HTTP ' . $code];
+
+    if (!$written)
+      return ['result' => false, 'redirect' => null, 'message' => 'Empty response from ' . $target['url']];
+
+    return ['result' => true, 'redirect' => null, 'message' => ''];
+  }
+
+  private function removeUserSecrets($user)
+  {
+    $fields = [
+      'date_set',
+      'salt',
+      'password',
+      'cookie_key'
+    ];
+    foreach ($fields as $f) if (isset($user[$f])) unset($user[$f]);
+    return $user;
+  }
 }

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l src/_uho_pgsql.php)"
+    ]
+  }
+}

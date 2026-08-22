@@ -672,6 +672,16 @@ public function getTwigFromHtml(string $html, array $data): ?string
         return $this->put($model, $data, $filters, $multiple, $params);
     }
 
+    private function checkRawFilters($filters)
+    {
+        if ($filters && is_array($filters))
+            foreach ($filters as $k => $v)
+                if (
+                    (isset($v['type']) && in_array($v['type'], ['custom', 'sql']))
+                    || (isset($v['value']) && isset($v['value']['type']) && in_array($v['value']['type'], ['custom', 'sql']))
+                )
+                    exit('orm::deprecated raw filter detected, use filters_custom instead');
+    }
     /**
      * Gets model from mySQL
      * Uses $schema if array, or line function params (older style)
@@ -680,15 +690,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     public function get(string|array $schema, $filters = null, $single = false, $order = null, $limit = null, array $params = [])
     {
-
         $allowed_params = [
             'schema' => ['name'],
             'additionalParams' => ['additionalParams', []],
             'addLanguages' => ['add_languages', false],
             'count' => ['count', false],                           // if you want to return count of records for selected query
             'groupBy' => ['groupBy', ''],
-            'fields' => ['fields_to_read', []],                // array of fields to read, is string value- gets this list from schema.fields_to_read.value array
-            'filters' => ['filters', []],                        // array of filters for the query
+            'fields' => ['fields_to_read', []],                    // array of fields to read, is string value- gets this list from schema.fields_to_read.value array
+            'filters' => ['filters', []],                          // array of filters for the query
+            'filters_custom' => ['filters_custom', []],            // array of custom filters for the query
             'first' => ['single', false],                          // return only first value, without records array wrapper
             'limit' => ['limit', null],                            // query limit in either SQL format '0,10' or paging, as an array [page,per_page]
             'key' => ['returnByKey', null],
@@ -697,6 +707,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             'replace_values' => ['replace_values', []],
             'skipSchemaFilters' => ['skipSchemaFilters', false]
         ];
+
 
         /**
          * $schema can be a string, then we are using linear input and $params array
@@ -735,6 +746,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         $name_string = $name;
 
+        $this->checkRawFilters($filters);
+
         // checks if SQL connection has been established
 
         $this->sqlCheckConnection('get::' . $name_string);
@@ -746,8 +759,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         // create sql-compliant limit params from paging array
 
         // [2,3] = LIMIT 2,3
-        if (is_array($limit) && count($limit) == 2)
-        {
+        if (is_array($limit) && count($limit) == 2) {
             $limit_page = intval($limit[0]);
             $limit_perpage = intval($limit[1]);
 
@@ -755,13 +767,13 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 $limit = ($limit_page - 1) * $limit_perpage . ',' . $limit_perpage;
             else $limit = '';
         } elseif (is_array($limit)) $limit = '';
-        elseif (is_string($limit) && $limit)
-        {
-            $limit=explode(',',$limit);
-            if (count($limit)==1) $limit=intval($limit[0]);
-            elseif (count($limit)==2) $limit=intval($limit[0]).','.intval($limit[1]);
-            else $limit='';
-        } else $limit='';
+        // string based limit
+        elseif (is_string($limit) && $limit) {
+            $limit = explode(',', $limit);
+            if (count($limit) == 1) $limit = intval($limit[0]);
+            elseif (count($limit) == 2) $limit = intval($limit[0]) . ',' . intval($limit[1]);
+            else $limit = '';
+        } else $limit = '';
 
         /**
          * get model schema
@@ -814,12 +826,17 @@ public function getTwigFromHtml(string $html, array $data): ?string
          */
         $sql_query_filters = '';
 
-        if (is_array($filters) || is_array($model['filters']))
-        {
+        if (!empty($filters) || !empty($filters_custom) || !empty($model['filters'])) {
             if (empty($model['filters'])) $model['filters'] = [];
             if (!empty($filters)) $model['filters'] = array_merge($model['filters'], $filters);
 
             $sql_query_filters = $this->schemaSqlManager->getFiltersQueryArray($model);
+
+            if (!empty($filters_custom)) {
+                $sql_query_filters_custom = $this->schemaSqlManager->getFiltersRawQueryArray($model, $filters_custom);
+                if ($sql_query_filters_custom) $sql_query_filters = array_merge($sql_query_filters, $sql_query_filters_custom);
+            }
+
 
             if ($sql_query_filters) $sql_query_filters = 'WHERE ' . implode(' && ', $sql_query_filters);
             else $sql_query_filters = '';
@@ -895,6 +912,10 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     $order = '`' . $order['field'] . '` ' . $sort;
                 else $order = '';
             } elseif (!is_string($order)) $order = '';
+            // sanitize order sting
+            else {
+                $order = $this->sanitizeOrderBy($order, $allowed_order_fields, '');
+            }
         }
 
         if ($order) $query_order = ' ORDER BY ' . $order;
@@ -1029,6 +1050,96 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         if ($count) return count($data);
         else return $data;
+    }
+
+    /**
+     * Sanitizes an ORDER BY input string against a strict list of allowed columns.
+     *
+     * Supports:
+     * - Simple column sorting: "price ASC", "name, created_at DESC"
+     * - Custom order via FIELD(): "FIELD(status, 'active', 'pending', 'archived')"
+     * - Random sorting: "RAND()"
+     *
+     * @param string $input Raw string from $_GET/$_POST or API payload.
+     * @param array $allowedColumns List of database columns permitted for sorting.
+     * @param string $default Fallback clause if validation fails or input is empty.
+     * @return string Safe SQL fragment to append after "ORDER BY"
+     */
+    function sanitizeOrderBy(string $input, array $allowedColumns, string $default = 'id ASC'): string
+    {
+        $input = trim($input);
+        if (empty($input)) {
+            return $default;
+        }
+
+        // 1. Split top-level clauses by comma (ignoring commas inside parentheses)
+        $clauses = preg_split('/,\s*(?![^(]*\))/', $input);
+        $sanitizedClauses = [];
+
+        foreach ($clauses as $clause) {
+            $clause = trim($clause);
+            if (empty($clause)) {
+                continue;
+            }
+
+            // 2. Handle RAND() or RAND(seed)
+            if (preg_match('/^RAND\s*\(\s*(.*?)\s*\)$/i', $clause, $matches)) {
+                $seed = trim($matches[1]);
+
+                if ($seed === '') {
+                    $sanitizedClauses[] = 'RAND()';
+                } else {
+                    // Strip quotes to sanitize the seed cleanly
+                    $unquotedSeed = trim($seed, "'\"");
+                    if (is_numeric($unquotedSeed)) {
+                        $sanitizedClauses[] = "RAND({$unquotedSeed})";
+                    } else {
+                        $safeSeed = addslashes($unquotedSeed);
+                        $sanitizedClauses[] = "RAND('{$safeSeed}')";
+                    }
+                }
+                continue;
+            }
+
+            // 3. Handle FIELD(...) expressions, with optional "= 0" or "=0"
+            if (preg_match('/^FIELD\s*\(\s*([a-zA-Z0-9_]+)\s*,\s*(.+)\s*\)(\s*=\s*0)?$/i', $clause, $matches)) {
+                $column     = $matches[1];
+                $rawValues  = $matches[2];
+                $equalsZero = !empty($matches[3]) ? ' = 0' : '';
+
+                // Reject if column is not whitelisted
+                if (!in_array($column, $allowedColumns, true)) {
+                    continue;
+                }
+
+                // Split and sanitize each value inside FIELD()
+                $values = array_map('trim', explode(',', $rawValues));
+                $sanitizedValues = array_map(function ($val) {
+                    $cleanVal = trim($val, "'\"");
+                    if (is_numeric($cleanVal)) {
+                        return $cleanVal;
+                    }
+                    return "'" . addslashes($cleanVal) . "'";
+                }, $values);
+
+                $sanitizedClauses[] = "FIELD(`{$column}`, " . implode(',', $sanitizedValues) . "){$equalsZero}";
+                continue;
+            }
+
+            // 4. Handle standard column clauses (e.g., "featured DESC", "name ASC")
+            $parts = preg_split('/\s+/', $clause);
+            $column = $parts[0] ?? '';
+            $direction = strtoupper($parts[1] ?? 'ASC');
+
+            if (in_array($column, $allowedColumns, true)) {
+                if (!in_array($direction, ['ASC', 'DESC'], true)) {
+                    $direction = 'ASC';
+                }
+                $sanitizedClauses[] = "`{$column}` {$direction}";
+            }
+        }
+
+        return !empty($sanitizedClauses) ? implode(', ', $sanitizedClauses) : $default;
     }
 
     /**
@@ -2035,22 +2146,25 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     case 'order':
                         $v = intval($v);
                         break;
+                    default:
+                        $v = $this->sqlSafe($v);
+                        break;
                 }
 
                 // save type
 
-                if (isset($v['type']) && $v['type'] == 'sql') {
-                    $data[$k] = '`' . $k . '`=' . $v['value'];
-                } else {
-                    if (isset($field['settings']['hash'])) {
-                        if ($field['settings']['hash'][0] == '~') {
-                            $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, substr($field['settings']['hash'], 1), true) . '"';
-                        } else $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
-                    } elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
-                    elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
-                    elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';
-                    else $data[$k] = '`' . $k . '`="' . $this->sqlSafe($v) . '"';
-                }
+                //if (isset($v['type']) && $v['type'] == 'sql') {
+                //    $data[$k] = '`' . $k . '`=' . $v['value'];
+
+                if (isset($field['settings']['hash'])) {
+                    if ($field['settings']['hash'][0] == '~') {
+                        $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, substr($field['settings']['hash'], 1), true) . '"';
+                    } else $data[$k] = '`' . $k . '`="' . _uho_fx::encrypt($v, $this->keys, $field['settings']['hash']) . '"';
+                } elseif ($v === 0) $data[$k] = '`' . $k . '`=0';
+                elseif ($v === NULL) $data[$k] = '`' . $k . '`=NULL';
+                elseif (isset($field['type']) && $skip_safe) $data[$k] = '`' . $k . '`="' . $v . '"';
+                else $data[$k] = '`' . $k . '`="' . $this->sqlSafe($v) . '"';
+
             } elseif (isset($model['filters'][$k])) {
                 // field is present in filters so assuming it's OK to write it
                 $data[$k] = '`' . $k . '`="' . $this->sqlSafe($v) . '"';
@@ -2294,6 +2408,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $filters = $this->getFilters($model, $filters);
         }
 
+        $this->checkRawFilters($filters);
+
         $schema = $this->getSchema($model, true);
         if (!$schema || empty($schema['table'])) {
             $this->errors[] = 'delete:: schema error:: ' . $model;
@@ -2403,6 +2519,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
         $multiple_version = 'old';
         if (isset($params['version']))
             $multiple_version = $params['version'];
+
+        $this->checkRawFilters($filters);
 
         // ---------------------------------------------------------------------------
         // filters --> get existing elements matching filters
@@ -2869,10 +2987,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
         return $this->schemaSqlManager->creator($schema, $options, $recursive, $update_languages);
     }
 
-    public function getFiltersQueryArray($model, array $filters = [])
+    public function getFiltersQueryArray($model, array $filters = [], $raw = false)
     {
         if ($filters) $model['filters'] = $filters;
-        return $this->schemaSqlManager->getFiltersQueryArray($model, $filters);
+        if ($raw) return $this->schemaSqlManager->getFiltersRawQueryArray($model, $model['filters']);
+        else return $this->schemaSqlManager->getFiltersQueryArray($model);
     }
 
 

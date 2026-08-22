@@ -17,10 +17,12 @@ namespace Huncwot\UhoFramework;
 class _uho_orm_schema_sql
 {
     private _uho_orm $orm;
+    private $allowed_create_actions = ['alert', 'auto', 'info'];
 
-    public function __construct(_uho_orm $orm)
+    public function __construct(_uho_orm $orm, array|null $allowed_create_actions = null)
     {
         $this->orm = $orm;
+        if ($allowed_create_actions !== null) $this->allowed_create_actions = $allowed_create_actions;
     }
 
     /**
@@ -243,6 +245,8 @@ class _uho_orm_schema_sql
 
 
         if (isset($_POST['uho_orm_action'])) $action = $_POST['uho_orm_action'];
+        if (in_array($action, $this->allowed_create_actions) === false) $action = 'alert';
+
         $performed_action = null;
 
         if ($update || $add) {
@@ -393,8 +397,6 @@ class _uho_orm_schema_sql
      * { [{"operator" : ">", { "value": 1 }],[{"operator" : "<", { "value": 10 }] }
      * { {"operator" : "in", { "value": ["2020-02-01","date_from","date_to"] }
      * { [1,2,3 ] }
-     * { "type": "sql", "value":"CONCAT (....)"
-     * { "type": "custom", "join":"||","value":["",""] }
      */
 
     public function getFiltersQueryArray($model)
@@ -413,7 +415,6 @@ class _uho_orm_schema_sql
                         $v = $v['value'];
                     }
 
-                    $raw = false;
                     if (isset($v['function'])) $function = $v['function'];
                     else $function = null;
                     if (isset($v['collate'])) $collate = ' collate utf8_general_ci ';
@@ -422,16 +423,10 @@ class _uho_orm_schema_sql
                     if (isset($v['operator']) && $v['operator'] == '!=' && !isset($v['value']))
                         $v['value'] = '';
 
-                    if (is_array($v) && @$v['type'] == 'custom') {
-                        if (is_string($v['value']))
-                            $model['filters'][$k] = '(' . $v['value'] . ')';
-                        else $model['filters'][$k] = '(' . implode(' ' . @$v['join'] . ' ', $v['value']) . ')';
-                    } elseif (isset($v['type']) && $v['type'] == 'sql') {
-                        $eq = '=';
-                        $raw = true;
-                        $v = $v['value'];
-                    } elseif (is_array($v) && isset($v['value'])) {
+                    if (is_array($v) && isset($v['value'])) {
                         $eq = @$v['operator'];
+                        if (in_array($eq, ['in', '!=', '>', '<', '>=', '<=', 'LIKE', '%LIKE%', '%!LIKE%']));
+                        else $eq = '=';
                         $v = $v['value'];
                     } else $eq = '=';
 
@@ -439,7 +434,7 @@ class _uho_orm_schema_sql
                     // field
 
                     $field = _uho_fx::array_filter($model['fields'], 'field', $field_key, array('first' => true));
-
+                    
                     $or = null;
 
                     if (isset($field['settings']['hash']) && !$this->orm->getKeys()) $this->orm->halt('_uho_orm::getFiltersQueryArray::nokeys');
@@ -495,16 +490,15 @@ class _uho_orm_schema_sql
                     else $pre_field = '';
 
                     $field = $field_key;
+                    //$field = $field['field'];
 
                     // multiple values
-                    if (is_array($v) && @$v['type'] == 'custom');
-                    elseif (is_array($v))
-                    {
+                    if (is_array($v)) {
                         // escape
-                        if (is_array($model['filters'][$k]) && ($eq == '=' || $eq == '!='))
+                        if (is_array($model['filters'][$k])) //  && ($eq == '=' || $eq == '!='))
                         {
                             foreach ($model['filters'][$k] as $k2 => $v2)
-                                $v[$k2]=$model['filters'][$k][$k2] = $this->orm->sqlSafe($v2);
+                                $v[$k2] = $model['filters'][$k][$k2] = $this->orm->sqlSafe($v2);
                         }
 
                         if ($or);
@@ -534,7 +528,7 @@ class _uho_orm_schema_sql
                     else if ($eq == '%LIKE') $model['filters'][$k] = $field . ' LIKE "%' . $this->orm->sqlSafe($v);
                     else if ($eq == '=' && $collate) {
                         $model['filters'][$k] = $function . '(' . $field . $collate . ') = "' . $this->orm->sqlSafe($v) . '"';
-                    } else if ($raw) $model['filters'][$k] = '`' . $field . '`' . $eq . $v;
+                    } 
                     else {
                         //
                         //if ($field['hash']) $model['filters'][$k] = $k . $eq.'md5("' . $this->sqlSafe($v) . '")';
@@ -555,5 +549,49 @@ class _uho_orm_schema_sql
         }
 
         return $model['filters'];
+    }
+
+    /**
+     * Converts raw (application-provided) filters to mySQL query parts
+     * Only entries explicitly marked with type=sql or type=custom are handled,
+     * everything else is dropped
+     * Values are NOT escaped, so this must never be called with data coming
+     * from a request - use getFiltersQueryArray() for those
+     * @param array $model
+     * @param array $filters
+     * @return array
+     *
+     * { "type": "sql", "value":"CONCAT (....)" }
+     * { "type": "custom", "join":"||", "value":["",""] }
+     * { "field":"other_field", "value": { "type":"sql", "value":"..." } }
+     */
+
+    public function getFiltersRawQueryArray($model, $filters)
+    {
+        $result = [];
+        if (!is_array($filters)) return $result;
+
+        foreach ($filters as $k => $v) {
+            $field_key = $k;
+
+            // { "field": ..., "value": { "type": ... } } wrapper
+
+            if (is_array($v) && isset($v['field']) && isset($v['value']) && is_array($v['value'])) {
+                $field_key = $v['field'];
+                $v = $v['value'];
+            }
+
+            if (!is_array($v) || !isset($v['type']) || !isset($v['value'])) continue;
+
+            if ($v['type'] == 'custom') {
+                if (is_string($v['value'])) $result[] = '(' . $v['value'] . ')';
+                elseif (is_array($v['value'])) $result[] = '(' . implode(' ' . @$v['join'] . ' ', $v['value']) . ')';
+            } elseif ($v['type'] == 'sql') {
+                if (is_string($v['value']) || is_numeric($v['value']))
+                    $result[] = '`' . $field_key . '`=' . $v['value'];
+            }
+        }
+
+        return $result;
     }
 }

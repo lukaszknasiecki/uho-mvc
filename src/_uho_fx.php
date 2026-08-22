@@ -1468,11 +1468,6 @@ class _uho_fx
         if (!$params || !is_array($params)) $params = [];
         if (empty($params['timeout'])) $params['timeout'] = 15;
 
-        if (strpos($url, ' --insecure')) {
-            $url = str_replace(' --insecure', '', $url);
-            $params['verify_host'] = false;
-        }
-
         $ch = curl_init($url);
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

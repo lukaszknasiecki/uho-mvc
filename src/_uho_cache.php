@@ -111,7 +111,7 @@ class _uho_cache
         if ($add) $add = '&' . http_build_query($add);
         else $add = '';
 
-        $key = $this->salt . $get . $ajax . $post . $add;
+        $key = $_SERVER['HTTP_HOST']. $this->salt . $get . $ajax . $post . $add;
         if ($md5) $key = md5($key);
         return ($key);
     }

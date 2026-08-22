@@ -81,6 +81,11 @@ class _uho_auth
     $this->oauth = isset($settings['oauth']) ? $settings['oauth'] : null;
 
     $this->website = isset($settings['website']) ? $settings['website'] : null;
+
+    if (isset($this->website['http']) && empty($this->website['domain']))
+      $this->website['domain'] = parse_url($this->website['http'], PHP_URL_HOST);
+
+
     $this->salt = ['type' => 'double', 'field' => 'salt', 'value' => $settings['salt'] ?? ''];
     $this->settings = [
       'gdpr_days' => 365
@@ -137,6 +142,7 @@ class _uho_auth
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
       if ($this->auth_type == 'cookie') $this->setCookieToken($token);
+
       return ['user' => $user, 'token' => $token, "expires_in" => 4 * 60 * 60];
     }
 
@@ -148,7 +154,7 @@ class _uho_auth
     $user = $this->getUser();
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
-      if ($this->auth_type = 'cookie') $this->setCookieToken($token);
+      if ($this->auth_type == 'cookie') $this->setCookieToken($token);
       $this->current_token = $token;
       return ['token' => $token, "expires_in" => 4 * 60 * 60];
     }
@@ -191,6 +197,7 @@ class _uho_auth
     if (!$user_id) $user_id = $this->getUserId();
 
     $data['id'] = $user_id;
+    $data=$this->removeUserSecrets($data);    
     $result = $this->orm->put($this->clientModel, $data);
 
     return $result !== false;
@@ -215,8 +222,8 @@ class _uho_auth
    *                    confirmed the e-mail address is verified (see $sso_link_allowed below)
    * @return array{result: bool, message: string, fields: array}
    */
-  
-  public function register($data, $url = null, $update_existing=false, bool $sso_email_verified = false): array
+
+  public function register($data, $url = null, $update_existing = false, bool $sso_email_verified = false): array
   {
     $result = false;
 
@@ -316,7 +323,7 @@ class _uho_auth
    */
   public function registerConfirmation($key): array
   {
-    
+
     $user = $this->getUserIdByToken($key, 'registration_confirmation', true);
     if ($user) $user = $this->orm->get($this->clientModel, ['id' => $user, 'status' => 'submitted'], true);
 
@@ -361,7 +368,7 @@ class _uho_auth
         if ($this->orm->decodeBase64Image($data['image'], ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
           $this->orm->uploadBase64Image($this->clientModel, $user, 'image', $data['image']);
         } else {
-          $this->setImageFromUrl($data['image'], $user, $data['uid']);
+          //. TBD $this->setImageFromUrl($data['image'], $user, $data['uid']);
         }
       }
 
@@ -425,14 +432,30 @@ class _uho_auth
     $pass = isset($filters['password']) ? $filters['password'] : null;
     unset($filters['password']);
     if (!$filters) return null;
-    $t = $this->orm->get($this->clientModel, $filters, true);
+    $t = $this->orm->get(
+      [
+        'schema'=>$this->clientModel,
+        'filters'=>$filters,'first'=>true
+      ]);
 
     if ($t && !$skip_pass_check) {
       $pass = trim($pass . $this->salt['value'] . $t[$this->salt['field']]);
       if (!$pass || !password_verify($pass, $t['password'])) $t = null;
     }
 
-    if ($t) return $t;
+    if ($t) return $this->removeUserSecrets($t);
+  }
+
+  private function removeUserSecrets($user)
+  {
+    $fields=[
+      'date_set',
+      'salt',
+      'password',
+      'cookie_key'
+    ];
+    foreach ($fields as $f) if (isset($user[$f])) unset($user[$f]);
+    return $user;
   }
 
 
@@ -513,19 +536,22 @@ class _uho_auth
 
   public function passwordReset(string $email, string $url)
   {
-      $user = $this->getUserByParams(['email' => $email], true);
-      if (!$user) return ['result' => false, 'message' => 'client_user_not_found'];
+    $user = $this->getUserByParams(['email' => $email], true);
+    if (!$user) return ['result' => false, 'message' => 'client_user_not_found'];
 
-      $token = $this->generateUserToken($user['id'], 'password_reset', '+12 hours');
-      if (!$token) return ['result' => false, 'message' => 'client_user_token_creation_error'];
+    $token = $this->generateUserToken($user['id'], 'password_reset', '+12 hours');
+    if (!$token) return ['result' => false, 'message' => 'client_user_token_creation_error'];
 
-      $result = $this->mailing(
-        'password_reset',
-        $user['email'],[
-          'url' => str_replace('%key%', $token, $url )]);
+    $result = $this->mailing(
+      'password_reset',
+      $user['email'],
+      [
+        'url' => str_replace('%key%', $token, $url)
+      ]
+    );
 
-      if (!$result) return ['result' => false, 'message' => 'client_user_email_sending_error'];
-      else return ['result' => true, 'message' => 'client_user_email_sending_success'];
+    if (!$result) return ['result' => false, 'message' => 'client_user_email_sending_error'];
+    else return ['result' => true, 'message' => 'client_user_email_sending_success'];
   }
 
 
@@ -581,11 +607,10 @@ class _uho_auth
 
   public function passwordChangeByToken($pass_token, $pass)
   {
-    $user=$this->getUserIdByToken($pass_token, 'password_reset', true);
+    $user = $this->getUserIdByToken($pass_token, 'password_reset', true);
     if (!$user) return ['result' => false, 'message' => 'client_password_token_invalid'];
 
-    return $this->passwordChange($pass,$user);
-    
+    return $this->passwordChange($pass, $user);
   }
 
 
@@ -638,9 +663,19 @@ class _uho_auth
    */
   private function setCookieToken($token): void
   {
-    setcookie($this->session_token, $token, time() + 4 * 60 * 60, '/');
+    setcookie(
+      $this->session_token,
+      $token,
+      [
+        'expires' => time() + 60 * 60 * 4,  // 4 hours
+        'path' => "/",
+        'domain' => $this->website['domain'],
+        'secure' => strpos($_SERVER['HTTP_HOST'], '.lh') === false,
+        'httponly' => 1,
+        'samesite' => 'Strict'
+      ]
+    );
   }
-
 
   // -------------------------------------------------------------------------
   // Private — tokens
@@ -745,7 +780,7 @@ class _uho_auth
    */
   public function mailing($slug, $emails, $data = [], $user_id = null): bool
   {
-        
+
     if (empty($this->mailingModel)) exit('_uho_client::mailing::missing_model');
     if (!$emails) return false;
 

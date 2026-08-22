@@ -37,13 +37,15 @@ trait _uho_client_auth_google
    * Google login init, redirects to login screen
    */
 
-  public function loginGoogleInit()
+  public function loginGoogleInit($do_state = true)
   {
     $client = $this->loginGoogleClient();
 
     // CSRF protection: random state
-    $state = bin2hex(random_bytes(16));
-    $_SESSION['oauth2state'] = $state;
+    if ($state) {
+      $state = bin2hex(random_bytes(16));
+      $_SESSION['oauth2state'] = $state;
+    }
 
     // Build auth URL
     $authUrl = $client->createAuthUrl();
@@ -64,7 +66,7 @@ trait _uho_client_auth_google
    * @return array returns result array with login status
    */
 
-  public function loginGoogle($access_token, $code = null, $action = 'register')
+  public function loginGoogle($access_token, $code = null, $action = 'register', $do_state = true)
   {
 
     if (!$this->oAuth['google']) return ['result' => false, 'Google oAuth config missing'];
@@ -83,6 +85,13 @@ trait _uho_client_auth_google
         $data = $client->verifyIdToken($access_token);
       } catch (\Exception $e) {
         return ['result' => false, 'message' => 'Login with token failed'];
+      }
+
+      if ($do_state) {
+        $state = _uho_fx::getGet('state');
+        if (!$state || !isset($_SESSION['oauth2state']) || $state !== $_SESSION['oauth2state']) {
+          return ['result' => false, 'message' => 'Invalid state parameter'];
+        }
       }
 
       if ($data && $data['sub']) {

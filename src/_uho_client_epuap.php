@@ -301,10 +301,8 @@ class _uho_client_epuap
 
             $ch = curl_init($this->artifact_resolve_url);
 
-            /*
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-            */
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 1);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
 
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -463,11 +461,10 @@ class _uho_client_epuap
             'Content-length: ' . strlen($req),
         );
 
-        //echo('<pre>CURL '.$this->sso_logout_url.'</pre>');
         $ch = curl_init($this->sso_logout_url);
 
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
@@ -476,14 +473,17 @@ class _uho_client_epuap
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
         $output = curl_exec($ch);
-        curl_close($ch);
 
-        $tmpLogoutResponse = $this->temp_folder . uniqid() . '_decrypted_logout_response.xml';
-
-        file_put_contents($tmpLogoutResponse, $output);
+        // $tmpLogoutResponse = $this->temp_folder . hash('sha256', $this->base64url(random_bytes(32))) . '_decrypted_logout_response.xml';
+        // file_put_contents($tmpLogoutResponse, $output);
 
         return $output;
     }
+
+  private function base64url(string $bin): string
+  {
+    return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
+  }
 
     /**
      * Przekierowuje redirect - funkcja do debugu

@@ -13,6 +13,12 @@ trait _uho_client_auth_facebook
    * Graph API version used by every Facebook call in this trait
    */
   private $facebookApiVersion = 'v23.0';
+  private $trust_oauth_email=false;
+
+  private function setTrustOauthEmail(bool $value)
+  {
+    $this->trust_oauth_email = (bool) $value;
+  }
 
   /**
    * Builds a versioned Graph API url
@@ -168,9 +174,14 @@ trait _uho_client_auth_facebook
 
     if (!$data['email']) return ['result' => false, 'message' => 'No e-mail granted by Facebook.'];
 
-    // The Graph API exposes no email_verified flag, but we are assuming
-    // that Facebook is giving verified email
-    $emailVerified = true; 
+    /*
+      * At this point we have user data from Facebook, we can try to find existing user or create new one
+      * The Graph API exposes no email_verified flag, so a Facebook address can never be taken as proof
+      * of e-mail ownership and must not be used to merge into an account registered with the same
+      * e-mail elsewhere. Projects that accept that risk can opt in via oauth.facebook.trust_email.
+    */
+
+    $emailVerified = $this->trust_oauth_email || !empty($this->oauth['facebook']['trust_email']);
 
     $result = $this->register($data, null, false, $emailVerified);
 

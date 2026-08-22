@@ -140,7 +140,7 @@ class _uho_orm_upload
 
         $extension = 'jpg';
         $filename = $field['settings']['filename'] ?? '%uid%';
-        $filename = str_replace($filename, '%uid%', $record['uid']) . '.' . $extension;
+        $filename = str_replace('%uid%', $record['uid'], $filename) . '.' . $extension;
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 

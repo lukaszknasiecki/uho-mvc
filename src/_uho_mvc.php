@@ -168,7 +168,7 @@ class _uho_mvc
                 'sql_debug' => $this->sql_debug
             ]
             );
-        $type = _uho_fx::getGet('output') ?: null;
+        if (debug) $type = _uho_fx::getGet('output') ?: null; else $type = null;
         $result = $app->getOutput($type);
 
         if ($this->cacheEnabled)

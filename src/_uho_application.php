@@ -170,7 +170,7 @@ class _uho_application
         require_once($app_path . "models/" . $model_class . ".php");
 
         $langs = @$this->application_params['application_languages'];
-        
+
         if ($langs) {
             $langs = array_flip($langs);
             if (isset($langs['_' . $lang])) {
@@ -228,7 +228,6 @@ class _uho_application
 
         $this->controller->actionBefore($_POST, _uho_fx::getGetArray());
         $this->controller->getAppData();
-        
     }
 
     /**
@@ -323,10 +322,14 @@ class _uho_application
             $keys = array_keys($cfg_domains);
             $first_key = array_shift($keys);
             $cfg_domains = array_shift($cfg_domains);
-            header("Location:http://" . $first_key);
+            if (strpos($_SERVER['HTTP_HOST'], '.lh') === false)
+                header("Location:http://" . $first_key);
+            else header("Location:https://" . $first_key);
+            exit();
         } else {
             $cfg_domains = [];
-            $cfg['application_domain'] = $_SERVER['HTTP_HOST'];
+            header("HTTP/1.0 404 Not Found");
+            exit('wrong domain');
         }
 
         if (!isset($cfg['clients']) || !$cfg['clients']) $cfg['clients'] = [];
@@ -359,7 +362,7 @@ class _uho_application
      */
     private function sql_init(): void
     {
-        
+
         if ($this->application_params['sql_host']) {
             $this->sql = new _uho_mysqli(null, false);
 
@@ -387,8 +390,9 @@ class _uho_application
 
     public function getOutput($type = null)
     {
-        //if (_uho_fx::getGet('output') && _uho_fx::getGet('output') == 'json' && $type == 'json')
-        //    $type = 'html';
+        $allowed_types = ['html', 'json', 'json_raw', '404', 'rss'];
+        if (!in_array($type, $allowed_types)) $type = null;
+
         if ($type) {
             $this->controller->outputType = $type;
         }
@@ -424,17 +428,18 @@ class _uho_application
         Ask for password if ENV.APP_PASSWORD is set
         Format: username:hashed_password using Bcrypt (.htpasswd like)
     */
-        
+
     private function checkAccess()
     {
         $access = getenv('APP_PASSWORD');
-        if ($access) $access = explode(':', $access); else return;
-        
-        if (count($access)==2 && !isset($_SESSION['uhomvc_auth']))
-        {
+        if ($access) $access = explode(':', $access);
+        else return;
+
+        if (isset($_SESSION['uhomvc_auth']));
+        elseif (count($access) == 2) {
             if (
                 isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) &&
-                $_SERVER['PHP_AUTH_USER'] === $access[0] &&
+                hash_equals($_SERVER['PHP_AUTH_USER'], $access[0]) &&
                 password_verify($_SERVER['PHP_AUTH_PW'], $access[1])
             ) {
                 $_SESSION['uhomvc_auth'] = true;
@@ -444,6 +449,9 @@ class _uho_application
                 echo 'Auth required';
                 exit;
             }
+        } else {
+            header('HTTP/1.0 401 Unauthorized');
+            exit('System error. Check Password settings and try again.');
         }
     }
 }

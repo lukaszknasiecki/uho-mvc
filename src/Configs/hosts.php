@@ -30,6 +30,7 @@ $cfg_domains = [
 				'private' => getenv('TURNSTILE_SECRET')
 			]
 		],
+		
 		'clients' =>
 		[
 			'debug' => getEnv('DEBUG'),

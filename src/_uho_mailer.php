@@ -216,7 +216,7 @@ class _uho_mailer
 
     try {
       $connect_options = [];
-      if (!$this->cfg['smtp']['secure'])
+      if (!empty($this->cfg['smtp']['skip_verify']))
         $connect_options = [
           "ssl" => [
             "verify_peer" => false,

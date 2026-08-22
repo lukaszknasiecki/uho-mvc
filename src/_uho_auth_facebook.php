@@ -13,7 +13,7 @@ trait _uho_auth_facebook
    * Graph API version used by every Facebook call in this trait
    */
   private $facebookApiVersion = 'v23.0';
-  private $trust_oauth_email=true;
+  private $trust_oauth_email=false;
 
   /**
    * Builds a versioned Graph API url
@@ -187,4 +187,10 @@ trait _uho_auth_facebook
 
     return ($result);
   }
+
+  private function setTrustOauthEmail(bool $value)
+  {
+    $this->trust_oauth_email = (bool) $value;
+  }
+
 }

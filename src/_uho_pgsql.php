@@ -28,7 +28,7 @@ class _uho_pgsql
             ]);
             return true;
         } catch (\PDOException $e) {
-            exit('PostgreSQL Connection Error: ' . $e->getMessage());
+            exit('PostgreSQL Connection Error');
         }
     }
 
@@ -159,7 +159,8 @@ class _uho_pgsql
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             return $row ? (int) $row['id'] : (int) $this->pdo->lastInsertId();
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL insertPrepared error: ' . $e->getMessage());
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL insertPrepared error: ' . $e->getMessage());
+                else if ($this->halt_on_error) exit('PostgreSQL insertPrepared error');
             return false;
         }
     }
@@ -194,7 +195,8 @@ class _uho_pgsql
             $stmt->execute($values);
             return (int) $this->pdo->lastInsertId();
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL insertMultiplePrepared error: ' . $e->getMessage());
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL insertMultiplePrepared error: ' . $e->getMessage());
+                else if ($this->halt_on_error) exit('PostgreSQL insertMultiplePrepared error');
             return false;
         }
     }
@@ -254,7 +256,8 @@ class _uho_pgsql
             $this->affectedRows = $stmt->rowCount();
             return true;
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL updatePrepared error: ' . $e->getMessage());
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL updatePrepared error: ' . $e->getMessage());
+                else if ($this->halt_on_error) exit('PostgreSQL updatePrepared error');
             return false;
         }
     }
@@ -303,7 +306,8 @@ class _uho_pgsql
             $this->affectedRows = $stmt->rowCount();
             return true;
         } catch (\PDOException $e) {
-            if ($this->halt_on_error) exit('PostgreSQL deletePrepared error: ' . $e->getMessage());
+            if ($this->halt_on_error && $this->debug) exit('PostgreSQL deletePrepared error: ' . $e->getMessage());
+                else if ($this->halt_on_error) exit('PostgreSQL deletePrepared error');
             return false;
         }
     }

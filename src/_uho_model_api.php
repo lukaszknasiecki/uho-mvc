@@ -34,14 +34,6 @@ class _uho_model_api extends _uho_model
     {
         $this->routing['no_auth'] = $items;
     }
-    public function setCaptchaAuth($items)
-    {
-        $this->captcha['auth'] = $items;
-    }
-    public function setCaptchaNoAuth($items)
-    {
-        $this->captcha['no_auth'] = $items;
-    }
     public function setPathModels($path)
     {
         $this->models_path = $path;
@@ -106,8 +98,7 @@ class _uho_model_api extends _uho_model
 
         if ($rest) {
             
-            // Check legacy captcha list (before class name transformation)
-            $requires_captcha = false; //in_array($rest['class'], $rest['captcha']);
+            $requires_captcha = false;
             $requires_turnstile = false;
 
             $rest['class'] = str_replace('-', '_', $rest['class']);
@@ -206,21 +197,12 @@ class _uho_model_api extends _uho_model
     Helper: Validate User's Token
   */
 
-    public function validateUserToken($token = null)
+    public function validateUserToken($token = null, $type = 'session')
     {
         if (empty($token)) $token = _uho_rest::getBearerToken();
 
-        /* test disabled */
-        /*
-        if (!empty($token) && $token == 'test') {
-            $token = $this->get('client_tokens', ['type' => 'session', 'user' => 1], true);
-        } elseif (substr($token, 0, 5) == 'user_') {
-            return ['header' => 200, 'result' => true, 'message' => 'TEST Authorization valid', 'user' => intval(substr($token, 5))];
-        } else
-        */
-    
         if (!empty($token))
-            $token = $this->get('client_tokens', ['value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
+            $token = $this->get('client_tokens', ['value' => $token, 'type' => $type, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]], true);
 
         if (!empty($token))
             $result = ['header' => 200, 'result' => true, 'message' => 'Authorization valid', 'user' => intval($token['user'])];

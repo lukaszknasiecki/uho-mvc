@@ -20,8 +20,16 @@ class _uho_view
     private string $template_prefix = '';
 
     private bool $renderHtmlRoot = true;
+
     private string $lang = '';
     private bool $debug = false;
+
+    /**
+     * Directories (relative to root_path) whose .svg files may be inlined
+     * through the [[svg::path/to/file.svg]] form. Empty by default: only the
+     * theme's own svg/ directory is reachable. Never add an upload directory.
+     */
+    private array $svg_paths = [];
 
     /*
         Constructor method.
@@ -49,6 +57,14 @@ class _uho_view
     public function setDebug(bool $debug): void
     {
         $this->debug = $debug;
+    }
+
+    /**
+     * Allow-lists directories usable by the [[svg::path/to/file.svg]] form.
+     */
+    public function setSvgPaths(array $paths): void
+    {
+        $this->svg_paths = $paths;
     }
 
     public function setRenderHtmlRoot(bool $render): void
@@ -123,38 +139,129 @@ class _uho_view
 
     /**
      * Updates [[svg::slug]] syntax to inline SVG content.
+     *
+     * The placeholder is expanded *after* Twig has rendered, so the haystack may
+     * contain user-supplied text. The reference is therefore treated as untrusted:
+     * it must match a strict charset, must resolve (via realpath) inside an
+     * allow-listed directory, and the file contents are stripped of scriptable
+     * SVG constructs before being inlined into the page.
      */
     public function renderSVG(string $html): string
     {
         $svgs = [];
-        $max = 1000;
 
-        while ($max > 0 && ($i = strpos($html, '[[svg::')) !== false) {
-            $max--;
-            $j = strpos($html, ']]', $i);
-            $svg = substr($html, $i + 7, $j - $i - 7);
+        return preg_replace_callback(
+            '/\[\[svg::([A-Za-z0-9._\/-]{1,200})\]\]/',
+            function (array $match) use (&$svgs): string {
+                $ref = $match[1];
 
-            if (isset($svgs[$svg])) {
-                $data = $svgs[$svg];
-            } else {
-                $filename = str_contains($svg, '.svg')
-                    ? $this->root_path . $svg
-                    : $this->root_path . $this->views_path . 'svg/' . $svg . '.svg';
+                if (!array_key_exists($ref, $svgs)) {
+                    $filename = $this->getSvgFilename($ref);
+                    $data = $filename ? @file_get_contents($filename) : false;
 
-                $data = @file_get_contents($filename);
-
-                if (!$data && $this->renderHtmlRoot && $this->debug) {
-                    echo '<!-- [DBG] SVG NOT FOUND::' . $filename . ' ... ' . substr($html, $i, 100) . ' -->';
+                    if ($data === false || $data === '') {
+                        if ($this->renderHtmlRoot && $this->debug) {
+                            echo '<!-- [DBG] SVG NOT FOUND::' . htmlspecialchars($ref, ENT_QUOTES, 'UTF-8') . ' -->';
+                        }
+                        $svgs[$ref] = '';
+                    } else {
+                        $class = 'svg-' . htmlspecialchars($ref, ENT_QUOTES, 'UTF-8');
+                        $svgs[$ref] = preg_replace(
+                            '/<svg\b/',
+                            '<svg class="' . $class . '" ',
+                            $this->sanitizeSvg($data),
+                            1
+                        ) ?? '';
+                    }
                 }
 
-                $svgs[$svg] = $data;
-            }
+                return $svgs[$ref];
+            },
+            $html
+        ) ?? $html;
+    }
 
-            $data = str_replace('<svg', '<svg class="svg-' . $svg . '" ', $data);
-            $html = substr($html, 0, $i) . $data . substr($html, $j + 2);
+    /**
+     * Resolves an [[svg::…]] reference to a real, allow-listed .svg file.
+     * Returns null for anything that escapes its base directory.
+     */
+    private function getSvgFilename(string $ref): ?string
+    {
+        
+        if ($ref === '' || $ref[0] === '/' || str_contains($ref, '..')) {
+            return null;
         }
 
-        return $html;
+        // Explicit path form ([[svg::path/to/file.svg]]) — opt-in per project.
+        if (str_ends_with($ref, '.svg'))
+        {
+            foreach ($this->svg_paths as $base) {
+                if ($file = $this->resolveInside($this->root_path . $base, $this->root_path . $ref)) {
+                    return $file;
+                }
+            }
+            return null;
+        }
+
+        // Slug form ([[svg::icon-name]]) — always the theme's own svg directory.
+        $base = $this->root_path . $this->views_path . 'svg';
+        return $this->resolveInside($base, $base . '/' . $ref . '.svg');
+    }
+
+    /**
+     * Returns the canonical path of $path when it is a file physically located
+     * inside $base (symlinks resolved), null otherwise.
+     */
+    private function resolveInside(string $base, string $path): ?string
+    {
+        $base = realpath($base);
+        $file = realpath($path);
+
+        if (!$base || !$file || !is_file($file)) {
+            return null;
+        }
+
+        return str_starts_with($file, $base . DIRECTORY_SEPARATOR) ? $file : null;
+    }
+
+    /**
+     * Strips executable constructs from SVG markup before it is inlined.
+     * Inlined SVG shares the document's origin, so a <script>, an event handler
+     * or a javascript: url inside the file would run as first-party code.
+     */
+    protected function sanitizeSvg(string $svg): string
+    {
+        // Doctypes/entities (entity expansion) and xml processing instructions
+        // have no purpose inline.
+        $svg = preg_replace('/<!(?:DOCTYPE|ENTITY|ATTLIST|ELEMENT)[^>]*>/i', '', $svg) ?? $svg;
+        $svg = preg_replace('/<\?[\s\S]*?\?>/', '', $svg) ?? $svg;
+
+        // Elements that execute code or embed foreign documents.
+        $svg = preg_replace('#<\s*(script|foreignObject|iframe|frame|embed|object|applet|handler)\b[^>]*>[\s\S]*?<\s*/\s*\1\s*>#i', '', $svg) ?? $svg;
+        $svg = preg_replace('#<\s*/?\s*(script|foreignObject|iframe|frame|embed|object|applet|handler)\b[^>]*>#i', '', $svg) ?? $svg;
+
+        // Inline event handlers (onload, onclick, …).
+        $svg = preg_replace('/\son[a-zA-Z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $svg) ?? $svg;
+
+        // Url-bearing attributes: keep fragments, relative paths and raster data
+        // uris; drop everything else (javascript:, data:text/html, data:image/svg+xml).
+        $svg = preg_replace_callback(
+            '/\b(href|xlink:href|src|to|from|values)\s*=\s*("|\')([\s\S]*?)\2/i',
+            function (array $m): string {
+                $url = trim(html_entity_decode($m[3], ENT_QUOTES, 'UTF-8'));
+                $url = preg_replace('/[\x00-\x20]/', '', $url) ?? $url;
+
+                $safe = $url === ''
+                    || str_starts_with($url, '#')
+                    || (bool) preg_match('#^data:image/(?:png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=\s]*$#i', $url)
+                    || !preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*:#', $url);
+
+                return $safe ? $m[0] : $m[1] . '=""';
+            },
+            $svg
+        ) ?? $svg;
+
+        return $svg;
     }
 
     /**
