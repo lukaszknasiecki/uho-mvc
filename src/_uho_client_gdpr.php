@@ -72,7 +72,7 @@ class _uho_client_gdpr
 
     $users = $this->orm->get('users', ['status' => 'confirmed', 'gdpr_expiration_date' => ['operator' => '<=', 'value' => $date]]);
     foreach ($users as $v)
-      if (!_uho_fx::getGet('dbg') || $v['email'] == 'lukasz@huncwot.com') {
+      if (!_uho_fx::getGet('dbg')) {
         $diff = strtotime($v['gdpr_expiration_date']) - strtotime(date('Y-m-d'));
         $diff = round($diff / 86400);
         if (in_array($diff, $alerts)) {

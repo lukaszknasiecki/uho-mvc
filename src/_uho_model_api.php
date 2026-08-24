@@ -107,7 +107,7 @@ class _uho_model_api extends _uho_model
             $class_name = 'model_app_api_' . $rest['class'];
             $object = new $class_name($this, null);
 
-            // Check #[RequiresCaptcha] attribute on the specific HTTP method
+            // Check #[RequiresCaptcha] #[RequiresTurnstile] attribute on the specific HTTP method
             if (!$requires_captcha && method_exists($object, $method)) {
                 $reflection = new \ReflectionMethod($object, $method);
                 $requires_captcha = !empty($reflection->getAttributes(\Huncwot\UhoFramework\Attributes\RequiresCaptcha::class));

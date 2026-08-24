@@ -1722,7 +1722,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         $html = '<p>' . $v['data']['text'] . '</p>';
                         break;
                     case "header":
-                        $html = '<h' . $v['data']['level'] . '>' . $v['data']['text'] . '</h' . $v['data']['level'] . '>';
+                        $html = '<h' . intval($v['data']['level']) . '>' . $v['data']['text'] . '</h' . intval($v['data']['level']) . '>';
                         break;
                     case "list":
                         if ($v['data']['style'] == 'ordered') {

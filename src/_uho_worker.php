@@ -20,17 +20,17 @@ class _uho_worker
     private $schema_name = 'uho_worker';
 
     /*
-        * Instance of _uho_orm class
+        * Instance of _uho_orm/_uho_orm2 class
         */
-    private _uho_orm $orm;
+    private $orm;
 
     /**
      * Constructor
-     * @param object $orm instance of _uho_orm class
+     * @param object $orm instance of _uho_orm/_uho_orm2 class
      * @return null
      */
 
-    public function __construct(_uho_orm $orm)
+    public function __construct($orm)
     {
         $this->orm = $orm;
         $this->start = _uho_fx::microtime_float();

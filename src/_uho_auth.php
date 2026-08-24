@@ -20,6 +20,7 @@ class _uho_auth
   // generateUserToken($user_id, $type, $date): ?string
   // getCurrentToken()
   // getIp(): string
+  // getPasswordFormat(): array
   // getUser(): ?array
   // getUserByParams(array $params, $skip_pass_check = false)
   // getUserId(): ?int
@@ -39,6 +40,7 @@ class _uho_auth
   // registerConfirmation($key): array
   // removeUserTokens($user_id, $type = null): void
   // setCookieToken($token): void
+  // setPasswordFormat($format): bool
   // uniqid(): string
   // update($user_id = 0, $data = null)
 
@@ -57,7 +59,14 @@ class _uho_auth
 
   private $user = null;
   private $current_token = null;
-  private $passwordFormat = '8,1,1,1,1';
+
+  /**
+   * Minimum password requirements, as [length, lower, upper, digits, special].
+   * Kept as an array, not as the '8,1,1,1,1' string it is configured with:
+   * indexing the string returns its characters, so positions 1 and 3 would be
+   * the commas and two of the five requirements would never be enforced.
+   */
+  private $passwordFormat = [8, 1, 1, 1, 1];
 
   private $oauth = [];
   private $salt = [];
@@ -90,6 +99,9 @@ class _uho_auth
     $this->settings = [
       'gdpr_days' => 365
     ];
+
+    if (!empty($settings['settings']['password_format']))
+      $this->setPasswordFormat($settings['settings']['password_format']);
 
     $this->fields = [
       'login'                => 'email',
@@ -502,24 +514,57 @@ class _uho_auth
 
 
   /**
+   * Sets the minimum password requirements.
+   *
+   * Accepts the configured '8,1,1,1,1' string or an already split array. A
+   * value that does not hold five numbers is refused rather than partially
+   * applied: a half-parsed format silently stops enforcing the requirements it
+   * could not read.
+   *
+   * @param string|array $format [length, lower, upper, digits, special]
+   * @return bool true when the format was accepted
+   */
+  public function setPasswordFormat($format): bool
+  {
+    if (is_string($format)) $format = explode(',', $format);
+    if (!is_array($format) || count($format) != 5) return false;
+
+    foreach ($format as $v) if (!is_numeric($v)) return false;
+
+    $this->passwordFormat = array_map('intval', array_values($format));
+
+    return true;
+  }
+
+  /**
+   * Returns the minimum password requirements.
+   *
+   * @return array [length, lower, upper, digits, special]
+   */
+  public function getPasswordFormat(): array
+  {
+    return $this->passwordFormat;
+  }
+
+  /**
    * Validates a password against the minimum format requirements.
    *
    * @param string $pass password to validate
    * @return array{password: string, errors: array, result: bool}
    */
-  public function passwordValidateFormat($pass)
+  public function passwordValidateFormat(string $pass)
   {
     $errors = [];
-    $format = $this->passwordFormat;
+    [$minLength, $minLower, $minUpper, $minDigits, $minSpecial] = $this->passwordFormat;
     $pass = trim($pass);
     $pass = str_replace(' ', '', $pass);
     $special = '^!$%&*()}{@#~?,|=_+-';
 
-    if (strlen($pass) < $format[0]) $errors[] = ['min_length', $format[0]];
-    if (preg_match_all('/[a-z]/', $pass) < $format[1]) $errors[] = ['min_lower', $format[1]];
-    if (preg_match_all('/[A-Z]/', $pass) < $format[2]) $errors[] = ['min_upper', $format[2]];
-    if (preg_match_all('/[0-9]/', $pass) < $format[3]) $errors[] = ['min_numbers', $format[3]];
-    if (preg_match_all('/[' . preg_quote($special, '/') . ']/', $pass) < $format[4]) $errors[] = ['min_special', $format[4]];
+    if (strlen($pass) < $minLength) $errors[] = ['min_length', $minLength];
+    if (preg_match_all('/[a-z]/', $pass) < $minLower) $errors[] = ['min_lower', $minLower];
+    if (preg_match_all('/[A-Z]/', $pass) < $minUpper) $errors[] = ['min_upper', $minUpper];
+    if (preg_match_all('/[0-9]/', $pass) < $minDigits) $errors[] = ['min_numbers', $minDigits];
+    if (preg_match_all('/[' . preg_quote($special, '/') . ']/', $pass) < $minSpecial) $errors[] = ['min_special', $minSpecial];
 
     return ['password' => $pass, 'errors' => $errors, 'result' => count($errors) == 0];
   }
@@ -787,11 +832,19 @@ class _uho_auth
   public function mailing($slug, $emails, $data = [], $user_id = null): bool
   {
 
-    if (empty($this->mailingModel)) exit('_uho_client::mailing::missing_model');
+    if (empty($this->mailingModel))
+    {
+      //exit('_uho_client::mailing::missing_model');
+      return false;
+    }
     if (!$emails) return false;
 
     $mailing = $this->orm->get($this->mailingModel, ['slug' => $slug], true);
-    if (!$mailing) exit('_uho_auth::mailing-->missing_mailing_template::' . $slug);
+    if (!$mailing)
+    {
+      return false;
+      // exit('_uho_auth::mailing-->missing_mailing_template::' . $slug);
+    }
 
     $data['website'] = $this->website['title'];
     $data['http'] = $this->website['http'];

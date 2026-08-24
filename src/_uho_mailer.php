@@ -85,8 +85,9 @@ class _uho_mailer
    *
    * @return true
    */
-  function setSMTP($server, $port, $login, $pass, $secure = true): bool
+  function setSMTP($server, $port, $login, $pass, $secure = 'tls'): bool
   {
+    if (!in_array($secure, ['tls', 'ssl', false])) $secure = 'tls';
     $this->cfg['smtp'] = array('server' => $server, 'port' => $port, 'login' => $login, 'pass' => $pass, 'secure' => $secure);
     return true;
   }

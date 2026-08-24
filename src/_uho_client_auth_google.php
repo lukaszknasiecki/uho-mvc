@@ -152,7 +152,7 @@ trait _uho_client_auth_google
     if ($action == 'data')
       return ['result' => true, 'data' => $data];
 
-    if ($action == 'login') {
+    if ($action == 'login'  && $emailVerified) {
       $client = $this->orm->get($this->clientModel, ['email' => $data['email']], true);
       if ($client) {
         $this->storeData($client);

@@ -130,7 +130,8 @@ class _uho_model
 
         switch ($orm_type.$orm_version) {
             case "mysql2":
-                $orm_class=__NAMESPACE__.'\\_uho_orm_mysql_prepared';
+                //$orm_class=__NAMESPACE__.'\\_uho_orm_mysql_prepared';
+                $orm_class=__NAMESPACE__.'\\_uho_orm2';
                 break;
             default:
                 $orm_class=__NAMESPACE__.'\\_uho_orm_mysql';

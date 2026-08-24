@@ -68,6 +68,8 @@ class _uho_model_pages_modules
 			for additional updates
 		*/
 
+		if (!preg_match('/^[a-z0-9_-]+$/', $self)) return $m;
+
 		if (file_exists($this->models_path . 'm_' . $self . '.php')) {
 			require_once $this->models_path . 'm_' . $self . '.php';
 			$module_model = 'model_app_pages_modules_' . $self;

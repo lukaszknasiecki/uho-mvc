@@ -837,7 +837,7 @@ class _uho_client
     if (isset($this->models['client_logins_model'])) {
       $val = ['login' => $email, 'success' => intval($result), 'ip' => $this->getIp()];
       $this->orm->post($this->models['client_logins_model'], $val);
-      $_SESSION['login_session_id'] = $this->orm->getInsertId();
+      if ($result) $_SESSION['login_session_id'] = $this->orm->getInsertId();
     }
 
     if ($result && $this->_uho_client_favourites) $this->_uho_client_favourites->load();
@@ -850,7 +850,7 @@ class _uho_client
 
   public function loginByToken($token)
   {
-    $user_id = $this->getUserToken($token);
+    $user_id = $this->getUserToken($token, 'session');
 
     if (!empty($user_id))
       $client = $this->orm->get($this->clientModel, ['id' => intval($user_id)], true);
@@ -1438,19 +1438,20 @@ class _uho_client
    * @return array returns ['result'=>true] if validated
    */
 
-  public function passwordValidateFormat($pass)
+  public function passwordValidateFormat(string $pass)
   {
     $errors = [];
-    $format = $this->passwordFormat;
+    [$minLength, $minLower, $minUpper, $minDigits, $minSpecial] = $this->passwordFormat;
     $pass = trim($pass);
     $pass = str_replace(' ', '', $pass);
     $special = '^!$%&*()}{@#~?,|=_+-';
 
-    if (strlen($pass) < $format[0]) $errors[] = ['min_length', $format[0]];
-    if (preg_match_all("/[a-z]/", $pass) < $format[1]) $errors[] = ['min_lower', $format[1]];
-    if (preg_match_all("/[A-Z]/", $pass) < $format[2]) $errors[] = ['min_upper', $format[2]];
-    if (preg_match_all("/[0-9]/", $pass) < $format[3]) $errors[] = ['min_numbers', $format[3]];
-    if (preg_match_all('/[' . preg_quote($special, '/') . ']/', $pass) < $format[4]) $errors[] = ['min_special', $format[4]];
+    if (strlen($pass) < $minLength) $errors[] = ['min_length', $minLength];
+    if (preg_match_all('/[a-z]/', $pass) < $minLower) $errors[] = ['min_lower', $minLower];
+    if (preg_match_all('/[A-Z]/', $pass) < $minUpper) $errors[] = ['min_upper', $minUpper];
+    if (preg_match_all('/[0-9]/', $pass) < $minDigits) $errors[] = ['min_numbers', $minDigits];
+    if (preg_match_all('/[' . preg_quote($special, '/') . ']/', $pass) < $minSpecial) $errors[] = ['min_special', $minSpecial];
+
     return ['password' => $pass, 'errors' => $errors, 'result' => count($errors) == 0];
   }
 
@@ -1478,9 +1479,15 @@ class _uho_client
     $pass = [];
     foreach ($sets as $k => $v)
       for ($i = 0; $i < $format[$k + 1]; $i++)
-        $pass[] = $v[rand(0, strlen($v))];
-    shuffle($pass);
+        $pass[] = $v[random_int(0, strlen($v) - 1)];
+
+    for ($i = count($pass) - 1; $i > 0; $i--) {
+      $j = random_int(0, $i);
+      [$pass[$i], $pass[$j]] = [$pass[$j], $pass[$i]];
+    }
+
     $pass = implode('', $pass);
+
     return $pass;
   }
 
@@ -2251,7 +2258,4 @@ class _uho_client
     foreach ($fields as $f) if (isset($user[$f])) unset($user[$f]);
     return $user;
   }
-
-  
-  
 }

@@ -323,8 +323,8 @@ class _uho_application
             $first_key = array_shift($keys);
             $cfg_domains = array_shift($cfg_domains);
             if (strpos($_SERVER['HTTP_HOST'], '.lh') === false)
-                header("Location:http://" . $first_key);
-            else header("Location:https://" . $first_key);
+                header("Location:https://" . $first_key);
+            else header("Location:http://" . $first_key);
             exit();
         } else {
             $cfg_domains = [];
