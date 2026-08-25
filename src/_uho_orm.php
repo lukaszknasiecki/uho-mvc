@@ -2228,6 +2228,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     case 'order':
                         $v = intval($v);
                         break;
+                    // non-escaping types
+                    case 'text':
+                        
+                        
+                        break;
                     default:
                         $v = $this->sqlSafe($v);
                         break;
