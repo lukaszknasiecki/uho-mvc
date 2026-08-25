@@ -12,6 +12,7 @@ $cfg_domains = [
 		'sql_base' =>                                       getenv('SQL_BASE'),
 		'sql_debug' =>                                       getenv('APP_SQL_DEBUG'),
 		'sql_cache' =>                                       getenv('APP_SQL_CACHE'),
+		'dev_mode' => isset($_ENV['APP_DEV_MODE']) ? intval($_ENV['APP_DEV_MODE']) : null,
 		
 		'api_keys' => [
 			'mailchimp' =>
