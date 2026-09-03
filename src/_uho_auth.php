@@ -587,7 +587,7 @@ class _uho_auth
 
   public function passwordReset(string $email, string $url)
   {
-    $user = $this->getUserByParams(['email' => $email], true);
+    $user = $this->getUserByParams(['email' => $email, 'status' => 'confirmed'], true);
     if (!$user) return ['result' => false, 'message' => 'client_user_not_found'];
 
     $token = $this->generateUserToken($user['id'], 'password_reset', '+12 hours');
@@ -832,16 +832,14 @@ class _uho_auth
   public function mailing($slug, $emails, $data = [], $user_id = null): bool
   {
 
-    if (empty($this->mailingModel))
-    {
+    if (empty($this->mailingModel)) {
       //exit('_uho_client::mailing::missing_model');
       return false;
     }
     if (!$emails) return false;
 
     $mailing = $this->orm->get($this->mailingModel, ['slug' => $slug], true);
-    if (!$mailing)
-    {
+    if (!$mailing) {
       return false;
       // exit('_uho_auth::mailing-->missing_mailing_template::' . $slug);
     }

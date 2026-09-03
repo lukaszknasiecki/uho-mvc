@@ -362,8 +362,8 @@ class _uho_application
      */
     private function sql_init(): void
     {
-
         if ($this->application_params['sql_host']) {
+
             $this->sql = new _uho_mysqli(null, false);
 
             if (!empty($this->application_params['sql_debug'])) $this->sql->setDebug(true);
