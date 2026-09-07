@@ -335,15 +335,17 @@ class _uho_view
             }, ['needs_context' => true]),
 
             new TwigFilter('duration', function ($context, $string, $params = null) {
+
                 $string = intval($string);
+                if ($string<0) $string=0;
 
                 if (isset($params['short'])) {
                     return _uho_fx::dozeruj(intval($string / 60) % 60, 2) . ':' . _uho_fx::dozeruj($string % 60, 2);
                 }
 
                 if (isset($params['type']) && $params['type'] === 'hours_if_needed') {
-                    $result = _uho_fx::dozeruj(round($string / 60) % 60, 2) . ':' . _uho_fx::dozeruj($string % 60, 2);
-                    return $string > 3600 ? _uho_fx::dozeruj(round($string / 3600), 2) . ':' . $result : $result;
+                    $result = _uho_fx::dozeruj(intval($string / 60) % 60, 2) . ':' . _uho_fx::dozeruj($string % 60, 2);
+                    return $string >= 3600 ? _uho_fx::dozeruj(intval($string / 3600), 2) . ':' . $result : $result;
                 }
 
                 return _uho_fx::dozeruj(floor($string / 3600), 2) . ':'
@@ -383,6 +385,7 @@ class _uho_view
                 if (is_array($params)) {
                     return str_replace(['[', ']'], [$params[0], $params[1]], $string);
                 }
+                if ($string)
                 return str_replace(['[', ']'], ["<$params>", "</$params>"], $string);
             }, ['needs_context' => true]),
         ];

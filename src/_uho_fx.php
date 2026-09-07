@@ -1513,8 +1513,6 @@ class _uho_fx
 
         $data = curl_exec($ch);
 
-        curl_close($ch);
-
         if (!$data) {
             return ['result' => false, 'error' => curl_error($ch)];
         }

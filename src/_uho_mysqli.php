@@ -14,6 +14,7 @@ require_once __DIR__ . "/../library/Simple-PHP-Cache/cache.class.php";
 
 class _uho_mysqli
 {
+    private $db_credentials = [];
     /**
      * array log of all queries
      */
@@ -197,8 +198,31 @@ class _uho_mysqli
      * @return boolean
      */
 
+    private function setDbCredentials($host, $user, $pass, $name, $socket = null): void
+    {
+        $this->db_credentials=[
+            'host' => $host,
+            'user' => $user,
+            'pass' => $pass,
+            'name' => $name,
+            'socket' => $socket
+        ];
+    }
+
     public function init($host, $user, $pass, $name, $socket = null)
     {
+        $this->setDbCredentials($host, $user, $pass, $name, $socket);
+        return $this->db_connect();
+    }
+
+    private function db_connect()
+    {
+
+        $host = $this->db_credentials['host'];
+        $user = $this->db_credentials['user'];
+        $pass = $this->db_credentials['pass'];
+        $name = $this->db_credentials['name'];
+        $socket = $this->db_credentials['socket'];
 
         $v = explode(':', $host);
         if (count($v) > 1) {
@@ -281,14 +305,31 @@ class _uho_mysqli
         return $tt;
     }
 
-    public function queryPrepared($query, $params, $first=false)
+    public function queryPrepared($query, $params, $first = false, $force_sql_cache = false)
     {
 
-        if ($this->debug && _uho_fx::getGet('dbg')) {
-            echo ('<!-- [sql-prepared] ' . $query . ' -->');
-        }
+        $cached = '[sql-prepared]';
+        $result = false;
 
-        if (!empty($this->base_link)) {
+        /*
+            if sql cache is enabled let's see if we can get the result from cache
+        */
+        if (isset($this->cache) && $this->cache && ($force_sql_cache || $this->cacheSkip($query)))
+        {
+            $tt = $this->cacheGet($query, $params);
+            if ($tt['cached'])
+            {
+                $cached = '[sql-prepared-cached] ';
+                $result = $tt['result'];
+                if ($first && is_array($result)) $result = array_shift($result);
+            }            
+        }
+        
+        /*
+            Nothing in cache - let's SQL query
+        */
+
+        if (!$result && !empty($this->base_link)) {
 
             $stmt = $this->base_link->prepare($query);
 
@@ -317,12 +358,18 @@ class _uho_mysqli
 
             $result = $stmt->get_result();
 
-            if ($result) {
+            if ($result)
+            {
                 $result = $this->fetchQuery($result);
-                if ($first && is_array($result)) $result=$result[0];
+                if ($first && is_array($result)) $result = $result[0];
             }
-            return $result;
         }
+
+        if ($this->debug && _uho_fx::getGet('dbg')) {
+            echo ('<!-- ' . $cached . ' [R=' . count($result) . '] ' . $query . ' ' . json_encode($params) . ' -->');
+        }
+
+        return $result;
     }
 
     /**
