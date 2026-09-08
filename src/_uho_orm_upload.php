@@ -167,6 +167,7 @@ class _uho_orm_upload
         foreach ($field['images'] as $v) {
             if (isset($v['crop'])) $v['cut'] = $v['crop'];
             $v['enlarge'] = true;
+            $v['webp']=$field['settings']['webp'] ?? false;
 
             if ($this->s3Manager->getS3()) {
                 $src = $temp_original_filename;
