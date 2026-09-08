@@ -23,9 +23,14 @@ class _uho_model_api extends _uho_model
     private $skip_wrong_token=true;
     private $models_path = '';
     private $allow_form_bearer_token=false;
+    private $auth_type='cookie'; // cookie|token
     public $path = [];
 
 
+    public function setAuthType($type)
+    {
+        $this->auth_type = $type;
+    }
     public function setRoutingAuth($items)
     {
         $this->routing['auth'] = $items;
@@ -59,11 +64,19 @@ class _uho_model_api extends _uho_model
 
         // check Auth
         $user_id = null;
-        $bearer_token = _uho_rest::getBearerToken();
         
-        if ($this->allow_form_bearer_token && !$bearer_token && !empty($data['token'])) $bearer_token = $data['token'];
+        if ($this->auth_type=='token')
+        {
+            $bearer_token = _uho_rest::getBearerToken();
+            if ($this->allow_form_bearer_token && !$bearer_token && !empty($data['token'])) $bearer_token = $data['token'];
+        }
+        elseif ($this->auth_type=='cookie')
+        {
+            $bearer_token = $_COOKIE['client_token'] ?? null;
+        }
 
-        if ($bearer_token) {
+        if ($bearer_token)
+        {
             $result = $this->validateUserToken($bearer_token);
             if ($result['header'] == 200) $user_id = $result['user'];
             elseif ($this->skip_wrong_token) $user_id=null;

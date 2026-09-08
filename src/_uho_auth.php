@@ -75,6 +75,7 @@ class _uho_auth
 
   private $lang = 'en';
   private $session_token = 'client_token';
+  private $refresh_token = 'refresh_token';
   private $mailer;
 
 
@@ -151,9 +152,18 @@ class _uho_auth
 
     $user = $this->getUserByParams($f, $skip_pass_check);
 
-    if ($user) {
+    if ($user)
+    {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
-      if ($this->auth_type == 'cookie') $this->setCookieToken($token);
+      $refresh_token = $this->generateUserToken($user['id'], 'refresh', '+30 days');
+      $this->setRefreshToken($refresh_token);
+      
+      if ($this->auth_type == 'cookie')
+      {
+        $this->setCookieToken($token);                
+      }
+
+
 
       return ['user' => $user, 'token' => $token, "expires_in" => 4 * 60 * 60];
     }
@@ -184,6 +194,8 @@ class _uho_auth
       $this->user = null;
     }
     setcookie($this->session_token, '', time() - 3600, '/');
+    setcookie($this->refresh_token, '', time() - 3600, '/');
+
   }
 
 
@@ -675,13 +687,28 @@ class _uho_auth
    */
   private function loginAutoCookie(): void
   {
-    if (!empty($_COOKIE[$this->session_token])) {
+    if (!empty($_COOKIE[$this->session_token]))
+    {
       $token = $_COOKIE[$this->session_token];
       if ($token) {
         $this->auth_type = 'cookie';
         $this->current_token = $token;
         $user_id = $this->getUserIdByToken($token, 'session');
         if ($user_id) $this->user = $this->getUserByParams(['id' => $user_id], true);
+      }      
+    } else
+    if (!empty($_COOKIE[$this->refresh_token]))
+    {
+      $token = $_COOKIE[$this->refresh_token];
+      $f = ['type'=>'refresh','value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];    
+      $exists = $this->orm->get($this->tokenModel, $f, true);
+      if ($exists)
+      {
+        $token = $this->generateUserToken($exists['user'], 'session', '+4 hours');
+        $this->auth_type = 'cookie';
+        $this->current_token = $token;
+        $this->setCookieToken($token);
+        $this->user = $this->getUserByParams(['id' => $exists['user']], true);
       }
     }
   }
@@ -719,6 +746,21 @@ class _uho_auth
       $token,
       [
         'expires' => time() + 60 * 60 * 4,  // 4 hours
+        'path' => "/",
+        'domain' => $this->website['domain'],
+        'secure' => strpos($_SERVER['HTTP_HOST'], '.lh') === false,
+        'httponly' => 1,
+        'samesite' => 'Strict'
+      ]
+    );
+  }
+  private function setRefreshToken($token): void
+  {
+    setcookie(
+      $this->refresh_token,
+      $token,
+      [
+        'expires' => time() + 60 * 60 * 24 * 30,  // 30 days
         'path' => "/",
         'domain' => $this->website['domain'],
         'secure' => strpos($_SERVER['HTTP_HOST'], '.lh') === false,
