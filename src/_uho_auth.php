@@ -174,6 +174,19 @@ class _uho_auth
   public function refresh_token()
   {
     $user = $this->getUser();
+    
+    if (!$user && $this->auth_type == 'cookie' && !empty($_COOKIE[$this->refresh_token]))
+    {
+      $token = $_COOKIE[$this->refresh_token];
+      $f = ['type'=>'refresh','value' => $token, 'expiration' => ['operator' => '>=', 'value' => date('Y-m-d H:i:s')]];    
+      $exists = $this->orm->get($this->tokenModel, $f, true);
+      if ($exists)
+      {
+        $user=['id'=>$exists['user']];
+      }
+    }
+
+
     if ($user) {
       $token = $this->generateUserToken($user['id'], 'session', '+4 hours');
       if ($this->auth_type == 'cookie') $this->setCookieToken($token);
