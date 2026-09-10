@@ -28,10 +28,11 @@ class _uho_mvc
 {
     private float $timeStart;
     private bool $development;
+    private bool $logs;
     private string $rootPath;
     private string $cacheSalt;
     private bool $cacheEnabled;
-    private array $cacheConfig=[];
+    private array $cacheConfig = [];
     private int $cacheMinutes;
     private string $timezone;
     private string $configFolder;
@@ -43,18 +44,18 @@ class _uho_mvc
         $this->timeStart = $this->microtimeFloat();
         $this->configFolder = $config['config_folder'] ?? 'application_config';
 
-        if (file_exists($this->configFolder . '/.env'))
-        {
+        if (file_exists($this->configFolder . '/.env')) {
             require_once('_uho_load_env.php');
             $env_loader = new _uho_load_env($this->configFolder . '/.env');
             $env_loader->load();
         }
 
-        $this->timezone = getenv('APP_TIMEZONE') ?: 'Europe/Berlin';        
+        $this->timezone = getenv('APP_TIMEZONE') ?: 'Europe/Berlin';
 
         $this->rootPath = getenv('APP_ROOT_PATH') ?: dirname($_SERVER['SCRIPT_FILENAME']) . '/';
 
         $this->development = getenv('APP_DEV_MODE') ?: 0;
+        $this->logs = getenv('APP_LOGS') ?: 0;
         $this->sql_debug = getenv('APP_SQL_DEBUG') ?: 0;
         $this->orm_version = getenv('APP_UHO_ORM') ?: 1;
 
@@ -62,21 +63,19 @@ class _uho_mvc
         $this->cacheSalt = getenv('APP_HTTP_CACHE_SALT') ?: 'uho';
         $this->cacheMinutes = getenv('APP_HTTP_CACHE_MINUTES') ?: 60 * 24;
 
-        $this->setCookieHeaders();        
+        $this->setCookieHeaders();
 
-        if ($this->cacheEnabled && $this->checkAccess())
-            {                
-                $this->cacheConfig=$this->getRootConfig();// ?? [];
-                $this->cacheConfig=[
-                    'ajax'=>true,
-                    'exclude'=>$this->getRootConfig()['cache_exclude_http'] ?? [],
-                    'headers'=>$this->getRootConfig()['cache_headers_http'] ?? []
-                ];
-            } else $this->cacheEnabled = false;
-
+        if ($this->cacheEnabled && $this->checkAccess()) {
+            $this->cacheConfig = $this->getRootConfig(); // ?? [];
+            $this->cacheConfig = [
+                'ajax' => true,
+                'exclude' => $this->getRootConfig()['cache_exclude_http'] ?? [],
+                'headers' => $this->getRootConfig()['cache_headers_http'] ?? []
+            ];
+        } else $this->cacheEnabled = false;
     }
 
-    private function checkAccess()    
+    private function checkAccess()
     {
         if (empty(getenv('APP_PASSWORD'))) return true;
         session_start();
@@ -98,7 +97,7 @@ class _uho_mvc
     public function run(): void
     {
         date_default_timezone_set($this->timezone);
-        
+
         if (!is_dir($this->rootPath . 'reports')) {
             mkdir($this->rootPath . 'reports');
             file_put_contents($this->rootPath . 'reports/.htaccess', 'Deny from all');
@@ -138,23 +137,33 @@ class _uho_mvc
 
     private function resolveOutput(): array
     {
-        if ($this->cacheEnabled)
-        {
+        if ($this->cacheEnabled) {
             $cache = new _uho_cache(
                 $this->cacheSalt,
                 $this->cacheConfig['ajax'],
                 null,
                 null,
-                ['headers'=>$this->cacheConfig['headers']],
+                ['headers' => $this->cacheConfig['headers']],
                 $this->cacheConfig['exclude']
-                );
-            
+            );
+
             $cache->eraseExpired();
 
             if ($cache->checkCache()) {
                 $result = $cache->getCache();
+                if ($this->logs) {
+                    $f = fopen($_SERVER['DOCUMENT_ROOT'] . '/reports/logs_' . date('Ymd') . '.log', 'a');
+                    fwrite($f, 'cached: ' . $_SERVER['REQUEST_URI'] . "\n");
+                    fclose($f);
+                }
                 return [$result['output'], $result['header'], true];
             }
+        }
+
+        if ($this->logs) {
+            $f = fopen($_SERVER['DOCUMENT_ROOT'] . '/reports/logs_' . date('Ymd') . '.log', 'a');
+            fwrite($f, 'not:   ' . $_SERVER['REQUEST_URI'] . "\n");
+            fclose($f);
         }
 
         $app = new _uho_application(
@@ -167,12 +176,12 @@ class _uho_mvc
                 'orm_version' => $this->orm_version,
                 'sql_debug' => $this->sql_debug
             ]
-            );
-        if (debug) $type = _uho_fx::getGet('output') ?: null; else $type = null;
+        );
+        if (debug) $type = _uho_fx::getGet('output') ?: null;
+        else $type = null;
         $result = $app->getOutput($type);
 
-        if ($this->cacheEnabled)
-        {
+        if ($this->cacheEnabled && $cache->checkCacheAllowed()) {
             $cache->store(
                 $cache->getKey(),
                 ['output' => $result['output'], 'header' => $result['header']],
@@ -213,8 +222,8 @@ class _uho_mvc
 
     private function getRootConfig()
     {
-        $file=file_get_contents($this->rootPath . '/.uho-mvc.json');
-        if ($file) return json_decode($file, true); else return [];
+        $file = file_get_contents($this->rootPath . '/.uho-mvc.json');
+        if ($file) return json_decode($file, true);
+        else return [];
     }
-
 }

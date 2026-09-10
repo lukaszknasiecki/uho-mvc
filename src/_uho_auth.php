@@ -115,6 +115,7 @@ class _uho_auth
       'ip'                   => 'ip'
     ];
 
+    $this->auth_type = $login;
     if ($login == 'cookie') $this->loginAutoCookie();
     if ($login == 'token') $this->loginAutoToken();
   }

@@ -23,6 +23,7 @@ Application settings, useful for debug, versioning and caching.
 |-----|---------|-------------|
 | `APP_TIMEZONE` | `Europe/Berlin` | Sets app's timezone. |
 | `APP_DEV_MODE` | `0` | Development mode — shows errors. |
+| `APP_LOGS` | `0` | Stores logs in /reports folder. |
 | `APP_PASSWORD` | `user:password_bcrypt_hash` | Asks for a password before app runs. |
 | `APP_SQL_CACHE` | `integer` | Enable SQL Cache |
 | `APP_SQL_DEBUG` | `0` | SQL debug mode — shows SQL queries in comments. |

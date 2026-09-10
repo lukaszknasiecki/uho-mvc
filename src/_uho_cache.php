@@ -162,6 +162,23 @@ class _uho_cache
         }
     }
 
+    public function checkCacheAllowed()
+    {
+        $uri=trim($_SERVER['REQUEST_URI'], '/');
+
+        if ($this->exclude_paths) {
+            foreach ($this->exclude_paths as $p) {
+                if (strpos($p, '*') !== false) {
+                    if (fnmatch($p, $uri)) return false;
+                } else {
+                    if ($uri == $p) return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Gets cached data from current key
      * @return string returns cached data
