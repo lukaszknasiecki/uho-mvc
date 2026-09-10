@@ -368,8 +368,14 @@ class _uho_application
 
             if (!empty($this->application_params['sql_debug'])) $this->sql->setDebug(true);
             if (!empty($this->application_params['sql_cache']))
-                $this->sql->cacheSet($this->application_params['clients']['password_salt'] ?? '_-_', $this->application_params['cache_exclude_sql'] ?? null);
-
+            {
+                $this->sql->cacheSet(
+                    $this->application_params['clients']['password_salt'] ?? '_-_',
+                    $this->application_params['cache_exclude_sql'] ?? null,
+                    '',
+                    null,
+                    $this->application_params['cache_include_sql'] ?? null);
+            }
 
             if (!$this->sql->init(
                 $this->application_params['sql_host'],

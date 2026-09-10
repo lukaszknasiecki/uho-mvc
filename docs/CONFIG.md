@@ -120,6 +120,7 @@ $cfg = [
 | `application_title` | `string` | `'app'` | Human-readable application name. Available in Twig as `{{ application_title }}`. |
 | `application_domain` | `string` | — | Primary domain (e.g. `example.com`). Used for URL generation and cookie scope. Can be overridden per-domain in `hosts.php`. |
 | `application_url_prefix` | `string` | `''` | Optional path prefix prepended to all URLs (e.g. `'/app'`). |
+| `cache_include_sql` | `array` | `[]` | Forces those tables to get from SQL cache, * suffix supported |
 | `cache_exclude_sql` | `array` | `[]` | Disables those tables from SQL cache, * suffix supported |
 | `strict_url_parts` | `bool` | — | When `true`, enforces strict URL segment matching in routing. |
 | `no_session` | `bool` | `false` | When `true`, skips `session_start()`. Useful for pure API contexts. |

@@ -50,6 +50,7 @@ class _uho_mysqli
     private $cache = false;
     private $cacheSalt = '';
     private $cacheSkipTables = [];
+    private $cacheAddTables = [];
     /**
      * array for memcache
      */
@@ -58,7 +59,7 @@ class _uho_mysqli
      * default charset
      */
     private $charset = 'utf8mb4'; //utf8';
-    
+
     /**
      * Constructor
      * @param boolean $df debug true/false
@@ -200,7 +201,7 @@ class _uho_mysqli
 
     private function setDbCredentials($host, $user, $pass, $name, $socket = null): void
     {
-        $this->db_credentials=[
+        $this->db_credentials = [
             'host' => $host,
             'user' => $user,
             'pass' => $pass,
@@ -314,17 +315,15 @@ class _uho_mysqli
         /*
             if sql cache is enabled let's see if we can get the result from cache
         */
-        if (isset($this->cache) && $this->cache && ($force_sql_cache || $this->cacheSkip($query)))
-        {
+        if (isset($this->cache) && $this->cache && ($force_sql_cache || $this->cacheSkip($query))) {
             $tt = $this->cacheGet($query, $params);
-            if ($tt['cached'])
-            {
+            if ($tt['cached']) {
                 $cached = '[sql-prepared-cached] ';
                 $result = $tt['result'];
                 if ($first && is_array($result)) $result = array_shift($result);
-            }            
+            }
         }
-        
+
         /*
             Nothing in cache - let's SQL query
         */
@@ -358,8 +357,7 @@ class _uho_mysqli
 
             $result = $stmt->get_result();
 
-            if ($result)
-            {
+            if ($result) {
                 $result = $this->fetchQuery($result);
                 if ($first && is_array($result)) $result = $result[0];
             }
@@ -709,7 +707,7 @@ class _uho_mysqli
         $types = '';
         $values = [];
 
-        $fieldList = implode(',', array_map(function($f) {
+        $fieldList = implode(',', array_map(function ($f) {
             return $f === '*' ? $f : '`' . $f . '`';
         }, $fields));
 
@@ -802,7 +800,7 @@ class _uho_mysqli
 
     public function queryReal($query, $single = false, $stripslashes = true, $key = null, $force_sql_cache = false)
     {
-        $this->perfromance_start=_uho_fx::microtime_float();
+        $this->perfromance_start = _uho_fx::microtime_float();
         $this->iQuery++;
 
         $cached = '[sql]';
@@ -825,8 +823,7 @@ class _uho_mysqli
         /*
             debug
         */
-        if ($this->debug && _uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance'))
-        {
+        if ($this->debug && _uho_fx::getGet('dbg') && ($cached == '[sql]' || _uho_fx::getGet('dbg') != 'performance')) {
             if (_uho_fx::getGet('dbg') == 'performance')  $time = '[T=' . number_format((_uho_fx::microtime_float() - $this->perfromance_start), 4) . '] ';
             else $time = '';
             if (!isset($tt) || !$tt) $i = 0;
@@ -838,17 +835,14 @@ class _uho_mysqli
         }
 
         if (!$t) {
-            if (_uho_fx::getGet('dbg') && $this->debug)
-            {
+            if (_uho_fx::getGet('dbg') && $this->debug) {
                 exit('mysql error:' . $query . '<br>Error: ' . $this->base_link->error);
-            } else
-            {
+            } else {
                 $this->errorAdd($query . ' ... ' . $this->base_link->error);
 
                 if ($this->debug && $this->halt_on_error) exit('error:' . $query . '<br>Error: ' . $this->base_link->error);
                 else if ($this->halt_on_error) exit('DB error');
                 else return false;
-                
             }
         } else {
             if ($key) {
@@ -953,18 +947,37 @@ class _uho_mysqli
 
     private function cacheSkip($query)
     {
+        if (!$this->cacheSkipTables) return true;
         $result = true;
+
+        $query = explode(' from ', strtolower($query));
+        if (isset($query[1])) $query = explode(' where ', strtolower($query[1]));
+        $query = explode(' order ', strtolower($query[0]));
+        $query = explode(',', $query[0]);
+        foreach ($query as $k => $v) {
+            $query[$k] = trim($v);
+        }
+
+        if ($this->cacheAddTables) {
+            foreach ($this->cacheAddTables as $v) {
+                if (str_ends_with($v, '*')) {
+                    $v = rtrim($v, '*');
+                    foreach ($query as $q) {
+                        if (str_starts_with($q, $v)) {
+                            $result = false;
+                            break 2;
+                        }
+                    }
+                } else
+                if (in_array($v, $query)) {
+                    return true;
+                }
+            }
+        }
+
         if ($this->cacheSkipTables) {
 
-            $query = explode(' from ', strtolower($query));
-            if (isset($query[1])) $query = explode(' where ', strtolower($query[1]));
-            $query = explode(' order ', strtolower($query[0]));
-            $query = explode(',', $query[0]);
-            foreach ($query as $k => $v) {
-                $query[$k] = trim($v);
-            }
-            foreach ($this->cacheSkipTables as $v)
-            {
+            foreach ($this->cacheSkipTables as $v) {
                 if (str_ends_with($v, '*')) {
                     $v = rtrim($v, '*');
                     foreach ($query as $q) {
@@ -988,11 +1001,12 @@ class _uho_mysqli
      * @param string $salt
      * @param array $skipTables
      */
-    public function cacheSet($salt, $skipTables = null, $filename_salt = '', $extension = null): void
+    public function cacheSet($salt, $skipTables = null, $filename_salt = '', $extension = null, $addTables = null): void
     {
+
         $this->cacheSalt = $salt;
         $this->cacheSkipTables = $skipTables;
-
+        $this->cacheAddTables = $addTables;
         $this->cache = new Cache(
             ['path' => 'cache/', 'salt' => $filename_salt, 'extension' => $extension]
         );
@@ -1069,7 +1083,6 @@ class _uho_mysqli
 
     public function setDebug($dbg)
     {
-        $this->debug=$dbg;
+        $this->debug = $dbg;
     }
-
 }
