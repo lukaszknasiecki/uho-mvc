@@ -65,6 +65,7 @@ function worker_usage(): string
         . "  -p, --path=ROUTE     route to call, e.g. api/worker\n\n"
         . "Optional:\n"
         . "  -m, --method=VERB    HTTP method (default: GET), one of " . implode(', ', $methods) . "\n"
+        . "  -a, --auth=USER:PASS HTTP Basic credentials, when the app is behind ENV.APP_PASSWORD\n"
         . "  -h, --help           show this help\n\n"
         . "--base, --env and --config must be absolute paths, so the command behaves\n"
         . "the same from any working directory and this script can live outside the\n"
@@ -73,7 +74,8 @@ function worker_usage(): string
         . "  sh request --base=/var/www/html \\\n"
         . "            --env=/var/www/html/application_config/.env \\\n"
         . "            --config=/var/www/html/application_config \\\n"
-        . "            --path=api/worker\n\n";
+        . "            --path=api/worker \\\n"
+        . "            --auth=user:password\n\n";
 }
 
 $methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -83,7 +85,8 @@ $options = [
     'env'    => null,
     'config' => null,
     'path'   => null,
-    'method' => 'GET'
+    'method' => 'GET',
+    'auth'   => null
 ];
 
 $argv_rest = array_slice($argv, 1);
@@ -98,14 +101,14 @@ while ($argv_rest)
         exit(0);
     }
 
-    if (preg_match('/^--(base|env|config|path|method)=(.*)$/', $arg, $m))
+    if (preg_match('/^--(base|env|config|path|method|auth)=(.*)$/', $arg, $m))
     {
         $options[$m[1]] = $m[2];
         continue;
     }
 
-    $short = ['-b' => 'base', '-e' => 'env', '-c' => 'config', '-p' => 'path', '-m' => 'method'];
-    $long  = ['--base' => 'base', '--env' => 'env', '--config' => 'config', '--path' => 'path', '--method' => 'method'];
+    $short = ['-b' => 'base', '-e' => 'env', '-c' => 'config', '-p' => 'path', '-m' => 'method', '-a' => 'auth'];
+    $long  = ['--base' => 'base', '--env' => 'env', '--config' => 'config', '--path' => 'path', '--method' => 'method', '--auth' => 'auth'];
     $key   = $short[$arg] ?? $long[$arg] ?? null;
 
     if ($key)
@@ -136,6 +139,29 @@ $options['method'] = strtoupper(trim($options['method']));
 if (!in_array($options['method'], $methods, true))
 {
     worker_fail("Unsupported method: {$options['method']} (expected one of " . implode(', ', $methods) . ')');
+}
+
+/*
+    Credentials
+
+    --auth mirrors what a browser sends when the app is protected by
+    ENV.APP_PASSWORD: the framework reads PHP_AUTH_USER/PHP_AUTH_PW, so the
+    pair is injected here rather than being passed to the route.
+*/
+
+$auth_user = null;
+$auth_pass = null;
+
+if ($options['auth'] !== null)
+{
+    if (strpos($options['auth'], ':') === false)
+    {
+        worker_fail('--auth must be given as USER:PASSWORD');
+    }
+
+    list($auth_user, $auth_pass) = explode(':', $options['auth'], 2);
+
+    if ($auth_user === '') worker_fail('--auth is missing the user part (expected USER:PASSWORD)');
 }
 
 /*
@@ -183,7 +209,9 @@ worker_out("\n{$GREEN}UHO-MVC Request{$NC}\n");
 worker_out("  base:   $base\n");
 worker_out("  env:    $env_path\n");
 worker_out("  config: $config_path\n");
-worker_out("  call:   {$options['method']} /" . trim($options['path'], '/') . "\n\n");
+worker_out("  call:   {$options['method']} /" . trim($options['path'], '/') . "\n");
+if ($auth_user !== null) worker_out("  auth:   $auth_user:" . str_repeat('*', max(strlen($auth_pass), 1)) . "\n");
+worker_out("\n");
 
 /*
     Env read
@@ -199,6 +227,15 @@ if (!getenv('DOMAIN')) worker_fail("No DOMAIN defined in $env_path");
 $_SERVER['HTTP_HOST']        = getenv('DOMAIN');
 $_SERVER['BASH_REQUEST_URI'] = trim($options['path'], '/');
 $_SERVER['REQUEST_METHOD']   = $options['method'];
+
+// Basic auth, as mod_php would expose it; the Authorization header is set too
+// for the CGI/FastCGI code paths that read it instead of PHP_AUTH_*.
+if ($auth_user !== null)
+{
+    $_SERVER['PHP_AUTH_USER']      = $auth_user;
+    $_SERVER['PHP_AUTH_PW']        = $auth_pass;
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Basic ' . base64_encode($auth_user . ':' . $auth_pass);
+}
 
 /*
     Run

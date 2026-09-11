@@ -6,10 +6,12 @@
 #   sh request --base=/abs/path \
 #             --env=/abs/path/application_config/.env \
 #             --config=/abs/path/application_config \
-#             --path=api/request
+#             --path=api/request \
+#             --auth=user:password
 #
 # --base, --env, --config and --path are required, and the three paths must be
-# absolute; run "sh request --help" for details.
+# absolute; --auth is optional and only needed when the app is protected by
+# ENV.APP_PASSWORD. Run "sh request --help" for details.
 #
 # Finds request.php next to itself, so this pair can live outside the project
 # they run (--base points at the project). PHP_BIN overrides the interpreter
