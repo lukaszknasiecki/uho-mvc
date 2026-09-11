@@ -161,8 +161,9 @@ class _uho_mvc
         }
 
         if ($this->logs) {
+            $uri=$_SERVER['REQUEST_URI'] ?? 'NULL';
             $f = fopen($_SERVER['DOCUMENT_ROOT'] . '/reports/logs_' . date('Ymd') . '.log', 'a');
-            fwrite($f, 'not:   ' . $_SERVER['REQUEST_URI'] . "\n");
+            fwrite($f, 'not:   ' . $uri . "\n");
             fclose($f);
         }
 

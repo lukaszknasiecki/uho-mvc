@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# UHO-MVC Request Runner
+#
+# Usage:
+#   sh request --base=/abs/path \
+#             --env=/abs/path/application_config/.env \
+#             --config=/abs/path/application_config \
+#             --path=api/request
+#
+# --base, --env, --config and --path are required, and the three paths must be
+# absolute; run "sh request --help" for details.
+#
+# Finds request.php next to itself, so this pair can live outside the project
+# they run (--base points at the project). PHP_BIN overrides the interpreter
+# (e.g. PHP_BIN=/usr/bin/php sh request ...).
+
+set -e
+
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+PHP_BIN=${PHP_BIN:-php}
+
+if ! command -v "$PHP_BIN" >/dev/null 2>&1; then
+    echo "Error: PHP binary '$PHP_BIN' not found in PATH." >&2
+    echo "Set PHP_BIN to the interpreter you want to use, e.g.:" >&2
+    echo "  PHP_BIN=/Applications/MAMP/bin/php/php8.5.2/bin/php sh request" >&2
+    exit 1
+fi
+
+exec "$PHP_BIN" "$DIR/request.php" "$@"

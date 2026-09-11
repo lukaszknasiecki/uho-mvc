@@ -93,8 +93,8 @@ class _uho_route
     {
         if ($this->cfg['overwriteUrl'] && $this->cfg['overwriteUrl'] != 'overwriteUrl') {
             $this->urlString = $this->cfg['overwriteUrl'];
-        } elseif (isset($_SERVER['TEST_REQUEST_URI']))
-            $this->urlString = $_SERVER['TEST_REQUEST_URI'];
+        } elseif (PHP_SAPI == 'cli' && isset($_SERVER['BASH_REQUEST_URI']))
+            $this->urlString = $_SERVER['BASH_REQUEST_URI'];
         else {
             $this->urlString = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_SPECIAL_CHARS);
         }
