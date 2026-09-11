@@ -7,11 +7,13 @@
 #             --env=/abs/path/application_config/.env \
 #             --config=/abs/path/application_config \
 #             --path=api/request \
-#             --auth=user:password
+#             --auth=user:password \
+#             --nice=10
 #
 # --base, --env, --config and --path are required, and the three paths must be
 # absolute; --auth is optional and only needed when the app is protected by
-# ENV.APP_PASSWORD. Run "sh request --help" for details.
+# ENV.APP_PASSWORD; --nice is optional and lowers CPU priority (like nice -n N)
+# so a heavy run does not hog the processor. Run "sh request --help" for details.
 #
 # Finds request.php next to itself, so this pair can live outside the project
 # they run (--base points at the project). PHP_BIN overrides the interpreter

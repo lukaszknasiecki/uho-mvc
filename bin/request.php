@@ -66,6 +66,8 @@ function worker_usage(): string
         . "Optional:\n"
         . "  -m, --method=VERB    HTTP method (default: GET), one of " . implode(', ', $methods) . "\n"
         . "  -a, --auth=USER:PASS HTTP Basic credentials, when the app is behind ENV.APP_PASSWORD\n"
+        . "  -n, --nice=N         lower CPU priority by N (like nice -n N, e.g. 10), so the\n"
+        . "                       run does not starve other processes\n"
         . "  -h, --help           show this help\n\n"
         . "--base, --env and --config must be absolute paths, so the command behaves\n"
         . "the same from any working directory and this script can live outside the\n"
@@ -75,7 +77,8 @@ function worker_usage(): string
         . "            --env=/var/www/html/application_config/.env \\\n"
         . "            --config=/var/www/html/application_config \\\n"
         . "            --path=api/worker \\\n"
-        . "            --auth=user:password\n\n";
+        . "            --auth=user:password \\\n"
+        . "            --nice=10\n\n";
 }
 
 $methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -86,7 +89,8 @@ $options = [
     'config' => null,
     'path'   => null,
     'method' => 'GET',
-    'auth'   => null
+    'auth'   => null,
+    'nice'   => null
 ];
 
 $argv_rest = array_slice($argv, 1);
@@ -101,14 +105,14 @@ while ($argv_rest)
         exit(0);
     }
 
-    if (preg_match('/^--(base|env|config|path|method|auth)=(.*)$/', $arg, $m))
+    if (preg_match('/^--(base|env|config|path|method|auth|nice)=(.*)$/', $arg, $m))
     {
         $options[$m[1]] = $m[2];
         continue;
     }
 
-    $short = ['-b' => 'base', '-e' => 'env', '-c' => 'config', '-p' => 'path', '-m' => 'method', '-a' => 'auth'];
-    $long  = ['--base' => 'base', '--env' => 'env', '--config' => 'config', '--path' => 'path', '--method' => 'method', '--auth' => 'auth'];
+    $short = ['-b' => 'base', '-e' => 'env', '-c' => 'config', '-p' => 'path', '-m' => 'method', '-a' => 'auth', '-n' => 'nice'];
+    $long  = ['--base' => 'base', '--env' => 'env', '--config' => 'config', '--path' => 'path', '--method' => 'method', '--auth' => 'auth', '--nice' => 'nice'];
     $key   = $short[$arg] ?? $long[$arg] ?? null;
 
     if ($key)
@@ -165,6 +169,36 @@ if ($options['auth'] !== null)
 }
 
 /*
+    CPU priority
+
+    --nice throttles the run the same way the shell `nice` command does: a
+    positive N lowers the priority (a higher niceness), so a heavy worker does
+    not hog the CPU on a shared box. Applied to this process (and inherited by
+    anything it forks) with proc_nice() once the value is validated.
+*/
+
+$nice = null;
+
+if ($options['nice'] !== null)
+{
+    $nice = trim((string)$options['nice']);
+
+    if (!preg_match('/^-?\\d+$/', $nice))
+    {
+        worker_fail("--nice must be an integer (got: {$options['nice']})");
+    }
+
+    $nice = (int)$nice;
+
+    // The kernel clamps to [-20, 19]; reject out-of-range values up front so a
+    // typo does not silently become a no-op.
+    if ($nice < -20 || $nice > 19)
+    {
+        worker_fail("--nice must be between -20 and 19 (got: $nice)");
+    }
+}
+
+/*
     Paths
 */
 
@@ -205,12 +239,29 @@ require_once $base . '/vendor/autoload.php';
 $_SERVER['DOCUMENT_ROOT']   = $base;
 $_SERVER['SCRIPT_FILENAME'] = $base . '/index.php';
 
+if ($nice !== null)
+{
+    if (!function_exists('proc_nice'))
+    {
+        worker_out("{$RED}Warning:{$NC} proc_nice() is disabled, running without --nice throttling.\n");
+        $nice = null;
+    }
+    elseif (@proc_nice($nice) === false)
+    {
+        // Lowering priority (a positive nice) never needs privileges; a raise
+        // (negative nice) can be refused for a non-root user.
+        worker_out("{$RED}Warning:{$NC} could not apply --nice=$nice (insufficient privileges?), continuing.\n");
+        $nice = null;
+    }
+}
+
 worker_out("\n{$GREEN}UHO-MVC Request{$NC}\n");
 worker_out("  base:   $base\n");
 worker_out("  env:    $env_path\n");
 worker_out("  config: $config_path\n");
 worker_out("  call:   {$options['method']} /" . trim($options['path'], '/') . "\n");
 if ($auth_user !== null) worker_out("  auth:   $auth_user:" . str_repeat('*', max(strlen($auth_pass), 1)) . "\n");
+if ($nice !== null)      worker_out("  nice:   $nice\n");
 worker_out("\n");
 
 /*
