@@ -312,30 +312,11 @@ class _uho_orm_schema
 
                     case "audio":
 
-                        if (!isset($v['filename'])) {
-                            $model['fields'][$k]['filename'] = '%uid%';
-                            $uid = true;
-                        }
-                        $model['fields'][$k]['extension'] = 'mp3';
-
-                        // migrating depreceated properties to settings
-                        $v = $model['fields'][$k];
-                        if (empty($v['settings'])) $v['settings'] = [];
-                        if (empty($v['settings']['filename']) && isset($v['filename'])) {
-                            $v['settings']['filename'] = $v['filename'];
-                            unset($v['filename']);
-                        }
-                        if (isset($v['folder'])) {
-                            $v['settings']['folder'] = $v['folder'];
-                            unset($v['folder']);
-                        }
-                        if (isset($v['extension'])) {
-                            $v['settings']['extension'] = $v['extension'];
-                            unset($v['extension']);
-                        }
-
-                        unset($v['filename']);
-                        $model['fields'][$k] = $v;
+                        if (!isset($v['filename'])) $uid = true;
+                        if (empty($v['settings']['filename']))
+                            $model['fields'][$k]['settings']['filename'] = $v['filename'] ?? '%uid%';
+                        unset($model['fields'][$k]['filename']);
+                        $model['fields'][$k]['settings']['extension'] = 'mp3';
 
                         break;
                 }
