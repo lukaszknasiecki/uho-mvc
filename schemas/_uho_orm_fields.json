@@ -183,7 +183,8 @@
                 "field_exists": "string",
                 "sizes": "string",
                 "webp": "boolean",
-                "folder_audio": "string"
+                "folder_audio": "string",
+                "folder_video": "string"
             },
             "images": [
                 {

@@ -61,6 +61,7 @@ some work only with specified field types.
 
 * `checkboxes`: Multiple selection checkboxes
 * `elements`: Enum-like single selection field
+* `elements_double`: Multiple selection across several models, stored as `slug:id` pairs
 * `select`: Single selection dropdown
 
 ### File Types
@@ -164,6 +165,10 @@ This way you can emulate mySQL triggers.
 
 Here is a list of field types and properties which work with these types:
 
+* `audio`:
+  * `settings.filename` (`string`): filename pattern, default `%uid%.mp3`
+  * `settings.folder` (`string`): required, base folder for audio storage, i.e. `/public/upload`
+  * `settings.extension` (`string`): default `mp3`
 * `blocks`:
   * `settings.decode` (`boolean|string`)
   * `settings.media` (`string`)
@@ -175,11 +180,16 @@ Here is a list of field types and properties which work with these types:
   * `settings.default` (`string`)
   * `settings.format` (`string`): converts value to ISO8601 format in UTC timezone, accepts `ISO8601` or `UTC`
 * `checkboxes`:
+  * `settings.length` (`integer`)
   * `settings.output` (`string`): sets format of number stored, 8digits is default, available: 4digits, 6digits, string
 * `elements`:
   * `settings.length` (`integer`)
   * `settings.multiple_filters` (`string`): can be set to `&&` or `||` (default) to join filter values on GET
   * `settings.output` (`string`): sets format of number stored, 8digits is default, available: 4digits, 6digits, string
+* `elements_double`:
+  * `settings.length` (`integer`)
+  * `settings.output` (`string`)
+  * `source_double` (`array`): required, one entry per selectable model, i.e. `[{"slug": "news", "model": "news"}]`; `slug` is the prefix stored in the value (`news:12`)
 * `file`:
   * `settings.filename` (`string`)
   * `settings.folder` (`string`)
@@ -197,6 +207,7 @@ Here is a list of field types and properties which work with these types:
   * `settings.field_exists` (`string`): points to boolean field which marks if image exists and will be returned (true) or not (false)
   * `settings.sizes` (`string|boolean`): if string - points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`, if boolean TRUE gets image sizes on-fly
   * `settings.webp` (`boolean`)
+  * `settings.folder_audio` (`string`), `settings.folder_video` (`string`): storage folders used when an audio or video media record is written through this field
   * `images` (`array`): required, array with image sizes
   * `images.filename` (`string`): filename pattern, default is `{{uid}}.jpg`
   * `images[].folder` (`string`): required, folder to store the image, relative to `settings.folder`, i.e. `desktop`
@@ -373,6 +384,21 @@ Uploaded video file (MP4).
 }
 ```
 Files are stored as: `{folder}/{uid}.mp4`
+
+### `audio`
+
+Uploaded audio file (MP3).
+
+```json
+{
+    "field": "audio",
+    "type": "audio",
+    "settings": {
+        "folder": "/public/upload/audio"
+    }
+}
+```
+Files are stored as: `{folder}/{uid}.mp3`
 
 ### `media`
 
