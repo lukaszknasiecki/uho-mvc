@@ -158,7 +158,7 @@ class _uho_model_pages extends _uho_model
         $page['modules'] = $this->get('pages_modules', ['parent' => $page['id'], 'active' => 1], false, 'level', null, ['schema_update' => true]);
         $page['modules'] = $this->updateModules($page['modules'], $urlArr, $getArr);
         $page['title'] = $this->ogGet()['title'];
-
+        $page['og_type'] = $this->ogGet()['type'] ?? 'website';
         return $page;
     }
 
@@ -224,11 +224,12 @@ class _uho_model_pages extends _uho_model
         return $this->is404;
     }
 
-    public function ogSetDefaults(string|null $title, string|null $description, string|null $image = null)
+    public function ogSetDefaults(string|null $title, string|null $description, string|null $image = null, string|null $type = 'website')
     {
         if ($title) $this->head['app_title']= $title;
         if ($description) $this->head['description']= $description;
         if ($image) $this->head['image'] = $image;
+        if ($type) $this->head['type'] = $type;
     }
     /*
         Returns header data for sharing
@@ -261,7 +262,7 @@ class _uho_model_pages extends _uho_model
         Sets header data for sharing
     */
 
-    public function ogSet($title, $description = '', $image = null)
+    public function ogSet($title, $description = '', $image = null, $type = 'website')
     {
         if (is_string($image)) $image = $image;
         elseif (is_array($image)) $image = $image[0];
@@ -270,6 +271,8 @@ class _uho_model_pages extends _uho_model
         if ($title) $this->head['title'] = strip_tags(str_replace('&nbsp;', ' ', $title));
         if ($description) $this->head['description'] = trim(_uho_fx::headDescription($description, true, 250));
         if ($image) $this->head['image'] = $image;
+        if ($type) $this->head['og_type'] = $type;
+        
     }
 
     public function actionBefore($action, $get) {}
