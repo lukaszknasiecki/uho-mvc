@@ -207,7 +207,6 @@ Here is a list of field types and properties which work with these types:
   * `settings.field_exists` (`string`): points to boolean field which marks if image exists and will be returned (true) or not (false)
   * `settings.sizes` (`string|boolean`): if string - points to JSON field storing all image sizes (for every folder), to use this option you need to initialize it with `orm.setImageSizes(true)`, if boolean TRUE gets image sizes on-fly
   * `settings.webp` (`boolean`)
-  * `settings.folder_audio` (`string`), `settings.folder_video` (`string`): storage folders used when an audio or video media record is written through this field
   * `images` (`array`): required, array with image sizes
   * `images.filename` (`string`): filename pattern, default is `{{uid}}.jpg`
   * `images[].folder` (`string`): required, folder to store the image, relative to `settings.folder`, i.e. `desktop`

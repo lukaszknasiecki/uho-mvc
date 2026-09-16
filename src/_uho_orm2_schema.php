@@ -21,8 +21,6 @@ class _uho_orm2_schema
     /** deprecated field properties, moved verbatim under settings */
     private const MIGRATED_PROPERTIES = [
         'folder',
-        'folder_audio',
-        'folder_video',
         'extension',
         'extensions',
         'extension_field',

@@ -2080,6 +2080,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             foreach ($model['fields'] as $v2)
                 switch ($v2['type']) {
                     case "video":
+                        
                         if (@$v2['poster'] && @$data[$k][$v2['poster']]) {
                             $data[$k][$v2['field']]['poster'] = $data[$k][$v2['poster']];
                         }

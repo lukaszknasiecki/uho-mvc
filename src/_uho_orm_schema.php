@@ -342,14 +342,6 @@ class _uho_orm_schema
                         $v['settings']['folder'] = $v['folder'];
                         unset($v['folder']);
                     }
-                    if (isset($v['folder_audio'])) {
-                        $v['settings']['folder_audio'] = $v['folder_audio'];
-                        unset($v['folder_audio']);
-                    }
-                    if (isset($v['folder_video'])) {
-                        $v['settings']['folder_video'] = $v['folder_video'];
-                        unset($v['folder_video']);
-                    }
                     if (isset($v['extension'])) {
                         $v['settings']['extension'] = $v['extension'];
                         unset($v['extension']);
