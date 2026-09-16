@@ -78,11 +78,13 @@
     "checkboxes": {
         "allowed": {
             "settings": {
-                "output": "string"
+                "output": "string",
+                "length": "integer"
             },
             "cms": {
                 "small": "boolean",
-                "style": "string"
+                "style": "string",
+                "cols": "integer"
             },
             "options": "array",
             "source": {
@@ -180,7 +182,9 @@
                 "extension_field": "string",
                 "field_exists": "string",
                 "sizes": "string",
-                "webp": "boolean"
+                "webp": "boolean",
+                "folder_audio": "string",
+                "folder_video": "string"
             },
             "images": [
                 {
@@ -384,6 +388,45 @@
             "settings": {
                 "folder": "string"
             }
+        }
+    },
+    "audio": {
+        "field": false,
+        "allowed": {
+            "settings": {
+                "extension": "string",
+                "folder": "string",
+                "filename": "string"
+            }
+        },
+        "required": {
+            "settings": {
+                "folder": "string"
+            }
+        }
+    },
+    "elements_double": {
+        "allowed": {
+            "settings": {
+                "length": "integer",
+                "output": "string"
+            },
+            "cms": {
+                "small": "boolean",
+                "style": "string"
+            },
+            "source_double": [
+                {
+                    "slug": "string|integer",
+                    "model": "string",
+                    "model_label": "string",
+                    "label": "string",
+                    "sublabel": "string",
+                    "image": "string",
+                    "table": "string",
+                    "fields": "array"
+                }
+            ]
         }
     }
 }

@@ -313,11 +313,13 @@ class _uho_orm_schema
                     case "audio":
 
                         if (!isset($v['filename'])) {
-                            $model['fields'][$k]['filename'] = '%uid%';
+                            $v['filename'] = '%uid%';
                             $uid = true;
                         }
-                        $model['fields'][$k]['extension'] = 'mp3';
-
+                        if (empty($v['settings']['filename']))
+                            $model['fields'][$k]['settings']['filename'] = $v['filename'];
+                        unset($model['fields'][$k]['filename']);
+                        $model['fields'][$k]['settings']['extension'] = 'mp3';
 
                         break;
                 }
