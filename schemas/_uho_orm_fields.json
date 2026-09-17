@@ -287,8 +287,8 @@
             },
             "options": "array",
             "source": {
-                "id":"string",
-                "label":"string",
+                "id": "string",
+                "label": "string",
                 "filters": "array",
                 "list": "string",
                 "search": "array",
@@ -305,7 +305,7 @@
                 "lang": "string",
                 "length": "integer",
                 "case": "boolean",
-                "unique":"boolean",
+                "unique": "boolean",
                 "hash": true,
                 "null": true,
                 "minlength": "integer",
@@ -321,7 +321,7 @@
                 "on_demand": "boolean",
                 "style": "string",
                 "rows": "integer"
-            }            
+            }
         }
     },
     "text": {
@@ -362,6 +362,9 @@
         "allowed": {
             "cms": {
                 "auto": "string"
+            },
+            "settings": {
+                "on_update": "boolean"
             }
         }
     },

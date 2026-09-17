@@ -40,6 +40,8 @@ class _uho_orm_schema_sql
 
         foreach ($schema['fields'] as $v) {
 
+            $default=null;
+            $on_update=null;
             $unique = false;
             $type = '';
             switch ($v['type']) {
@@ -51,6 +53,9 @@ class _uho_orm_schema_sql
                     break;
                 case "timestamp":
                     $type = 'timestamp';
+                    $default='CURRENT_TIMESTAMP';
+                    if (!empty($v['settings']['on_update']) && $v['settings']['on_update'])
+                        $on_update='CURRENT_TIMESTAMP';
                     break;
                 case "integer":
                     $type = 'int(11)';
@@ -123,15 +128,17 @@ class _uho_orm_schema_sql
             }
 
             if ($unique) $v['settings']['sql']['unique'] = $unique;
-
+            
             if ($v['field'] && $type) {
+
                 if ($unique) $not_null = true;
                 else $not_null = false;
-                $default = null;
+
                 if ($v['type'] == 'integer' || $v['type'] == 'boolean') {
                     $default = "'0'";
                     $not_null = true;
                 }
+
                 if (!empty($v['settings']['default'])) {
                     switch ($v['settings']['default']) {
                         case "{{now}}":
@@ -143,10 +150,18 @@ class _uho_orm_schema_sql
                 $q = '`' . $v['field'] . '` ' . $type;
                 if ($not_null) $q .= ' NOT NULL';
                 if ($default) $q .= ' DEFAULT ' . $default;
+                if ($on_update) $q .= ' ON UPDATE ' . $on_update;
 
                 if ($v['field'] == 'id') $id = $type;
                 $fields[] = $q;
-                $f = ['Field' => $v['field'], 'Type' => $type, 'Null' => !$not_null, 'Default' => $default];
+                
+                $f = [
+                    'Field' => $v['field'], 
+                    'Type' => $type, 
+                    'Null' => !$not_null, 
+                    'Default' => $default,
+                    'OnUpdate' => $on_update
+                    ];
 
                 if (!empty($v['settings']['sql']['generated'])) $f['Generated'] = $v['settings']['sql']['generated'];
                 if (!empty($v['settings']['sql']['stored'])) $f['Stored'] = $v['settings']['sql']['stored'];
@@ -162,7 +177,6 @@ class _uho_orm_schema_sql
             $id = 'int(11)';
             array_unshift($fields, '`id` int(11)');
         }
-
         return ['fields' => $fields, 'fields_sql' => $fields_sql, 'id' => $id];
     }
 
@@ -212,7 +226,8 @@ class _uho_orm_schema_sql
 
         $sql_schema = $this->getSchemaSQL($schema);
         $columns = $this->orm->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
-
+        //$on_update_columns = $this->orm->query('SHOW COLUMNS FROM `' . $schema['table'] . '` WHERE Extra LIKE \'%on update%\';');
+        
         //
         /*
             Array with the same depreceated types
@@ -231,8 +246,17 @@ class _uho_orm_schema_sql
         foreach ($sql_schema['fields_sql'] as $v) {
 
             $find = _uho_fx::array_filter($columns, 'Field', $v['Field'], ['first' => true]);
-            if ($find && isset($find['Type']) && $find['Type'] == $v['Type']);
+            $match=true;
+
+            if ($find && $v['OnUpdate'])
+            {
+                if ($find['Extra'] !== 'on update ' . $v['OnUpdate'])
+                    $match = false;
+            }
+
+            if ($find && isset($find['Type']) && $find['Type'] == $v['Type'] && $match);
             elseif ($find) {
+
                 if (isset($the_same[$find['Type']]) && in_array($v['Type'], $the_same[$find['Type']]));
                 else {
                     $v['OldType'] = $find['Type'];
@@ -257,7 +281,13 @@ class _uho_orm_schema_sql
                     $html .= '<li>New field: ' . $v['Field'] . ' (' . $v['Type'] . ')</li>';
 
                 foreach ($update as $v)
-                    $html .= '<li>Field to be updated: ' . $v['Field'] . ' (' . $v['OldType'] . ' -> ' . $v['Type'] . ')</li>';
+                {
+                    $new=$v['Type'];
+                    if ($v['Null']) $new .= ' NULL';
+                    if ($v['Default']) $new .= ' DEFAULT ' . $v['Default'];
+                    if ($v['OnUpdate']) $new .= ' ON UPDATE ' . $v['OnUpdate'];
+                    $html .= '<li>Field to be updated: <code>' . $v['Field'] . ' (' . $v['OldType'] . ' -> ' . $new . ')</code></li>';
+                }
 
                 $html .= '</ul><form action="" method="POST"><input type="hidden" name="uho_orm_action" value="auto"><input type="submit" value="Proceed"></form>';
                 exit($html);
@@ -282,6 +312,7 @@ class _uho_orm_schema_sql
                     if ($v['Null']) $query .= ' NULL';
                     else $query .= ' NOT NULL';
                     if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
+                    if ($v['OnUpdate']) $query .= ' ON UPDATE ' . $v['OnUpdate'];
                     if (!$this->orm->queryOut($query)) $this->orm->halt('SQL error: ' . $query);
                 }
 
@@ -294,6 +325,7 @@ class _uho_orm_schema_sql
                     if ($v['Stored']) $query .= ' STORED';
                     if ($v['Unique']) $query .= ' UNIQUE';
                     if ($v['Default']) $query .= ' DEFAULT ' . $v['Default'];
+                    if ($v['OnUpdate']) $query .= ' ON UPDATE ' . $v['OnUpdate'];
 
                     $add[$k]['alter_query'] = str_replace('{{NULL}}', $v['Null'] ? ' NULL' : ' NOT NULL', $query);
                     $add[$k]['alter_query'] = str_replace('{{METHOD}}', 'MODIFY', $add[$k]['alter_query']);
