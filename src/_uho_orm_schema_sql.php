@@ -250,7 +250,7 @@ class _uho_orm_schema_sql
 
             if ($find && $v['OnUpdate'])
             {
-                if ($find['Extra'] !== 'on update ' . $v['OnUpdate'])
+                if (str_contains($find['Extra'], 'on update ' . $v['OnUpdate']) === false)
                     $match = false;
             }
 
