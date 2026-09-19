@@ -83,6 +83,7 @@ class _uho_model_pages extends _uho_model
 			Get 404 page
 		*/
         if (empty($page) || empty($page['modules']) || $this->is404) {
+            $this->is404 = true;
             header("HTTP/1.0 404 Not Found");
             $page = $this->get('pages', ['path' => '404'], true);
             if (!$page) exit('Page not found');

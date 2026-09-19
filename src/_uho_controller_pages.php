@@ -48,8 +48,10 @@ class _uho_controller_pages extends _uho_controller
 
         if (!$data['content'] && $this->model->is404()) {
             $data = $this->get404();
-            $this->outputType = '404';
         }
+
+        if ($this->model->is404())
+            $this->outputType = '404';
 
 
         return $data;

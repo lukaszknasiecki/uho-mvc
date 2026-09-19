@@ -156,6 +156,7 @@ class _uho_mvc
                     fwrite($f, 'cached: ' . $_SERVER['REQUEST_URI'] . "\n");
                     fclose($f);
                 }
+
                 return [$result['output'], $result['header'], true];
             }
         }
@@ -180,6 +181,7 @@ class _uho_mvc
         );
         if (debug) $type = _uho_fx::getGet('output') ?: null;
         else $type = null;
+
         $result = $app->getOutput($type);
 
         if ($this->cacheEnabled && $cache->checkCacheAllowed()) {
