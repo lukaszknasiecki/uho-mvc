@@ -253,8 +253,10 @@ class _uho_model_pages extends _uho_model
         } elseif (!empty($t['image'])) $t['image'] = ['src' => $t['image']];
 
         if (!empty($t['title']) && $t['title'] == 'Home') $t['title'] = '';
+        $t['og_title']=$t['title'];
+
         if (!empty($t['title']) && $t['title']) $t['title'] .= ' - ' . $this->head['app_title'];
-        else $t['title'] = $this->head['app_title'];
+            else $t['title'] = $t['og_title'] = $this->head['app_title'];
 
         return $t;
     }
@@ -270,10 +272,9 @@ class _uho_model_pages extends _uho_model
         else $image = null;
 
         if ($title) $this->head['title'] = strip_tags(str_replace('&nbsp;', ' ', $title));
-        if ($description) $this->head['description'] = trim(_uho_fx::headDescription($description, true, 250));
+        if ($description) $this->head['description'] = trim(_uho_fx::headDescription($description, true, 160,true,true,false));
         if ($image) $this->head['image'] = $image;
         if ($type) $this->head['og_type'] = $type;
-        
     }
 
     public function actionBefore($action, $get) {}

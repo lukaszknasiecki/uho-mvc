@@ -545,12 +545,15 @@ class _uho_route
 
             if ($get) {
                 foreach ($get as $k => $v) {
-                    if ($v === '') {
-                        $get[$k] = '';
+                    if ($v === '' or $v === null) {
+                        unset($get[$k]);
                     }
                 }
             }
-            $get = '?' . http_build_query($get);
+
+            if ($get) {
+                $get = '?' . http_build_query($get);
+            } else $get='';
         } else {
             $get = '';
         }

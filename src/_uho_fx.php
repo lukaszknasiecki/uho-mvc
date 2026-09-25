@@ -196,19 +196,16 @@ class _uho_fx
         foreach ($keys  as $k => $v) {
 
             // if type is array
-            if (is_array($v) && isset($input[$k]))
-            {
-                
-                $valid=null;
-                
-                foreach ($v as $k2 => $type)
-                {                    
+            if (is_array($v) && isset($input[$k])) {
+
+                $valid = null;
+
+                foreach ($v as $k2 => $type) {
                     if (empty($valid[$k]))
-                        $valid = _uho_fx::sanitize_input($input, [$k=>$type]);
+                        $valid = _uho_fx::sanitize_input($input, [$k => $type]);
                 }
-                $output[$k]=$valid[$k] ?? null;
-            }
-            elseif (isset($input[$k]))
+                $output[$k] = $valid[$k] ?? null;
+            } elseif (isset($input[$k]))
                 switch ($v) {
                     case "string":
                         $output[$k] = htmlspecialchars(strip_tags($input[$k]), ENT_NOQUOTES, 'UTF-8');
@@ -336,7 +333,7 @@ class _uho_fx
      * @param bool $enters Remove line breaks
      * @return string Formatted description text
      */
-    public static function headDescription($text, $isHtml = false, $length = 255, $firstParagraph = true, $enters = true)
+    public static function headDescription($text, $isHtml = false, $length = 255, $firstParagraph = true, $enters = true, $add_3dots = true)
     {
         if ($isHtml && $firstParagraph) {
             // getting first paragraph...
@@ -364,7 +361,15 @@ class _uho_fx
         }
 
         // longer than length? let's get words
-        if (strlen($text) > $length) {
+        if (strlen($text) > $length && !$add_3dots) {
+            $sentences = explode('. ', $text);
+            $text = '';
+            $i = 0;
+            while (!$text || (strlen($text) + strlen($sentences[$i]) + 2 < $length  && $i < count($sentences))) {
+                $text .= $sentences[$i] . '. ';
+                $i++;
+            }
+        } elseif (strlen($text) > $length) {
             $words = explode(' ', $text);
             $text = '';
             $i = 0;
@@ -406,12 +411,10 @@ class _uho_fx
         if (is_array($array)) {
             foreach ($array as $k => $v) {
                 // array value
-                if (is_array($value) && array_is_list($value))
-                {
+                if (is_array($value) && array_is_list($value)) {
                     // list of scalars - match if field value is in the list
                     $ok = in_array(@$v[$key], $value);
-                } elseif (is_array($value))
-                {
+                } elseif (is_array($value)) {
                     // associative array - match sub-fields of $v[$key]
                     $ok = true;
                     foreach ($value as $k2 => $v2) {
@@ -771,8 +774,7 @@ class _uho_fx
 
         $ff = ['%B' => 'MMMM', '%b' => 'MMM'];
 
-        if (function_exists('datefmt_create') && isset($ff[$format]))
-        {
+        if (function_exists('datefmt_create') && isset($ff[$format])) {
             $format = $ff[$format];
             $date = date_create($d);
             $locale = $lang . '_' . strtoupper($lang) . '.utf-8';
@@ -820,7 +822,7 @@ class _uho_fx
         }
         if ($time && count($time) >= 2) {
             $time = _uho_fx::dozeruj($time[0], 2) . ':' . _uho_fx::dozeruj($time[1], 2);
-        } else $time='';
+        } else $time = '';
 
         if (!$time);
         elseif ($lang == 'pl') {
@@ -928,8 +930,8 @@ class _uho_fx
 
 
         if ($return_field && isset($r[$return_field])) return $r[$return_field];
-            elseif ($return_field) return "";
-            else return $r;
+        elseif ($return_field) return "";
+        else return $r;
     }
 
     /**
@@ -946,7 +948,7 @@ class _uho_fx
 
     public static function getDate($date1, $date2 = null, $lang = 'pl', $format = null)
     {
-        
+
         $years_same = (substr($date1, 0, 4) == substr($date2, 0, 4));
         $months_same = (substr($date1, 0, 7) == substr($date2, 0, 7));
         $date01 = $date1;
@@ -1118,14 +1120,12 @@ class _uho_fx
         $encrypt_method = "AES-256-CBC";
         $key = hash('sha256', $secret_key);
 
-        if ($action == 'encrypt')
-        {
-            if ($deterministic) $iv=substr(md5($keys[0].$extra_key.$keys[1]), 0, 16);
-                else $iv = random_bytes(16);
-                
+        if ($action == 'encrypt') {
+            if ($deterministic) $iv = substr(md5($keys[0] . $extra_key . $keys[1]), 0, 16);
+            else $iv = random_bytes(16);
+
             $raw = openssl_encrypt($string, $encrypt_method, $key, OPENSSL_RAW_DATA, $iv);
             $output = 'v2|' . base64_encode($iv . $raw);
-
         } elseif ($action == 'decrypt') {
             if (substr($string, 0, 3) === 'v2|') {
                 $raw = base64_decode(substr($string, 3));
@@ -1472,10 +1472,10 @@ class _uho_fx
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_TIMEOUT, $params['timeout']);
-        
-        if (isset($params['follow_location'])) 
+
+        if (isset($params['follow_location']))
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-        
+
 
         $header = [];
         if (isset($params['accept'])) $header[] = 'accept: ' . $params['accept'];
@@ -1867,7 +1867,7 @@ class _uho_fx
      *
      * @return float Current microtime as float value
      */
-    public static function microtime_float() : float
+    public static function microtime_float(): float
     {
         list($usec, $sec) = explode(" ", microtime());
         return ((float)$usec + (float)$sec);

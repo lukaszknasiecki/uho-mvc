@@ -295,6 +295,7 @@ class _uho_view
 
     public function getUhoMvcTwigFilters(): array
     {
+
         return [
             new TwigFilter('base64_encode', fn($string) => base64_encode($string)),
 

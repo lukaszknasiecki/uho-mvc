@@ -286,11 +286,12 @@ class _uho_orm
 
     public function getTwigFromHtml(string $html, array $data): string|null
     {
-
         if (!$html || !is_string($html)) return null;
         if (!preg_match('/\{[\{%#]/', $html)) return $html;
         if (!$this->twig)
+        {
             $this->twig = @new \Twig\Environment(new \Twig\Loader\ArrayLoader(array()));
+        }
         if ($this->twig) {
             // don't mem cache large templates            
             if (strlen($html) > 100) {
