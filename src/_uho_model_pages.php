@@ -253,7 +253,7 @@ class _uho_model_pages extends _uho_model
         } elseif (!empty($t['image'])) $t['image'] = ['src' => $t['image']];
 
         if (!empty($t['title']) && $t['title'] == 'Home') $t['title'] = '';
-        $t['og_title']=$t['title'];
+        $t['og_title']=$t['title'] ?? "";
 
         if (!empty($t['title']) && $t['title']) $t['title'] .= ' - ' . $this->head['app_title'];
             else $t['title'] = $t['og_title'] = $this->head['app_title'];
