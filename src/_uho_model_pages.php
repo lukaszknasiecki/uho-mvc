@@ -73,8 +73,8 @@ class _uho_model_pages extends _uho_model
         if (!$this->is404) {
 
             $page = $this->findPage($url);
-            if (!empty($page)) {
-                $this->ogSet($page['title'], $page['description'], $page['image']['medium']);
+            if (!empty($page)) {                
+                $this->ogSet($page['title'], $page['description'], $page['image']['medium'],'website', $url!='/');
                 $page = $this->updatePage($page, $urlArr, $params['get']);
             }
         }
@@ -239,7 +239,6 @@ class _uho_model_pages extends _uho_model
     public function ogGet()
     {
         $t = $this->head;
-
         if (!empty($t['image']) && substr($t['image'], 0, 4) != 'http') {
             $t['image'] = $this->orm->fileRemoveCacheBuster($t['image']);
             $size = _uho_fx::getimagesize($t['image']);
@@ -255,9 +254,11 @@ class _uho_model_pages extends _uho_model
         if (!empty($t['title']) && $t['title'] == 'Home') $t['title'] = '';
         $t['og_title']=$t['title'] ?? "";
 
-        if (!empty($t['title']) && $t['title']) $t['title'] .= ' - ' . $this->head['app_title'];
-            else $t['title'] = $t['og_title'] = $this->head['app_title'];
-
+        if (!empty($t['title']) && !empty($t['add_website_name']) && $t['title']) $t['title'] .= ' - ' . $this->head['app_title'];
+            elseif (empty($t['title']))
+                 $t['title'] = $t['og_title'] = $this->head['app_title'];
+        if(isset($t['add_website_name'])) unset($t['add_website_name']);
+print_r($t);
         return $t;
     }
 
@@ -265,7 +266,7 @@ class _uho_model_pages extends _uho_model
         Sets header data for sharing
     */
 
-    public function ogSet($title, $description = '', $image = null, $type = 'website')
+    public function ogSet($title, $description = '', $image = null, $type = 'website', $add_website_name=true)
     {
         if (is_string($image)) $image = $image;
         elseif (is_array($image)) $image = $image[0];
@@ -275,6 +276,7 @@ class _uho_model_pages extends _uho_model
         if ($description) $this->head['description'] = trim(_uho_fx::headDescription($description, true, 160,true,true,false));
         if ($image) $this->head['image'] = $image;
         if ($type) $this->head['og_type'] = $type;
+        $this->head['add_website_name'] = $add_website_name;
     }
 
     public function actionBefore($action, $get) {}
