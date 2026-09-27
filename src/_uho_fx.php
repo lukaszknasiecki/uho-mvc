@@ -350,12 +350,13 @@ class _uho_fx
 
         // longer than length? let's get sentences
         $text = trim($text);
+        
         if (strlen($text) > $length) {
             $sentences = explode('. ', $text);
             $text = '';
             $i = 0;
             while (strlen($text) < $length && $i < count($sentences)) {
-                $text .= $sentences[$i] . '. ';
+                $text .= rtrim($sentences[$i],'.') . '. ';
                 $i++;
             }
         }
