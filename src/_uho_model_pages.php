@@ -258,7 +258,7 @@ class _uho_model_pages extends _uho_model
             elseif (empty($t['title']))
                  $t['title'] = $t['og_title'] = $this->head['app_title'];
         if(isset($t['add_website_name'])) unset($t['add_website_name']);
-print_r($t);
+
         return $t;
     }
 
