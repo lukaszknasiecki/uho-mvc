@@ -83,14 +83,22 @@ class _uho_model_api extends _uho_model
             else return $result;
         }
 
+        $path_not_authorized=false;
+
         // resolve Paths
         $input = _uho_fx::resolveRoute($action, $this->routing['no_auth']);
         if (!$input) $input = _uho_fx::resolveRoute($method . '.' . $action, $this->routing['no_auth']);
 
         $input_auth = null;
+
         if ($user_id) {
             $input_auth = _uho_fx::resolveRoute($action, $this->routing['auth']);
             if (!$input_auth) $input_auth = _uho_fx::resolveRoute($method . '.' . $action, $this->routing['auth']);
+        }
+        elseif (!$input)
+        {
+            $find_input = _uho_fx::resolveRoute($action, $this->routing['auth']);
+            if ($find_input) $path_not_authorized=true;
         }
 
         $rest = [];
@@ -177,7 +185,10 @@ class _uho_model_api extends _uho_model
         // return 404 if no result
 
         if (empty($result) && (!isset($result) || $result !== [])) {
-            $result = ['result' => false, 'header' => '404', 'error' => 'Unknown API path','authorized'=>$user_id?true:false];
+            if ($path_not_authorized)
+                $result = ['result' => false, 'header' => '401', 'error' => 'API path not authorized','authorized'=>$user_id?true:false];
+            else
+                $result = ['result' => false, 'header' => '404', 'error' => 'Unknown API path','authorized'=>$user_id?true:false];
         }
 
         if (isset($result['header'])) {
