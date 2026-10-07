@@ -138,6 +138,7 @@ class _uho_auth
   {
     $f = [];
     $skip_pass_check = true;
+    $email = strtolower(trim($email));
 
     if ($email && $password) {
       $f[$this->fields['password']] = $password;
@@ -273,12 +274,14 @@ class _uho_auth
 
   public function register($data, $url = null, $update_existing = false, bool $sso_email_verified = false): array
   {
+
     $result = false;
 
     $sso = (isset($data['facebook_id']) || isset($data['google_id']) || isset($data['epuap_id']));
 
     if (!isset($data['lang'])) $data['lang'] = $this->lang;
     if (!isset($data['status'])) $data['status'] = 'submitted';
+    if (isset($data['email'])) $data['email'] = strtolower(trim($data['email']));
 
     $exists = $this->getUserByParams([$this->fields['login'] => $data[$this->fields['login']]], true);
 
@@ -477,6 +480,7 @@ class _uho_auth
   public function getUserByParams(array $params, $skip_pass_check = false)
   {
     $filters = $params;
+    if (isset($filters['email'])) $filters['email'] = strtolower(trim($filters['email']));
     $pass = isset($filters['password']) ? $filters['password'] : null;
     unset($filters['password']);
     if (!$filters) return null;
@@ -623,6 +627,7 @@ class _uho_auth
 
   public function passwordReset(string $email, string $url)
   {
+    $email = strtolower(trim($email));
     $user = $this->getUserByParams(['email' => $email, 'status' => 'confirmed'], true);
     if (!$user) return ['result' => false, 'message' => 'client_user_not_found'];
 
