@@ -347,8 +347,10 @@
                 "fields": "boolean",
                 "format": "string",
                 "function": "string",
-                "cols": "integer",
-                "header": "array"
+                "cols": "integer",                
+                "rows": "integer",
+                "header": "array",
+                "data": "array"
             },
             "cms": {
                 "height": "integer",
