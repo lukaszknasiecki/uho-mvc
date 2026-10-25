@@ -129,6 +129,7 @@
                 "filename": "string",
                 "filename_original": "string",
                 "folder": "string",
+                "size":"string",
                 "hashable": "boolean",
                 "extension": "string",
                 "extensions": "array",

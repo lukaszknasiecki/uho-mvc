@@ -2398,6 +2398,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                     break;
                 case 'json':
                 case 'blocks':
+                    
                     if (is_array($v)) $v = json_encode($v, true);
                     break;
                 case 'checkboxes':
@@ -2779,7 +2780,6 @@ public function getTwigFromHtml(string $html, array $data): ?string
         $set = $this->buildOutputQuery($model, $data);
 
 
-
         if ($set) {
             $query = 'UPDATE ' . $model['table'] . ' SET ' . $set . ' ' . $where;
             $r = $this->queryOut($query);
@@ -3125,7 +3125,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         if ($return_array) {
             return ['result' => $r, 'errors' => $this->uploadManager->getLogs()];
         }
-        return $r['result'] ?? false;
+        return $r;
     }
 
     /**

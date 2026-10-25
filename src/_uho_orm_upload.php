@@ -138,18 +138,23 @@ class _uho_orm_upload
 
         /* create original image */
 
+        $field['settings']['folder'] = $this->orm->getTwigFromHtml($field['settings']['folder'], $record);
+
         $extension = 'jpg';
         $filename = $field['settings']['filename'] ?? '%uid%';
         $filename = str_replace('%uid%', $record['uid'], $filename) . '.' . $extension;
+        
+        
         $original = array_shift($field['images']);
         $original_filename = $field['settings']['folder'] . '/' . $original['folder'] . '/' . $filename;
 
         if ($image && !$temp_filename) {
             $temp_filename = $this->getTempFilename(true);
+            /*
             if ($temp_folder) {
                 if (!is_dir($temp_folder)) mkdir($temp_folder, 0777, true);
                 $temp_filename = rtrim($temp_folder, '/') . '/' . basename($temp_filename);
-            }
+            }*/
             if (!@file_put_contents($temp_filename, $image)) {
                 $this->addLog('Failed to write image to temporary file: ' . $temp_filename);
                 return false;
@@ -157,7 +162,6 @@ class _uho_orm_upload
         }
 
         $temp_original_filename = $temp_filename;
-        
         $this->copy($temp_filename, $original_filename);
 
         /* resize */
