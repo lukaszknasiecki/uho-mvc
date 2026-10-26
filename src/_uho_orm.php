@@ -2039,7 +2039,8 @@ public function getTwigFromHtml(string $html, array $data): ?string
                         if (isset($v2['source']['filters'])) {
                             $media_filters = array_merge($media_filters, $v2['source']['filters']);
                         }
-
+                        
+                        $media_filters=$this->getTwigFromModel($media_filters, $v);
 
                         $media = $this->get(
                             $media_model,
