@@ -847,13 +847,15 @@ public function getTwigFromHtml(string $html, array $data): ?string
          */
         $sql_query_filters = '';
 
-        if (!empty($filters) || !empty($filters_custom) || !empty($model['filters'])) {
+        if (!empty($filters) || !empty($filters_custom) || !empty($model['filters']))
+        {
             if (empty($model['filters'])) $model['filters'] = [];
             if (!empty($filters)) $model['filters'] = array_merge($model['filters'], $filters);
 
             $sql_query_filters = $this->schemaSqlManager->getFiltersQueryArray($model);
 
-            if (!empty($filters_custom)) {
+            if (!empty($filters_custom))
+            {
                 $sql_query_filters_custom = $this->schemaSqlManager->getFiltersRawQueryArray($model, $filters_custom);
                 if ($sql_query_filters_custom) $sql_query_filters = array_merge($sql_query_filters, $sql_query_filters_custom);
             }

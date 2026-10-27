@@ -172,6 +172,7 @@ Here is a list of field types and properties which work with these types:
 * `blocks`:
   * `settings.decode` (`boolean|string`)
   * `settings.media` (`string`)
+  * `settings.media_model` (`string`)
 * `boolean`:
   * `settings.default` (`boolean` | `integer`)
 * `date`:

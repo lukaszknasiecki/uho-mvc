@@ -40,8 +40,8 @@ class _uho_orm_schema_sql
 
         foreach ($schema['fields'] as $v) {
 
-            $default=null;
-            $on_update=null;
+            $default = null;
+            $on_update = null;
             $unique = false;
             $type = '';
             switch ($v['type']) {
@@ -53,9 +53,9 @@ class _uho_orm_schema_sql
                     break;
                 case "timestamp":
                     $type = 'timestamp';
-                    $default='CURRENT_TIMESTAMP';
+                    $default = 'CURRENT_TIMESTAMP';
                     if (!empty($v['settings']['on_update']) && $v['settings']['on_update'])
-                        $on_update='CURRENT_TIMESTAMP';
+                        $on_update = 'CURRENT_TIMESTAMP';
                     break;
                 case "integer":
                     $type = 'int(11)';
@@ -128,7 +128,7 @@ class _uho_orm_schema_sql
             }
 
             if ($unique) $v['settings']['sql']['unique'] = $unique;
-            
+
             if ($v['field'] && $type) {
 
                 if ($unique) $not_null = true;
@@ -154,14 +154,14 @@ class _uho_orm_schema_sql
 
                 if ($v['field'] == 'id') $id = $type;
                 $fields[] = $q;
-                
+
                 $f = [
-                    'Field' => $v['field'], 
-                    'Type' => $type, 
-                    'Null' => !$not_null, 
+                    'Field' => $v['field'],
+                    'Type' => $type,
+                    'Null' => !$not_null,
                     'Default' => $default,
                     'OnUpdate' => $on_update
-                    ];
+                ];
 
                 if (!empty($v['settings']['sql']['generated'])) $f['Generated'] = $v['settings']['sql']['generated'];
                 if (!empty($v['settings']['sql']['stored'])) $f['Stored'] = $v['settings']['sql']['stored'];
@@ -227,7 +227,7 @@ class _uho_orm_schema_sql
         $sql_schema = $this->getSchemaSQL($schema);
         $columns = $this->orm->query('SHOW COLUMNS FROM `' . $schema['table'] . '`');
         //$on_update_columns = $this->orm->query('SHOW COLUMNS FROM `' . $schema['table'] . '` WHERE Extra LIKE \'%on update%\';');
-        
+
         //
         /*
             Array with the same depreceated types
@@ -246,10 +246,9 @@ class _uho_orm_schema_sql
         foreach ($sql_schema['fields_sql'] as $v) {
 
             $find = _uho_fx::array_filter($columns, 'Field', $v['Field'], ['first' => true]);
-            $match=true;
+            $match = true;
 
-            if ($find && $v['OnUpdate'])
-            {
+            if ($find && $v['OnUpdate']) {
                 if (str_contains($find['Extra'], 'on update ' . $v['OnUpdate']) === false)
                     $match = false;
             }
@@ -280,9 +279,8 @@ class _uho_orm_schema_sql
                 foreach ($add as $v)
                     $html .= '<li>New field: ' . $v['Field'] . ' (' . $v['Type'] . ')</li>';
 
-                foreach ($update as $v)
-                {
-                    $new=$v['Type'];
+                foreach ($update as $v) {
+                    $new = $v['Type'];
                     if ($v['Null']) $new .= ' NULL';
                     if ($v['Default']) $new .= ' DEFAULT ' . $v['Default'];
                     if ($v['OnUpdate']) $new .= ' ON UPDATE ' . $v['OnUpdate'];
@@ -438,7 +436,14 @@ class _uho_orm_schema_sql
         if (is_array($model['filters']))
             foreach ($model['filters'] as $k => $v)
                 if ($v === NULL) unset($model['filters'][$k]);
-                else {
+                elseif (isset($v['type']) && $v['type'] == 'join') {
+                    $model0=$model;
+                    $model0['filters'] = $v['values'];
+                    $query=$this->getFiltersQueryArray($model0);
+                    $query='('.implode(' '.$v['join'].' ',$query).')';;
+                    $model['filters'][$k]=$query;
+                } else
+                {
 
                     $field_key = $k;
 
@@ -468,7 +473,10 @@ class _uho_orm_schema_sql
                     $field = _uho_fx::array_filter($model['fields'], 'field', $field_key, array('first' => true));
 
                     // security check - only allow alphanumeric and underscore field names, optionally with :lang suffix
-                    if (!$field && !preg_match('/^[A-Za-z0-9_]+(:lang)?$/', $field_key)) { unset($model['filters'][$k]); continue; }
+                    if (!$field && !preg_match('/^[A-Za-z0-9_]+(:lang)?$/', $field_key)) {
+                        unset($model['filters'][$k]);
+                        continue;
+                    }
 
                     $or = null;
 
@@ -479,6 +487,7 @@ class _uho_orm_schema_sql
                         else $v = _uho_fx::encrypt($v, $this->orm->getKeys(), $field['settings']['hash']);
                     }
 
+                    $skip_safe=false;
 
                     if ($field)
                         switch (@$field['type']) {
@@ -501,17 +510,20 @@ class _uho_orm_schema_sql
                                     if (!is_array($v)) $v = explode(',', $v);
                                     foreach ($v as $k2 => $v2)
                                         if ($iDigits) {
+                                            $skip_safe=true;
                                             if (!intval($v2)) unset($v[$k2]);
                                             else $v[$k2] = _uho_fx::dozeruj($v2, $iDigits);
                                         }
                                     if ($eq == '!=') $eq = '%!LIKE%';
                                     else $eq = '%LIKE%';
+
                                     if (
                                         isset($field['settings']['multiple_filters'])
                                         && in_array($field['settings']['multiple_filters'], ['&&', '||'])
                                     ) $or = ' ' . $field['settings']['multiple_filters'] . ' ';
                                 }
                                 if ($eq != '!=' && !$v) $v = null;
+                                
                                 break;
                         }
 
@@ -529,12 +541,11 @@ class _uho_orm_schema_sql
                     else $field = $this->orm->sqlSafe($field_key);
 
 
-
-
                     // multiple values
                     if (is_array($v)) {
                         // escape
-                        if (is_array($model['filters'][$k])) //  && ($eq == '=' || $eq == '!='))
+                        
+                        if (is_array($model['filters'][$k]) && !$skip_safe) //  && ($eq == '=' || $eq == '!='))s
                         {
                             foreach ($model['filters'][$k] as $k2 => $v2)
                                 $v[$k2] = $model['filters'][$k][$k2] = $this->orm->sqlSafe($v2);
@@ -576,6 +587,8 @@ class _uho_orm_schema_sql
                         else $model['filters'][$k] = $pre_field . '`' . $field . '`' . $eq . '"' . $this->orm->sqlSafe($v) . '"';
                     }
                 }
+
+
         if ($swap) {
 
 

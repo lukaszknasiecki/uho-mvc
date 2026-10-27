@@ -149,6 +149,7 @@
             },
             "settings": {
                 "media": "string",
+                "media_model": "string",
                 "media_filters": "array",
                 "decode": "boolean|string"
             }
