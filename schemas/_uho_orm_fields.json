@@ -161,7 +161,8 @@
                 "style": "string",
                 "width": "integer",
                 "wide": "boolean",
-                "rows": "integer"
+                "rows": "integer",
+                "translate": "boolean"
             },
             "settings": {
                 "lang": "string",
@@ -318,6 +319,7 @@
                 "auto": "array",
                 "case": "boolean",
                 "code": "boolean",
+                "translate": "boolean",
                 "default": "string",
                 "placeholder": "string",
                 "on_demand": "boolean",
@@ -332,7 +334,8 @@
                 "rows": "integer",
                 "width": "integer",
                 "wide": "boolean",
-                "style": "string"
+                "style": "string",
+                "translate": "boolean"
             },
             "settings": {
                 "lang": "string",
@@ -352,13 +355,14 @@
                 "cols": "integer",                
                 "rows": "integer",
                 "header": "array",
-                "data": "array"
+                "data": "array"          
             },
             "cms": {
                 "height": "integer",
                 "wide": "boolean",
                 "counter": "boolean",
-                "style": "string"
+                "style": "string",
+                "translate": "boolean"
             }
         }
     },

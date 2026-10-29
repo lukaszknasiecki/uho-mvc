@@ -350,13 +350,13 @@ class _uho_fx
 
         // longer than length? let's get sentences
         $text = trim($text);
-        
+
         if (strlen($text) > $length) {
             $sentences = explode('. ', $text);
             $text = '';
             $i = 0;
             while (strlen($text) < $length && $i < count($sentences)) {
-                $text .= rtrim($sentences[$i],'.') . '. ';
+                $text .= rtrim($sentences[$i], '.') . '. ';
                 $i++;
             }
         }
@@ -791,6 +791,21 @@ class _uho_fx
 
             return datefmt_format($fmt, $date);
         } else return _uho_fx::strftime_old($format, $d);
+    }
+
+    public static function getSingleDate($date, $lang = 'pl', $type = 'long')
+    {
+        switch ($type)
+        {
+            case "long":
+                $formatter=\IntlDateFormatter::LONG;
+                break;
+            default:
+                $formatter=\IntlDateFormatter::SHORT;
+                break;
+        }
+        $fmt = new \IntlDateFormatter($lang, $formatter, \IntlDateFormatter::NONE);
+        return $fmt->format(new \DateTime($date));
     }
 
 

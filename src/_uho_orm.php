@@ -1060,7 +1060,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             remove unwanted fields
         */
 
-        if ($fields_to_read && !empty($model['fields_to_read'])) {
+        if ($fields_to_read && !empty($model['fields_to_read'])) {                        
             foreach ($data as $k => $record)
                 foreach ($record as $field => $val)
                     if (!in_array($field, $fields_to_read))
