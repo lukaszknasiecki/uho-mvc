@@ -311,6 +311,7 @@ class _uho_view
 
             new TwigFilter('dozeruj', fn($string, $params) => _uho_fx::dozeruj($string, $params)),
 
+            // |decalination
             new TwigFilter('declination', function ($context, $string, $params) {
                 if (is_array($params)) {
                     $show_number = $params['number'] ?? true;

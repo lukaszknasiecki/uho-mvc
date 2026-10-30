@@ -457,6 +457,7 @@ class _uho_route
 
     public function getUrl($url, $domain = false, $lang = null, $prefix = true)
     {
+        
         if ($url == '/') {
             $url = '';
         }
@@ -475,6 +476,7 @@ class _uho_route
             $url = $this->urlLang . '/' . $url;
         }
         if ($url && @$url[strlen($url) - 1] == '/') $url = substr($url, 0, strlen($url) - 1);
+
         return ($domain . '/' . $url);
     }
 
@@ -620,6 +622,7 @@ class _uho_route
 
         $result = $v;
         $type = $v['type'];
+        
         $skip = false;
 
         $path = isset($paths[$v['type']]) ? $paths[$v['type']] : null;
@@ -634,6 +637,9 @@ class _uho_route
         if (empty($path['type']) && !empty($path['value'])) {
             $v = $path['value'];
         }
+
+        $language = null;
+
 
         if (isset($path['type']))
             switch ($path['type']) {
@@ -746,6 +752,11 @@ class _uho_route
                     }
 
                     $v = $this->getTwigFromHtml($path['value'], $input);
+                    
+                if (isset($path['language'])) $language = $this->getTwigFromHtml($path['language'], $input);
+                
+            
+                    
                     break;
             }
 
@@ -753,7 +764,11 @@ class _uho_route
         else if ($type == 'hash') $result = $v;
         else if (is_array($v));
         else if ($v && substr($v, 0, 4) == 'http') $result = $v;
-        else $result = $this->getUrl($v);
+        else
+        {
+            if ($language) $result = $this->getUrl($v,false,$language);
+            else $result = $this->getUrl($v);
+        }
 
         return $result;
     }
