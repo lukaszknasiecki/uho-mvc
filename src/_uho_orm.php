@@ -1034,7 +1034,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
         /**
          * Re-working all returned records
          */
-
+        
         $data = $this->getUpdateRecords($model, $data);
         $data = $this->getUpdateRecordsMedia($model, $data, $fields_auto);
         $data = $this->getUpdateRecordsBlocks($model, $data);
@@ -1653,8 +1653,9 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 switch ($v2['type']) {
 
                     case "blocks":
-
+                        
                         if (!empty($v2['settings']['decode'])) {
+                            
                             $default = [
                                 'html_convert' => true,
                                 'html_join' => true,
@@ -1668,12 +1669,19 @@ public function getTwigFromHtml(string $html, array $data): ?string
                             if (!empty($v2['settings']['media']))
                                 $media = $v[$v2['settings']['media']] ?? null;
                             else $media = null;
+                        
+                            $f=str_replace(':lang', '', $field);
+                            $val=$data[$k][$f] ?? null;
+                            if (is_string($val))
+                                $val = json_decode($val, true);
 
-                            $data[$k][$field] = $this->getUpdateRecordsBlocksDecode(
-                                $data[$k][$field] ?? [],
+                            $data[$k][$f] = $this->getUpdateRecordsBlocksDecode(
+                                $val,
                                 $decode_settings,
                                 $media
                             );
+
+
                         }
 
                         break;

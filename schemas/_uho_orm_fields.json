@@ -146,9 +146,11 @@
     "blocks": {
         "allowed": {
             "cms": {
-                "wide": "boolean"
+                "wide": "boolean",
+                "lang": "string"
             },
             "settings": {
+                "lang": "string",
                 "media": "string",
                 "media_model": "string",
                 "media_filters": "array",
@@ -220,7 +222,8 @@
                 "rows": "integer|string"
             },
             "settings": {
-                "long": "boolean"
+                "long": "boolean",
+                "lang":"string"
             }
         }
     },
