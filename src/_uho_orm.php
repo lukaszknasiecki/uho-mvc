@@ -814,7 +814,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
             $this->halt('_uho_orm::get->.table not found in schema [' . @$name . ']');
         if (empty($model['fields']))
             $this->halt('_uho_orm::get->.fields not found in schema [' . @$name . ']');
-
+        
         if (empty($model['order']) && !empty($model['cms']['order']) && !empty($params['use_cms_order']))
             $model['order'] = $model['cms']['order'];
 
@@ -898,9 +898,11 @@ public function getTwigFromHtml(string $html, array $data): ?string
                 if ($v['type'] == 'image_media') array_push($fields_auto, $v);
             }
 
-            if (($add_languages || isset($v['add_languages'])) && strpos($v['field'], ':lang')) {
+            if (($add_languages || isset($v['add_languages'])) && strpos($v['field'], ':lang'))
+            {
                 $vv = explode(':lang', $v['field'])[0];
                 foreach ($this->langs as $v2)
+                if (!in_array($field_type,['file']))
                     $fields[] = $vv . $v2['lang_add'];
             }
         }
@@ -1852,6 +1854,27 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
     protected function getUpdateRecordsMedia($model, $data, $fields_auto)
     {
+
+        foreach ($fields_auto as $k=>$v2)
+        {
+            if (str_ends_with($v2['field'], ':lang'))
+            {
+                foreach ($this->langs as $lang)
+                {
+                    $vv=$v2;
+                    $vv['field'] = str_replace(':lang',
+                     '_' . strtoupper($lang['lang']),
+                     $vv['field']);
+                     foreach ($vv['settings'] as $k3 => $v3)
+                        if (is_string($v3))
+                            $vv['settings'][$k3] = str_replace(':lang', $lang['lang'], $v3);
+                    $fields_auto[]=$vv;
+                }
+                unset($fields_auto[$k]);
+            }
+        }   
+
+        $fields_auto=array_values($fields_auto);
 
         foreach ($data as $k => $v)
             foreach ($fields_auto as $v2) {

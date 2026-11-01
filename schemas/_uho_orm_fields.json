@@ -127,6 +127,7 @@
                 "translate": "boolean"
             },
             "settings": {
+                "lang": "string",   
                 "filename": "string",
                 "filename_original": "string",
                 "folder": "string",

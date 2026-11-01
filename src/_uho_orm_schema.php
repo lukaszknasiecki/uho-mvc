@@ -176,6 +176,7 @@ class _uho_orm_schema
         // setting langs  ------------------------------------------------------------
         $langs = $this->orm->getLanguages();
         if ($lang && $model && $langs) {
+            
 
             $f = [];
             foreach ($model['fields'] as $k => $v)
@@ -187,6 +188,7 @@ class _uho_orm_schema
                 else $f[] = $v;
 
             $model['fields'] = $f;
+            
         }
 
         // updating include fields

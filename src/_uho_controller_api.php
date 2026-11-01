@@ -138,7 +138,8 @@ class _uho_controller_api extends _uho_controller
             $this->cfg
         );
 
-        if ($result['result']) $status = 'success';
+        if (isset($result['uho_worker_status'])) $status = $result['uho_worker_status'];
+        elseif ($result['result']) $status = 'success';
         else $status = 'error';
 
         $this->model->orm->patch(
