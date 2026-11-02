@@ -1867,7 +1867,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
                      $vv['field']);
                      foreach ($vv['settings'] as $k3 => $v3)
                         if (is_string($v3))
-                            $vv['settings'][$k3] = str_replace(':lang', $lang['lang'], $v3);
+                            $vv['settings'][$k3] = str_replace(':lang', strtoupper($lang['lang']), $v3);
                     $fields_auto[]=$vv;
                 }
                 unset($fields_auto[$k]);
