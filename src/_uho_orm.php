@@ -1857,7 +1857,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         foreach ($fields_auto as $k=>$v2)
         {
-            if (str_ends_with($v2['field'], ':lang'))
+            if (!empty($v2['field']) && str_ends_with($v2['field'], ':lang'))
             {
                 foreach ($this->langs as $lang)
                 {
