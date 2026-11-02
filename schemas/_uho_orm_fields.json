@@ -148,7 +148,8 @@
         "allowed": {
             "cms": {
                 "wide": "boolean",
-                "lang": "string"
+                "lang": "string",
+                "translate": "boolean"
             },
             "settings": {
                 "lang": "string",

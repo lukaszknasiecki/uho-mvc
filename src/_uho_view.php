@@ -316,6 +316,7 @@ class _uho_view
                 if (is_array($params)) {
                     $show_number = $params['number'] ?? true;
                     $words = $params['words'] ?? $params;
+                    $string = intval($string);
 
                     $result = match (true) {
                         $string == 1 => 1,
