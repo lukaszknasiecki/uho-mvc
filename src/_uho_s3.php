@@ -7,7 +7,7 @@ use Aws\Exception\AwsException;
 use Aws\Credentials\CredentialProvider;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\CloudFront\CloudFrontClient;
-use Huncwot\UhoFramework\_uho_orm;
+use Huncwot\UhoFramework\_uho_fx;
 
 /**
  * This class provides S3 bucket interface
@@ -83,24 +83,21 @@ class _uho_s3
                 'key' =>    $config['key'],
                 'secret' => $config['secret']
             ];
-        elseif (!empty($config['credentials']))
-        {
-            switch ($config['credentials'])
-            {
+        elseif (!empty($config['credentials'])) {
+            switch ($config['credentials']) {
                 case 'ECS':
 
-                $provider = CredentialProvider::ecsCredentials();
-                $memoizedProvider = CredentialProvider::memoize($provider);
-                $cfg['credentials'] = $memoizedProvider;
-                break;
+                    $provider = CredentialProvider::ecsCredentials();
+                    $memoizedProvider = CredentialProvider::memoize($provider);
+                    $cfg['credentials'] = $memoizedProvider;
+                    break;
             }
         }
 
         if (!empty($config['compress'])) $this->setCompress($config['compress']);
         if (!empty($params['compress'])) $this->setCompress($params['compress']);
 
-        if (!empty($config['cache_sql']))
-        {
+        if (!empty($config['cache_sql'])) {
             $this->setCacheSql($config['cache_sql']);
             $this->setCompress(true);
         }
@@ -114,12 +111,9 @@ class _uho_s3
         $this->s3Client = new S3Client($cfg);
         $this->cfg = $config;
 
-        if ($this->cache_sql)
-        {
+        if ($this->cache_sql) {
+        } else {
 
-        } else
-        {
-            
             if (isset($_SESSION['_uho_s3_cache']) && !$recache) $this->cache = $_SESSION['_uho_s3_cache'];
             else {
                 if (!$recache && $this->cache_file && $this->loadCache()) {
@@ -127,10 +121,9 @@ class _uho_s3
                     $this->buildCache();
                 }
                 if (empty($_SESSION['_uho_s3_cache'])) $_SESSION['_uho_s3_cache'] = [];
-                $this->cache = $_SESSION['_uho_s3_cache'];            
+                $this->cache = $_SESSION['_uho_s3_cache'];
             }
         }
-     
     }
 
     public function ready(): bool
@@ -145,9 +138,9 @@ class _uho_s3
      *
      * @psalm-return array{count: int<0, max>, skipped: int<0, max>}
      */
-    public function buildCache($params = []): array
+    public function buildCacheV1($params = []): array
     {
-        
+        //$t1 = _uho_fx::microtime_float();
         $this->cacheClearAll();
         $c = 0;
 
@@ -161,16 +154,13 @@ class _uho_s3
         }
 
         $skip = 0;
-        
 
-        foreach ($results as $objects)
-        {
-            if (!empty($objects['Contents']))
-            {
-                foreach ($objects['Contents']  as $object)
-                {
+
+        foreach ($results as $objects) {
+            if (!empty($objects['Contents'])) {
+                foreach ($objects['Contents']  as $object) {
                     if (@$params['skip_original'] && strpos($object['Key'], '/original/')) $object['Key'] = '';
-                    
+
                     if (!empty($object['Key'])) {
                         $c++;
                         $time = str_replace('+00:00', '', $object['LastModified']->__toString());
@@ -183,8 +173,113 @@ class _uho_s3
                 }
             }
         }
-        
+
         $this->saveCache();
+        //exit(_uho_fx::microtime_float() - $t1 . '!');
+        return ['count' => $c, 'skipped' => $skip];
+    }
+
+    public function buildCache($params = []): array
+    {
+        return $this->buildCacheV2($params);
+    }
+
+    /**
+     * Faster alternative to buildCache():
+     * - uses ListObjectsV2,
+     * - splits the bucket into top-level "folders" (Delimiter '/') and lists
+     *   them concurrently (async paginators, limited concurrency),
+     * - builds the cache in a local array and writes session/file only once.
+     * Result (cache contents, order, count/skipped) matches buildCache().
+     *
+     * @param array $params skip_original => bool, concurrency => int (default 16)
+     * @return int[]
+     *
+     * @psalm-return array{count: int<0, max>, skipped: int<0, max>}
+     */
+    public function buildCacheV2($params = []): array
+    {
+        //$t1 = _uho_fx::microtime_float();
+        $this->cacheClearAll();
+
+        $bucket = $this->cfg['bucket'];
+        $concurrency = max(1, (int)($params['concurrency'] ?? 16));
+        $skipOriginal = !empty($params['skip_original']);
+
+        /** @var array<string,string> $objects S3 key => LastModified string */
+        $objects = [];
+        $collect = function ($page) use (&$objects) {
+            if (!empty($page['Contents'])) {
+                foreach ($page['Contents'] as $object) {
+                    $objects[$object['Key']] = (string)$object['LastModified'];
+                }
+            }
+        };
+
+        try {
+            // discovery: collect top-level prefixes, descend while there is exactly one
+            $prefixes = [(string)$this->folder];
+            for ($depth = 0; $depth < 5 && count($prefixes) === 1; $depth++) {
+                $found = [];
+                $pages = $this->s3Client->getPaginator('ListObjectsV2', [
+                    'Bucket' => $bucket,
+                    'Prefix' => $prefixes[0],
+                    'Delimiter' => '/'
+                ]);
+                foreach ($pages as $page) {
+                    $collect($page);
+                    if (!empty($page['CommonPrefixes'])) {
+                        foreach ($page['CommonPrefixes'] as $p) $found[] = $p['Prefix'];
+                    }
+                }
+                $prefixes = $found;
+            }
+
+            // concurrent full listing of each discovered prefix
+            if ($prefixes) {
+                $promises = (function () use ($prefixes, $bucket, $collect) {
+                    foreach ($prefixes as $prefix) {
+                        yield $this->s3Client->getPaginator('ListObjectsV2', [
+                            'Bucket' => $bucket,
+                            'Prefix' => $prefix
+                        ])->each($collect);
+                    }
+                })();
+                (new \GuzzleHttp\Promise\EachPromise($promises, ['concurrency' => $concurrency]))
+                    ->promise()
+                    ->wait();
+            }
+        } catch (AwsException $e) {
+            exit('_uho_s3:: Access Denied :: ' . $e->getMessage());
+        }
+
+        // keep S3 (binary, lexicographic) order, same as sequential listing
+        ksort($objects, SORT_STRING);
+
+        $c = 0;
+        $skip = 0;
+        $cache = [];
+        $folder = $this->folder ? $this->folder . '/' : '';
+
+        foreach ($objects as $key => $lastModified) {
+            $key = (string)$key;
+            if ($key === '' || ($skipOriginal && strpos($key, '/original/'))) {
+                $skip++;
+                continue;
+            }
+            $c++;
+
+            $filename = $folder ? str_replace($folder, '', $key) : $key;
+            if (!$filename) continue;
+
+            $value = ['time' => str_replace('+00:00', '', $lastModified)];
+            $this->compressObject($filename, $value);
+            $cache[$filename] = $value;
+        }
+
+        $this->cache = $cache;
+        $this->saveCache();
+        //exit(_uho_fx::microtime_float() - $t1 . '!');
         return ['count' => $c, 'skipped' => $skip];
     }
 
@@ -232,7 +327,8 @@ class _uho_s3
     public function file_exists($filename)
     {
         $d = $this->getFileMetadata($filename);
-        if (isset($d)) return true; else return false;
+        if (isset($d)) return true;
+        else return false;
     }
 
     /**
@@ -251,6 +347,8 @@ class _uho_s3
         $filename = str_replace($root, '', $filename);
         $filename = str_replace($this->cfg['host'] . '/', '', $filename);
         if ($this->path_skip) $filename = str_replace($this->path_skip, '', $filename);
+        $filename = str_replace($this->cfg['folder'], '', $filename);
+        $filename = trim($filename, '/');
         return $filename;
     }
 
@@ -285,17 +383,13 @@ class _uho_s3
                 break;
         }
 
-        if ($this->cache_sql && $this->orm)
-        {
-            $c=$this->orm->get('uho_image_cache', ['id'=>$filename],true);
-            if ($c)
-            {
+        if ($this->cache_sql && $this->orm) {
+            $c = $this->orm->get('uho_image_cache', ['id' => $filename], true);
+            if ($c) {
                 return $c;
             }
             return null;
-        } 
-
-        elseif (isset($this->cache[$filename])) {
+        } elseif (isset($this->cache[$filename])) {
 
             switch ($this->compress) {
                 case "md5":
@@ -357,7 +451,7 @@ class _uho_s3
     public function getFileMetadata($filename, $force = false, $save = false)
     {
 
-        $filename = $this->clear_filename($filename);        
+        $filename = $this->clear_filename($filename);
         $result_simple = null;
 
         $cached = $this->cacheGet($filename);
@@ -426,7 +520,7 @@ class _uho_s3
     {
         if (!$source || !$destination) return;
         $destination = $this->clear_filename($destination);
-        
+
         $this->cacheClear($destination);
         $destination = $this->createS3Key($destination);
 
@@ -436,45 +530,43 @@ class _uho_s3
                 'Key' => $destination,
                 'SourceFile' => $source
             ];
-            if ($download) $object['ContentDisposition']='attachment';
+            if ($download) $object['ContentDisposition'] = 'attachment';
             if ($length) $object['ContentLength'] = $length;
             if ($this->acl) $object['ACL'] = 'public-read';
 
-            $ext=explode('.',$destination); $ext=array_pop($ext);
+            $ext = explode('.', $destination);
+            $ext = array_pop($ext);
 
-            switch ($ext)
-            {
+            switch ($ext) {
                 case "jpg":
                 case "jpeg":
-                    $object['ContentType']= 'image/jpeg';
+                    $object['ContentType'] = 'image/jpeg';
                     $object['ContentDisposition'] = "inline";
                     $object['CacheControl'] = "max-age=31536000, public";
                     break;
                 case "webp":
-                    $object['ContentType']= 'image/webp';
+                    $object['ContentType'] = 'image/webp';
                     $object['ContentDisposition'] = "inline";
                     $object['CacheControl'] = "max-age=31536000, public";
                     break;
                 case "png":
-                    $object['ContentType']= 'image/png';
+                    $object['ContentType'] = 'image/png';
                     $object['ContentDisposition'] = "inline";
                     $object['CacheControl'] = "max-age=31536000, public";
                     break;
                 case "mp3":
                 case "webm":
-                    $object['ContentType']= 'audio/'.$ext;
+                    $object['ContentType'] = 'audio/' . $ext;
                     $object['ContentDisposition'] = "inline";
                     $object['CacheControl'] = "max-age=31536000, public";
                     break;
-
             }
 
-            $result = $this->s3Client->putObject($object);            
+            $result = $this->s3Client->putObject($object);
             $result = $result->toArray();
 
             $result = $result['@metadata'];
-            if ($result && $result['statusCode'] == 200)
-            {
+            if ($result && $result['statusCode'] == 200) {
                 $this->cacheSet($destination, ['time' => md5($result['headers']['date'])], true);
             }
         } catch (AwsException $e) {
@@ -511,8 +603,7 @@ class _uho_s3
             $result = $result->toArray();
 
             $result = $result['@metadata'];
-            if ($result && $result['statusCode'] == 200)
-            {
+            if ($result && $result['statusCode'] == 200) {
                 $this->cacheSet($destination, ['time' => md5($result['headers']['date'])], true);
             }
         } catch (AwsException $e) {
@@ -529,7 +620,10 @@ class _uho_s3
     public function unlink($filename): bool
     {
         $filename = $this->clear_filename($filename);
-        $key = $this->createS3Key($filename,false);
+        $key = $this->createS3Key($filename, false);
+
+        $cached = $this->cacheGet($filename);
+
 
         $result = false;
         if ($filename)
@@ -582,7 +676,7 @@ class _uho_s3
         }
 
 
-        
+
         return $objects;
     }
 
@@ -648,12 +742,11 @@ class _uho_s3
 
     public function getCacheFileAge()
     {
-        if ($this->cache_file)
-        {
-            $time=@filemtime($_SERVER['DOCUMENT_ROOT'] . $this->cache_file);
-            if ($time) $time = 1+intval((time() - $time)/60);
-                else $time=false;
-        } else $time=false;
+        if ($this->cache_file) {
+            $time = @filemtime($_SERVER['DOCUMENT_ROOT'] . $this->cache_file);
+            if ($time) $time = 1 + intval((time() - $time) / 60);
+            else $time = false;
+        } else $time = false;
         return $time;
     }
 
@@ -665,8 +758,8 @@ class _uho_s3
     public function saveCache()
     {
         $result = false;
-        
-         $_SESSION['_uho_s3_cache'] = $this->cache;
+        $_SESSION['_uho_s3_cache'] = $this->cache;
+
         if ($this->cache_file) {
             $f = fopen($_SERVER['DOCUMENT_ROOT'] . '/' . $this->cache_file, 'w');
             if ($f) {
@@ -711,10 +804,9 @@ class _uho_s3
                 fclose($f);
                 if ($s) {
                     $this->cacheClearAll();
-                    foreach ($s as $k => $v)
-                    {
+                    foreach ($s as $k => $v) {
                         //if ($this->compress=='md5') $v=['time'=>$v];
-                        if (is_string($v)) $v=['time'=>$v];
+                        if (is_string($v)) $v = ['time' => $v];
                         //    else $v=['time' => $v['time']];
                         $this->cacheSet($k, $v, false, false);
                     }
@@ -853,7 +945,7 @@ class _uho_s3
         $this->folder = $value;
     }
 
-    private function createS3Key(string $destination, $add_folder=true)
+    private function createS3Key(string $destination, $add_folder = true)
     {
         if ($this->folder && $add_folder)  $destination = $this->folder . '/' . $destination;
         return $destination;

@@ -2865,9 +2865,12 @@ public function getTwigFromHtml(string $html, array $data): ?string
     {
         /*
             s3 support
+            if S3 is defined
         */
 
         if ($this->isS3()) {
+        
+            
             if ($this->files_cache_buster) {
                 $time = $this->s3Manager->getFileTime($f);
                 if ($time) $f .= '?' . $time;
@@ -2880,6 +2883,7 @@ public function getTwigFromHtml(string $html, array $data): ?string
 
         /*
             standard files, uploaded to the folder
+            also handles S3 cached files if available
         */ elseif ($this->files_cache_buster && isset($this->folder_replace)) {
 
             if ($this->folder_replace['source'])
