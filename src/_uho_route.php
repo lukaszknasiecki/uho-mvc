@@ -693,7 +693,7 @@ class _uho_route
                             else $v = $this->getUrlNow(false, '[all]', $get, @$v['get_remove'], @$val['lang']);
                     
                     }
-                    else $v = $this->getUrlNow(false, null, null, null, @$val['lang']);
+                    else $v = $this->getUrlNow(false, null, null, null, $v['lang'] ?? null);
 
                     $v = rtrim($v, '/');
                     $v = str_replace('=&', '&', $v);
